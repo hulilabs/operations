@@ -399,8 +399,8 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color:
       <div class="chart-row cols-1" style="margin-top:16px">
         <div class="chart-card">
           <div style="margin-bottom:4px">
-            <h3>Citas agendadas: 2025 (solo humanos) vs 2026 (humanos + agente IA)</h3>
-            <p class="chart-subtitle">Comparativo año a año — canal WhatsApp CR</p>
+            <h3>Citas agendadas por WhatsApp: 2025 (solo humanos) vs 2026 (humanos + agente IA)</h3>
+            <p class="chart-subtitle">Comparativo año a año — Costa Rica</p>
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:#64748b">
               <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#64748b"></span> Humanos 2025
               <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#059669"></span> Agente IA 2026
@@ -1487,9 +1487,21 @@ function renderAll() {
   );
 
   // ── Sentimiento (con drill-down, sin "Sin dato") ──
+  // Colores fijos por tipo de sentimiento: positivo=verde, neutro=amarillo, negativo=rojo
   const bySent = countBy(hh.filter(r => r.sentimiento), r => r.sentimiento);
-  makeDonut('ch-hh-sentimiento', Object.keys(bySent), Object.values(bySent),
-    ['#10b981','#f59e0b','#ef4444','#94a3b8'], (label) => {
+  const SENT_COLOR_MAP = {
+    'positivo': '#16a34a',
+    'neutral':  '#eab308',
+    'neutro':   '#eab308',
+    'negativo': '#dc2626',
+  };
+  const sentLabels = Object.keys(bySent);
+  const sentColors = sentLabels.map(l => {
+    const norm = l.toLowerCase().replace(/\s*\(.*\)/, '').trim();
+    return SENT_COLOR_MAP[norm] || '#94a3b8';
+  });
+  makeDonut('ch-hh-sentimiento', sentLabels, Object.values(bySent),
+    sentColors, (label) => {
     const key = label.replace(/\s*\(.*\)/, '').trim();
     const rows = hh.filter(r => r.sentimiento === key);
     openModal('Sentimiento: ' + key, rows);
