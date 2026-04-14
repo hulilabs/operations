@@ -1012,6 +1012,7 @@ function renderComparativo() {
   const humanos26PorAgente = {};
   RAW.humanos2026.forEach(r => {
     if (!r.fecha) return;
+    if (f_comp.pais && r.pais !== f_comp.pais) return;
     const k = getMonthKey(r.fecha);
     humanos26PorMes[k] = (humanos26PorMes[k] || 0) + 1;
     if (r.agente) {
@@ -1648,7 +1649,10 @@ async function reloadData() {
         const mesNum = MESES_MAP_H26[mesStr] || null;
         // Fecha sintética: día 1 del mes — usado solo para agrupar por getMonthKey()
         const fecha  = mesNum ? new Date(ANIO_H26, mesNum - 1, 1) : null;
-        return { fecha, agente };
+        const PAIS_MAP_H = { 'CR': 'HuliHealth_CostaRica', 'PA': 'HuliHealth_Panama' };
+        const rawPais = clean(norm['pais'] || norm['país'] || '');
+        const pais = PAIS_MAP_H[rawPais] || rawPais || '';
+        return { fecha, agente, pais };
       })
       .filter(r => r.fecha);
     // Estado de citas: columnas Año, Mes, Total agendadas, Completadas, Canceladas, Noshow, Rescheduled, Booked
