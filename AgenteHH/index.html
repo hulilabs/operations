@@ -1289,6 +1289,12 @@ function renderTendencias() {
 //  RENDER
 // ══════════════════════════════════════════════════════════════
 function renderAll() {
+  // DEBUG fechas — quitar después
+  const f0 = getFilters();
+  console.log('=== DEBUG FECHAS ===');
+  console.log('Filtro from:', f0.from, '| to:', f0.to);
+  console.log('Sample fechas RAW.hh (primeras 5):', RAW.hh.slice(0,5).map(r => r.fecha));
+  console.log('Total RAW.hh:', RAW.hh.length, '| con fecha:', RAW.hh.filter(r=>r.fecha).length, '| sin fecha:', RAW.hh.filter(r=>!r.fecha).length);
   const hh          = filterHH(RAW.hh);
   const total       = hh.length;
   const resueltas   = hh.filter(isResuelta).length;
