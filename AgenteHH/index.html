@@ -400,7 +400,7 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color:
         <div class="chart-card">
           <div style="margin-bottom:4px">
             <h3>Citas agendadas por WhatsApp: 2025 (solo humanos) vs 2026 (humanos + agente IA)</h3>
-            <p class="chart-subtitle">Comparativo año a año — Costa Rica</p>
+            <p class="chart-subtitle">Comparativo año a año</p>
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:#64748b">
               <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#64748b"></span> Humanos 2025
               <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#059669"></span> Agente IA 2026
@@ -689,10 +689,13 @@ function normalizeCitas(rows) {
     .map(({ _norm, _orig }) => {
       const rawFecha = _norm['fecha'];
       const fecha = (rawFecha && !isUndef(rawFecha)) ? parseDate(clean(rawFecha)) : null;
-      // Extraer país con normalización igual a HH
+      // Extraer país tolerando tildes — buscar cualquier clave que normalice a "pais"
       const PAIS_MAP_C = { 'CR': 'HuliHealth_CostaRica', 'PA': 'HuliHealth_Panama' };
-      const rawPais = _norm['país'] || _norm['pais'] || _norm['país'] || '';
-      const pais = PAIS_MAP_C[clean(rawPais)] || clean(rawPais) || '';
+      const paisKey = Object.keys(_norm).find(k =>
+        k.normalize('NFD').replace(/[\u0300-\u036f]/g, '') === 'pais'
+      );
+      const rawPais = paisKey ? clean(_norm[paisKey]) : '';
+      const pais = PAIS_MAP_C[rawPais] || rawPais || '';
       return { ..._orig, fecha, pais };
     });
 }
@@ -1006,7 +1009,7 @@ function renderComparativo() {
 
   // ── Citas humanos 2026 por mes y por agente (nuevo sheet) ──
   const humanos26PorMes    = {};
-  const humanos26PorAgente = {}; // { '2026-03': { narias: 5, scalderon: 3, ... } }
+  const humanos26PorAgente = {};
   RAW.humanos2026.forEach(r => {
     if (!r.fecha) return;
     const k = getMonthKey(r.fecha);
