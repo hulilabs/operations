@@ -1022,7 +1022,9 @@ function renderComparativo() {
   });
 
   // Arrays alineados a los 12 meses
+  // HUMANO_DATA 2025 es solo de Costa Rica — ocultar si se filtra por Panamá
   const humanos2025 = MESES_NUM.map(m => {
+    if (f_comp.pais === 'HuliHealth_Panama') return 0;
     const entry = HUMANO_DATA['2025-' + m];
     return entry ? entry.total : 0;
   });
