@@ -723,7 +723,8 @@ function getFilters() {
   };
 }
 function inDateRange(d, from, to) {
-  if (!d) return true;
+  // Si hay filtro activo y la fecha es nula, excluir el registro
+  if (!d) return !(from || to);
   if (from && d < from) return false;
   if (to   && d > to)   return false;
   return true;
