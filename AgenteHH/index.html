@@ -507,7 +507,8 @@ function parseDate(str) {
     .replace('a.m.', 'AM').replace('p.m.', 'PM')
     .replace('a. m.', 'AM').replace('p. m.', 'PM');
 
-  // Año de 2 dígitos → 4 dígitos: "01/17/26 1:30 PM" → "01/17/2026 1:30 PM"
+  // Normalizar AM/PM con o sin espacio: "12:02PM" → "12:02 PM"
+  s = s.replace(/(\d)(AM|PM)/i, '$1 $2');
   s = s.replace(/^(\d{1,2})\/(\d{1,2})\/(\d{2})(\s|$)/, (_, m, d, y, rest) => {
     const fullYear = parseInt(y) <= 50 ? '20' + y : '19' + y;
     return `${m}/${d}/${fullYear}${rest}`;
@@ -700,7 +701,7 @@ function normalizeHH(rows) {
 
   return rows.map(r => ({
     url:          clean(findVal(r, ['URL','url'])),
-    fecha:        parseDate(clean(findVal(r, ['Fecha','fecha']))),
+    fecha:        parseDate(clean(findVal(r, ['Fecha','fecha','FECHA','Timestamp','timestamp','Hora','hora','Date','date']))),
     sentimiento:  (() => { const s = clean(findVal(r, ['Sentimiento','sentimiento'])); return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ''; })(),
     transferida:  isTruthy(findVal(r, ['Transferida','transferida'])),
     estado:       clean(findVal(r, ['Estado','estado'])),
