@@ -1,0 +1,1733 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agente HH — Dashboard · Huli</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+:root {
+  --bg:      #f1f5f9;
+  --sidebar: #0f172a;
+  --card:    #ffffff;
+  --border:  #e2e8f0;
+  --txt1:    #0f172a;
+  --txt2:    #64748b;
+  --blue:    #1a73e8;
+  --hh:      #059669;
+  --ok:      #16a34a;
+  --warn:    #d97706;
+  --err:     #dc2626;
+  --shadow:  0 1px 4px rgba(0,0,0,.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--txt1); display: flex; min-height: 100vh; }
+
+/* ── Sidebar ── */
+#sidebar {
+  width: 220px; min-height: 100vh; background: var(--sidebar);
+  display: flex; flex-direction: column; position: fixed; top: 0; left: 0; z-index: 100;
+}
+#sidebar .brand { padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
+#sidebar .brand h1 { color: #fff; font-size: 16px; font-weight: 700; }
+#sidebar .brand .subtitle { color: #94a3b8; font-size: 11px; margin-top: 3px; }
+#sidebar .agent-info {
+  margin: 16px 20px 0; padding: 12px 14px;
+  background: rgba(5,150,105,.15); border-radius: 8px; border: 1px solid rgba(5,150,105,.3);
+}
+#sidebar .agent-info .agent-status {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+}
+#sidebar .agent-info .status-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #34d399; flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(52,211,153,.25);
+}
+#sidebar .agent-info .status-label { color: #34d399; font-size: 11px; font-weight: 600; }
+#sidebar .agent-info p { color: #94a3b8; font-size: 11px; line-height: 1.5; }
+#sidebar nav { padding: 16px 0; flex: 1; }
+#sidebar nav a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 20px; color: #94a3b8; text-decoration: none; font-size: 13px;
+  transition: all .15s; cursor: pointer; border-left: 3px solid transparent;
+}
+#sidebar nav a:hover { color: #fff; background: rgba(255,255,255,.06); }
+#sidebar nav a.active { color: #fff; background: rgba(255,255,255,.1); border-left-color: var(--hh); }
+#sidebar nav a .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+#sidebar .footer { padding: 14px 20px; border-top: 1px solid rgba(255,255,255,.08); }
+#sidebar .footer p { color: #475569; font-size: 11px; }
+#last-update { color: #64748b; font-size: 11px; margin-top: 4px; }
+#auto-refresh-info { color: #475569; font-size: 10px; margin-top: 3px; }
+
+/* ── Main ── */
+#main { margin-left: 220px; flex: 1; display: flex; flex-direction: column; }
+
+/* ── Topbar ── */
+#topbar {
+  background: var(--card); border-bottom: 1px solid var(--border);
+  padding: 12px 28px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  position: sticky; top: 0; z-index: 50;
+}
+#topbar h2 { font-size: 15px; font-weight: 700; flex: 1; min-width: 120px; }
+.quick-dates { display: flex; gap: 4px; }
+.quick-dates button {
+  padding: 5px 10px; border: 1px solid var(--border); background: var(--bg);
+  border-radius: 5px; font-size: 11px; color: var(--txt2); cursor: pointer; transition: all .15s;
+}
+.quick-dates button:hover { border-color: var(--hh); color: var(--hh); }
+.quick-dates button.active { background: var(--hh); border-color: var(--hh); color: #fff; font-weight: 600; }
+.filter-group { display: flex; align-items: center; gap: 6px; }
+.filter-group label { font-size: 12px; color: var(--txt2); white-space: nowrap; }
+.filter-group select, .filter-group input {
+  padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
+  font-size: 12px; background: var(--bg); color: var(--txt1); outline: none;
+}
+.filter-group select:focus, .filter-group input:focus { border-color: var(--hh); }
+#btn-refresh {
+  padding: 7px 14px; background: var(--hh); color: #fff; border: none;
+  border-radius: 6px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px;
+}
+#btn-refresh:hover { opacity: .9; }
+
+/* ── Content ── */
+#content { padding: 24px 28px; flex: 1; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* ── Loader ── */
+#loader {
+  position: fixed; inset: 0; background: rgba(15,23,42,.75);
+  display: flex; align-items: center; justify-content: center; z-index: 999;
+}
+.spinner {
+  width: 40px; height: 40px; border: 3px solid rgba(255,255,255,.2);
+  border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#loader p { color: #fff; margin-top: 14px; font-size: 13px; }
+#loader-wrap { text-align: center; }
+
+/* ── Hero Banner ── */
+.hero-banner {
+  background: linear-gradient(135deg, #064e3b 0%, #065f46 60%, #059669 100%);
+  border-radius: 12px; padding: 24px 28px; margin-bottom: 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  flex-wrap: wrap;
+}
+.hero-banner .hero-main { flex: 1; }
+.hero-banner .hero-title { color: rgba(255,255,255,.7); font-size: 12px; text-transform: uppercase; letter-spacing: .6px; }
+.hero-banner .hero-val { color: #fff; font-size: 52px; font-weight: 800; line-height: 1; margin: 6px 0 4px; }
+.hero-banner .hero-sub { color: #6ee7b7; font-size: 13px; }
+.hero-banner .hero-stats { display: flex; gap: 24px; flex-wrap: wrap; }
+.hero-stat { text-align: center; }
+.hero-stat .hs-val { color: #fff; font-size: 22px; font-weight: 700; }
+.hero-stat .hs-label { color: rgba(255,255,255,.6); font-size: 11px; margin-top: 2px; }
+
+/* ── KPI Cards ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.kpi-card {
+  background: var(--card); border-radius: 10px; padding: 18px 20px;
+  box-shadow: var(--shadow); border-left: 4px solid var(--blue);
+}
+.kpi-card.hh   { border-left-color: var(--hh); }
+.kpi-card.ok   { border-left-color: var(--ok); }
+.kpi-card.warn { border-left-color: var(--warn); }
+.kpi-card.err  { border-left-color: var(--err); }
+.kpi-label { font-size: 11px; color: var(--txt2); text-transform: uppercase; letter-spacing: .5px; }
+.kpi-val   { font-size: 28px; font-weight: 700; margin: 4px 0 2px; }
+.kpi-sub   { font-size: 11px; color: var(--txt2); }
+.kpi-mom   { font-size: 11px; font-weight: 600; margin-top: 5px; display: inline-block; padding: 2px 7px; border-radius: 10px; }
+.kpi-mom.up   { color: #15803d; background: #dcfce7; }
+.kpi-mom.down { color: #92400e; background: #fef3c7; }
+.kpi-mom.flat { color: #64748b; background: #f1f5f9; }
+
+/* ── Chart rows ── */
+.chart-row { display: grid; gap: 16px; margin-bottom: 20px; }
+.chart-row.cols-2 { grid-template-columns: 1fr 1fr; }
+.chart-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.chart-row.cols-1 { grid-template-columns: 1fr; }
+.chart-card {
+  background: var(--card); border-radius: 10px; padding: 20px;
+  box-shadow: var(--shadow);
+}
+.chart-card h3 { font-size: 12px; font-weight: 600; color: var(--txt2); margin-bottom: 16px; text-transform: uppercase; letter-spacing: .4px; }
+.chart-card .chart-subtitle { font-size: 11px; color: #94a3b8; margin-top: -12px; margin-bottom: 14px; }
+.chart-wrap { position: relative; height: 220px; }
+.chart-wrap.tall { height: 280px; }
+
+/* ── Section header ── */
+.sec-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.sec-header h2 { font-size: 18px; font-weight: 700; }
+.sec-badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; color: #fff; }
+
+/* ── Insight box ── */
+.insight-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+.insight-card {
+  border-radius: 10px; padding: 14px 18px; display: flex; align-items: flex-start; gap: 12px;
+}
+.insight-card.green { background: #f0fdf4; border: 1px solid #bbf7d0; }
+.insight-card.amber { background: #fffbeb; border: 1px solid #fde68a; }
+.insight-card.red   { background: #fef2f2; border: 1px solid #fecaca; }
+.insight-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+.insight-text .it-label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600; color: var(--txt2); }
+.insight-text .it-val   { font-size: 20px; font-weight: 800; line-height: 1.1; }
+.insight-text .it-desc  { font-size: 11px; color: var(--txt2); margin-top: 2px; }
+.insight-card.green .it-val { color: #15803d; }
+.insight-card.amber .it-val { color: #b45309; }
+.insight-card.red   .it-val { color: #b91c1c; }
+
+/* ── Empty state ── */
+.empty-state {
+  text-align: center; padding: 40px 20px; color: var(--txt2);
+}
+.empty-state p { font-size: 13px; }
+
+/* ── Semáforo en KPI ── */
+.kpi-semaforo { display: flex; align-items: center; gap: 5px; margin-top: 6px; }
+.semaforo-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.semaforo-dot.green  { background: #16a34a; }
+.semaforo-dot.amber  { background: #d97706; }
+.semaforo-dot.red    { background: #dc2626; }
+.semaforo-label { font-size: 11px; font-weight: 600; }
+.semaforo-label.green { color: #15803d; }
+.semaforo-label.amber { color: #92400e; }
+.semaforo-label.red   { color: #b91c1c; }
+
+/* ── Modal de detalle ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,.6);
+  z-index: 500; display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-box {
+  background: #fff; border-radius: 12px; width: 100%; max-width: 860px;
+  max-height: 85vh; display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
+}
+.modal-header {
+  padding: 18px 24px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-header h3 { font-size: 15px; font-weight: 700; }
+.modal-header .modal-close {
+  width: 30px; height: 30px; border-radius: 6px; border: none;
+  background: #f1f5f9; cursor: pointer; font-size: 16px; color: #64748b;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-header .modal-close:hover { background: #e2e8f0; }
+.modal-body { overflow-y: auto; padding: 16px 24px 24px; flex: 1; }
+.modal-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.modal-table th {
+  background: #f8fafc; padding: 8px 12px; border: 1px solid #e2e8f0;
+  text-align: left; font-weight: 600; color: #64748b; white-space: nowrap;
+}
+.modal-table td { padding: 7px 12px; border: 1px solid #e2e8f0; vertical-align: top; }
+.modal-table tr:nth-child(even) td { background: #f8fafc; }
+.modal-table .td-url a { color: #1a73e8; font-size: 11px; }
+.chart-card .clickable-hint { font-size: 10px; color: #94a3b8; margin-top: -10px; margin-bottom: 10px; }
+
+/* ── Responsive ── */
+@media (max-width: 1000px) {
+  .chart-row.cols-3 { grid-template-columns: 1fr 1fr; }
+  .insight-row { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 700px) {
+  .chart-row.cols-2, .chart-row.cols-3 { grid-template-columns: 1fr; }
+  .insight-row { grid-template-columns: 1fr; }
+  .hero-banner .hero-stats { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div id="loader-wrap">
+    <div class="spinner"></div>
+    <p id="loader-msg">Cargando datos...</p>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="brand">
+    <h1>Agente HH</h1>
+    <p class="subtitle">Dashboard de desempeño · Huli</p>
+  </div>
+  <div class="agent-info">
+    <div class="agent-status">
+      <span class="status-dot"></span>
+      <span class="status-label">Activo</span>
+    </div>
+    <p>Atiende solicitudes de pacientes por texto: citas, consultas y más.</p>
+  </div>
+  <nav>
+    <a class="active" data-section="hh">
+      <span class="dot" style="background:#059669"></span> Desempeño
+    </a>
+  </nav>
+  <div class="footer">
+    <p>Huli © 2026</p>
+    <div id="last-update">—</div>
+    <div id="auto-refresh-info">↺ actualiza en <span id="refresh-countdown">5:00</span></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <h2 id="section-title">Desempeño del Agente</h2>
+
+    <div class="quick-dates">
+      <button onclick="setQuickDate('hoy')" id="qd-hoy">Hoy</button>
+      <button onclick="setQuickDate(7)"  id="qd-7">7D</button>
+      <button onclick="setQuickDate(30)" id="qd-30" class="active">30D</button>
+      <button onclick="setQuickDate('mes')" id="qd-mes">Este mes</button>
+      <button onclick="setQuickDate('todo')" id="qd-todo">Todo</button>
+    </div>
+
+    <div class="filter-group">
+      <label>Desde</label>
+      <input type="date" id="f-from" onchange="clearQuickDate(); renderAll()">
+    </div>
+    <div class="filter-group">
+      <label>Hasta</label>
+      <input type="date" id="f-to" onchange="clearQuickDate(); renderAll()">
+    </div>
+    <div class="filter-group">
+      <label>País</label>
+      <select id="f-pais" onchange="renderAll()">
+        <option value="">Todos</option>
+        <option value="HuliHealth_CostaRica">Costa Rica</option>
+        <option value="HuliHealth_Panama">Panamá</option>
+      </select>
+    </div>
+    <button id="btn-refresh" onclick="reloadData()">↺ Actualizar</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+
+    <!-- ══ AGENTE HH ══ -->
+    <div class="section active" id="sec-hh">
+
+      <!-- Hero banner -->
+      <div class="hero-banner" id="hero-hh">
+        <div class="hero-main">
+          <div class="hero-title">Tasa de resolución autónoma</div>
+          <div class="hero-val" id="hero-resolucion">—</div>
+          <div class="hero-sub">de conversaciones resueltas sin intervención humana</div>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hs-val" id="hero-total">—</div>
+            <div class="hs-label">Conversaciones</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hs-val" id="hero-citas">—</div>
+            <div class="hs-label">Citas agendadas</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hs-val" id="hero-mes">—</div>
+            <div class="hs-label">Este mes</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hs-val" id="hero-valor">—</div>
+            <div class="hs-label">Valor generado</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Insight cards (resolución · transferidas · sin resolución) -->
+      <div class="insight-row" id="insight-row"></div>
+
+      <!-- KPIs secundarios -->
+      <div class="kpi-grid" id="kpi-hh"></div>
+
+      <!-- Gráficas principales -->
+      <div class="chart-row cols-2">
+        <div class="chart-card">
+          <h3>Resultado de las conversaciones</h3>
+          <p class="chart-subtitle">¿Qué pasó con cada conversación atendida?</p>
+          <p class="clickable-hint">Clic en un segmento para ver el detalle</p>
+          <div class="chart-wrap"><canvas id="ch-hh-gestion"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Actividad diaria — últimos 30 días</h3>
+          <div class="chart-wrap tall"><canvas id="ch-hh-diario"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Gráficas de detalle -->
+      <div class="chart-row cols-3">
+        <div class="chart-card">
+          <h3>Tipo de solicitud</h3>
+          <p class="chart-subtitle">¿Qué pidieron los pacientes?</p>
+          <p class="clickable-hint">Clic en un segmento para ver el detalle</p>
+          <div class="chart-wrap"><canvas id="ch-hh-solicitud"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Resultado de la gestión</h3>
+          <p class="clickable-hint">Clic en un segmento para ver el detalle</p>
+          <div class="chart-wrap"><canvas id="ch-hh-estatus"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Sentimiento del paciente</h3>
+          <p class="chart-subtitle">Tono detectado al cierre</p>
+          <p class="clickable-hint">Clic en un segmento para ver el detalle</p>
+          <div class="chart-wrap"><canvas id="ch-hh-sentimiento"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Citas -->
+      <div class="chart-row cols-2">
+        <div class="chart-card">
+          <h3>Citas HH — Agendadas · Canceladas · Errores</h3>
+          <p class="chart-subtitle">Estado de las citas gestionadas por el agente</p>
+          <div class="chart-wrap"><canvas id="ch-citas-estado"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Top 10 médicos más solicitados</h3>
+          <p class="chart-subtitle">Basado en las conversaciones del período</p>
+          <div class="chart-wrap tall"><canvas id="ch-hh-medicos"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Comparativo Humano vs IA -->
+      <div class="chart-row cols-1" style="margin-top:16px">
+        <div class="chart-card">
+          <div style="margin-bottom:4px">
+            <h3>Citas agendadas por WhatsApp: 2025 (solo humanos) vs 2026 (humanos + agente IA)</h3>
+            <p class="chart-subtitle">Comparativo año a año — Costa Rica</p>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:#64748b">
+              <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#64748b"></span> Humanos 2025
+              <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#059669"></span> Agente IA 2026
+              <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#93c5fd"></span> Humanos 2026
+            </div>
+          </div>
+          <div class="chart-wrap" style="height:260px"><canvas id="ch-comparativo"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Estado de citas agendadas por el agente -->
+      <div style="margin-top:16px">
+        <div class="chart-card">
+          <h3>Estado de citas agendadas por el agente</h3>
+          <p class="chart-subtitle">Desglose por resultado — Ene–Mar 2026</p>
+          <div class="chart-wrap" style="height:240px"><canvas id="ch-estado-citas"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Tendencias en el tiempo -->
+      <div style="margin-top:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <h3 style="font-size:13px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:.05em">Tendencias en el tiempo</h3>
+          <div style="display:flex;gap:4px">
+            <button id="btn-semanas" onclick="setTendencia('semanas')" style="padding:5px 12px;border:1px solid #e2e8f0;background:#059669;color:#fff;border-radius:5px;font-size:11px;cursor:pointer;font-weight:600">Semanas</button>
+            <button id="btn-meses"   onclick="setTendencia('meses')"   style="padding:5px 12px;border:1px solid #e2e8f0;background:#f1f5f9;color:#64748b;border-radius:5px;font-size:11px;cursor:pointer">Meses</button>
+          </div>
+        </div>
+        <div class="chart-row cols-2">
+          <div class="chart-card">
+            <h3>Tasa de resolución autónoma</h3>
+            <p class="chart-subtitle">% de conversaciones resueltas sin transferir al equipo</p>
+            <div class="chart-wrap tall"><canvas id="ch-tend-resolucion"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Citas agendadas por el agente</h3>
+            <p class="chart-subtitle">Evolución de citas gestionadas vía IA</p>
+            <div class="chart-wrap tall"><canvas id="ch-tend-citas"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Diagnóstico de citas -->
+      <div class="chart-card" style="margin-top:16px">
+        <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="document.getElementById('debug-body').style.display=document.getElementById('debug-body').style.display==='none'?'block':'none'">
+          <h3 style="margin:0">Diagnóstico de citas agendadas</h3>
+          <span style="font-size:11px;color:#64748b">(clic para expandir/colapsar)</span>
+        </div>
+        <div id="debug-body" style="display:none;margin-top:12px">
+          <div id="debug-citas-content" style="font-size:12px;color:#334155;overflow-x:auto"></div>
+        </div>
+      </div>
+
+    </div><!-- /sec-hh -->
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════════════════════════
+const SHEETS = {
+  hh:         'https://docs.google.com/spreadsheets/d/e/2PACX-1vR_X-VGh7zQIEX_1tbzbpRHwwFvb0f0fB1AuW_6h8EJcpNK0fb70F_1P9BlnLKbi7c0TeMQDMox1oa0/pub?gid=642577577&single=true&output=csv',
+  hh2:        'https://docs.google.com/spreadsheets/d/e/2PACX-1vR-uSaPB7Ol1wGU9j9Z24hl80Xh7MtyoEqZOKYMog7WgAAMSH27z1tmT_pcttf8Xr9QRveUfWJjlDPp/pub?gid=0&single=true&output=csv',
+  agendadas:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vR5XzBhYl5L3YfeDOQBj3-nay_akmefytKLof4yO-HfKA3K_Wub6OqfTZAXXDkwPqy_SwnXrSKIiLg9/pub?gid=0&single=true&output=csv',
+  canceladas:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vR5XzBhYl5L3YfeDOQBj3-nay_akmefytKLof4yO-HfKA3K_Wub6OqfTZAXXDkwPqy_SwnXrSKIiLg9/pub?gid=1031644821&single=true&output=csv',
+  errores:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vR5XzBhYl5L3YfeDOQBj3-nay_akmefytKLof4yO-HfKA3K_Wub6OqfTZAXXDkwPqy_SwnXrSKIiLg9/pub?gid=228103906&single=true&output=csv',
+  humanos2026:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLwOOqH2IKqqOJw_fYlw2U8riL1m8LHWNuVMJuYVPq2lNZY4oGfAmDzhlMbJM-liC-CueAE-dBC3uB/pub?gid=0&single=true&output=csv',
+  estadoCitas:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vT8ABDr8Y5IC2dJDmBC85YtbvGWjdhs3iyLQjViKtz_u0IPqRGjM20QfPsDU_NFgidtDBGezjoGGAXV/pub?output=csv',
+};
+
+// ══════════════════════════════════════════════════════════════
+//  ESTADO GLOBAL
+// ══════════════════════════════════════════════════════════════
+let RAW = { hh: [], agendadas: [], canceladas: [], errores: [], humanos2026: [], estadoCitas: [] };
+let CHARTS = {};
+
+// ══════════════════════════════════════════════════════════════
+//  UTILIDADES
+// ══════════════════════════════════════════════════════════════
+function isUndef(v) {
+  if (!v) return true;
+  const s = String(v).trim().toLowerCase();
+  return s === '' || s === 'undefined' || s === 'null';
+}
+function clean(v) { return isUndef(v) ? '' : String(v).trim(); }
+function isTruthy(v) {
+  return ['true','sí','si','yes','1'].includes(clean(v).toLowerCase());
+}
+// ── Pad a 2 dígitos ──
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+// ── toYMD: usa hora LOCAL (no UTC) para que el día sea correcto en Costa Rica ──
+function toYMD(d) {
+  if (!d) return '';
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+
+// ── parseDate: parsea explícitamente como hora local (CR) ──
+function parseDate(str) {
+  if (!str) return null;
+  let s = String(str).trim()
+    .replace('a.m.', 'AM').replace('p.m.', 'PM')
+    .replace('a. m.', 'AM').replace('p. m.', 'PM');
+
+  // Normalizar AM/PM con o sin espacio: "12:02PM" → "12:02 PM"
+  s = s.replace(/(\d)(AM|PM)/i, '$1 $2');
+  s = s.replace(/^(\d{1,2})\/(\d{1,2})\/(\d{2})(\s|$)/, (_, m, d, y, rest) => {
+    const fullYear = parseInt(y) <= 50 ? '20' + y : '19' + y;
+    return `${m}/${d}/${fullYear}${rest}`;
+  });
+
+  // Parsear MM/DD/YYYY h:mm AM/PM explícitamente como hora local
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (m) {
+    let [, mo, dy, yr, hh, mi, ss, ap] = m;
+    let hours = parseInt(hh);
+    if (ap) {
+      ap = ap.toUpperCase();
+      if (ap === 'PM' && hours < 12) hours += 12;
+      if (ap === 'AM' && hours === 12) hours = 0;
+    }
+    const result = new Date(parseInt(yr), parseInt(mo) - 1, parseInt(dy), hours, parseInt(mi), parseInt(ss || 0));
+    return isNaN(result) ? null : result;
+  }
+
+  // Fallback: si viene en formato ISO "YYYY-MM-DD..." agregamos T00:00:00 para forzar local
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const result = new Date(s + 'T00:00:00');
+    return isNaN(result) ? null : result;
+  }
+
+  const result = new Date(s);
+  return isNaN(result) ? null : result;
+}
+function countBy(arr, fn) {
+  return arr.reduce((acc, r) => {
+    const k = fn(r) || 'Otro';
+    acc[k] = (acc[k] || 0) + 1;
+    return acc;
+  }, {});
+}
+function pct(n, total) {
+  if (!total) return '0%';
+  return Math.round(n / total * 100) + '%';
+}
+function pctNum(n, total) {
+  if (!total) return 0;
+  return Math.round(n / total * 100);
+}
+function last30Days() {
+  const to = new Date();
+  const from = new Date(); from.setDate(from.getDate() - 29);
+  return { from, to };
+}
+function dateRange30() {
+  const { from } = last30Days();
+  return Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(from); d.setDate(d.getDate() + i);
+    return toYMD(d);
+  });
+}
+
+// ── Helpers para tendencias ──
+function getMonthKey(d) {
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1);
+}
+function monthLabel(key) {
+  const [y, mo] = key.split('-');
+  return MESES_ES[parseInt(mo) - 1] + ' ' + String(y).slice(2);
+}
+function getWeekKey(d) {
+  // Lunes de la semana como clave
+  const day = d.getDay();
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  monday.setHours(0, 0, 0, 0);
+  return toYMD(monday);
+}
+function weekLabel(key) {
+  // key = "YYYY-MM-DD" (lunes)
+  const d = new Date(key + 'T00:00:00');
+  return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1);
+}
+// Estado global del toggle de tendencias
+let tendenciaMode = 'semanas';
+function setTendencia(mode) {
+  tendenciaMode = mode;
+  document.getElementById('btn-semanas').style.background = mode === 'semanas' ? '#059669' : '#f1f5f9';
+  document.getElementById('btn-semanas').style.color      = mode === 'semanas' ? '#fff'    : '#64748b';
+  document.getElementById('btn-semanas').style.fontWeight = mode === 'semanas' ? '600'     : '400';
+  document.getElementById('btn-meses').style.background   = mode === 'meses'   ? '#059669' : '#f1f5f9';
+  document.getElementById('btn-meses').style.color        = mode === 'meses'   ? '#fff'    : '#64748b';
+  document.getElementById('btn-meses').style.fontWeight   = mode === 'meses'   ? '600'     : '400';
+  renderTendencias();
+}
+
+// Datos históricos: citas agendadas por humanos (WA, solo CR) — año 2025 completo
+const HUMANO_DATA = {
+  '2025-01': { total: 872,  agentes: { dgarro: 1,   jquesada: 282, lchaves: 257, yulloa: 332 } },
+  '2025-02': { total: 715,  agentes: { dgarro: 7,   jquesada: 230, lchaves: 213, mmora: 3,   yulloa: 262 } },
+  '2025-03': { total: 725,  agentes: { dgarro: 18,  jquesada: 227, lchaves: 217, yulloa: 263 } },
+  '2025-04': { total: 684,  agentes: { jquesada: 203, lchaves: 243, yulloa: 238 } },
+  '2025-05': { total: 807,  agentes: { dgarro: 12,  jquesada: 258, lchaves: 230, yulloa: 307 } },
+  '2025-06': { total: 715,  agentes: { dgarro: 3,   jquesada: 228, lchaves: 229, mmora: 1,   yulloa: 254 } },
+  '2025-07': { total: 765,  agentes: { dgarro: 12,  jquesada: 254, lchaves: 222, yulloa: 277 } },
+  '2025-08': { total: 709,  agentes: { jquesada: 255, lchaves: 199, mmora: 4,   yulloa: 251 } },
+  '2025-09': { total: 630,  agentes: { dgarro: 100, jquesada: 40,  lchaves: 197, mmora: 105, yulloa: 188 } },
+  '2025-10': { total: 651,  agentes: { dgarro: 13,  jquesada: 230, lchaves: 177, mmora: 9,   scalderon: 6,   yulloa: 216 } },
+  '2025-11': { total: 547,  agentes: { jquesada: 203, lchaves: 1,  mmora: 172,  mzelaya: 23, scalderon: 142, yulloa: 6 } },
+  '2025-12': { total: 487,  agentes: { dgarro: 2,   jquesada: 205, mmora: 133,  mzelaya: 13, scalderon: 117, vvarelam: 17 } },
+};
+
+// ══════════════════════════════════════════════════════════════
+//  QUICK DATE BUTTONS
+// ══════════════════════════════════════════════════════════════
+function setQuickDate(range) {
+  const now = new Date();
+  let from, to = now;
+  if (range === 'hoy') { from = new Date(now.getFullYear(), now.getMonth(), now.getDate()); }
+  if (range === 7)  { from = new Date(); from.setDate(now.getDate() - 6); }
+  if (range === 30) { from = new Date(); from.setDate(now.getDate() - 29); }
+  if (range === 'mes') { from = new Date(now.getFullYear(), now.getMonth(), 1); }
+  if (range === 'todo') { from = null; to = null; }
+
+  document.getElementById('f-from').value = from ? toYMD(from) : '';
+  document.getElementById('f-to').value   = to   ? toYMD(to)   : '';
+
+  ['hoy','7','30','mes','todo'].forEach(k => {
+    document.getElementById('qd-' + k)?.classList.remove('active');
+  });
+  document.getElementById('qd-' + range)?.classList.add('active');
+  renderAll();
+}
+function clearQuickDate() {
+  ['hoy','7','30','mes','todo'].forEach(k => {
+    document.getElementById('qd-' + k)?.classList.remove('active');
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FETCH CSV
+// ══════════════════════════════════════════════════════════════
+function fetchCSV(url) {
+  return new Promise(resolve => {
+    Papa.parse(url, {
+      download: true, header: true, skipEmptyLines: true,
+      complete: r => resolve(r.data),
+      error: () => resolve([]),
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  NORMALIZAR FILAS
+// ══════════════════════════════════════════════════════════════
+function normalizeCitas(rows) {
+  return rows
+    .map(r => {
+      // Claves normalizadas para tolerar espacios/mayúsculas en el header
+      const normalized = {};
+      for (const k of Object.keys(r)) {
+        normalized[k.trim().toLowerCase()] = r[k];
+      }
+      return { _norm: normalized, _orig: r };
+    })
+    // Solo filas cuya columna "url…" contenga un enlace http válido
+    .filter(({ _norm }) => {
+      const urlKey = Object.keys(_norm).find(k => k.includes('url'));
+      if (!urlKey) return false;
+      const urlVal = String(_norm[urlKey] || '').trim();
+      return urlVal.startsWith('http');
+    })
+    .map(({ _norm, _orig }) => {
+      const rawFecha = _norm['fecha'];
+      const fecha = (rawFecha && !isUndef(rawFecha)) ? parseDate(clean(rawFecha)) : null;
+      return { ..._orig, fecha };
+    });
+}
+
+function normalizeHH(rows) {
+  // Busca valor en una fila tolerando tildes, mayúsculas y espacios en el nombre de columna
+  function findVal(r, candidates) {
+    const normMap = {};
+    for (const k of Object.keys(r)) {
+      const norm = k.trim().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      normMap[norm] = k;
+    }
+    for (const c of candidates) {
+      const normC = c.trim().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (normMap[normC] !== undefined) return r[normMap[normC]];
+    }
+    return '';
+  }
+
+  return rows.map(r => ({
+    url:          clean(findVal(r, ['URL','url'])),
+    fecha:        parseDate(clean(findVal(r, ['Fecha','fecha','FECHA','Timestamp','timestamp','Hora','hora','Date','date']))),
+    sentimiento:  (() => { const s = clean(findVal(r, ['Sentimiento','sentimiento'])); return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ''; })(),
+    transferida:  isTruthy(findVal(r, ['Transferida','transferida'])),
+    estado:       clean(findVal(r, ['Estado','estado'])),
+    tipoSolicitud:clean(findVal(r, ['Tipo de solicitud','tipo de solicitud'])),
+    motivoCierre: clean(findVal(r, ['Motivo de Cierre','motivo de cierre','Motivo de cierre'])),
+    pais:         clean(findVal(r, ['País','Pais','pais','PAIS','PAÍS'])),
+    resumen:      clean(findVal(r, ['Resumen','resumen'])),
+    medico:       clean(findVal(r, ['Médico solicitado','Medico solicitado','medico solicitado'])),
+  }));
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FILTROS
+// ══════════════════════════════════════════════════════════════
+function getFilters() {
+  return {
+    from: document.getElementById('f-from').value ? new Date(document.getElementById('f-from').value + 'T00:00:00') : null,
+    to:   document.getElementById('f-to').value   ? new Date(document.getElementById('f-to').value + 'T23:59:59') : null,
+    pais: document.getElementById('f-pais').value,
+  };
+}
+function inDateRange(d, from, to) {
+  // Si hay filtro activo y la fecha es nula, excluir el registro
+  if (!d) return !(from || to);
+  if (from && d < from) return false;
+  if (to   && d > to)   return false;
+  return true;
+}
+function filterHH(rows) {
+  const f = getFilters();
+  return rows.filter(r =>
+    inDateRange(r.fecha, f.from, f.to) &&
+    (!f.pais || r.pais === f.pais)
+  );
+}
+function filterBaseHH() {
+  const f = getFilters();
+  return RAW.hh.filter(r => (!f.pais || r.pais === f.pais));
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CLASIFICACIÓN DE CONVERSACIONES
+// ══════════════════════════════════════════════════════════════
+function isResuelta(r) {
+  const e = (r.estado || '').toLowerCase();
+  return e.includes('exitosa') || e === 'resuelta' || e === 'solucionada';
+}
+function isTransferida(r) {
+  return r.transferida || (r.estado || '').toLowerCase().includes('transfer');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CHARTS helpers
+// ══════════════════════════════════════════════════════════════
+const PALETTE = ['#059669','#f59e0b','#ef4444','#3b82f6','#8b5cf6','#06b6d4','#f97316','#84cc16'];
+
+function destroyChart(id) {
+  if (CHARTS[id]) { CHARTS[id].destroy(); delete CHARTS[id]; }
+}
+function makeDonut(id, labels, data, colors, onClickFn, tooltipExtraFn) {
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  if (onClickFn) ctx.style.cursor = 'pointer';
+  CHARTS[id] = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors || PALETTE, borderWidth: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 11 }, padding: 10 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.parsed}`,
+            afterLabel: tooltipExtraFn
+              ? ctx => tooltipExtraFn(ctx.dataIndex, ctx.label)
+              : undefined,
+          }
+        }
+      },
+      onClick: onClickFn ? (evt, elements) => {
+        if (!elements.length) return;
+        const idx = elements[0].index;
+        onClickFn(labels[idx]);
+      } : undefined,
+    }
+  });
+}
+function makeBar(id, labels, datasets, opts = {}) {
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  CHARTS[id] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      indexAxis: opts.horizontal ? 'y' : 'x',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: opts.legend !== false, labels: { font: { size: 11 } } } },
+      scales: {
+        x: { stacked: !!opts.stacked, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
+        y: { stacked: !!opts.stacked, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
+      }
+    }
+  });
+}
+function makeLine(id, labels, datasets) {
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  CHARTS[id] = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 11 } } } },
+      scales: {
+        x: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, maxTicksLimit: 10 } },
+        y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } }, beginAtZero: true },
+      }
+    }
+  });
+}
+// Valor por cita (ingreso para Huli)
+const CITA_VALOR = 5.9;
+function formatUSD(n) { return '$' + (n).toLocaleString('en-US'); }
+
+// Semáforo: devuelve { color, label } según umbrales
+function semaforo(tipo, valor) {
+  const map = {
+    resolucion:  valor >= 60 ? {c:'green',l:'En objetivo'}   : valor >= 40 ? {c:'amber',l:'Por mejorar'}    : {c:'red',l:'Atención'},
+    canceladas:  valor <= 10 ? {c:'green',l:'Nivel normal'}  : valor <= 25 ? {c:'amber',l:'Revisar'}         : {c:'red',l:'Alto'},
+    errores:     valor === 0  ? {c:'green',l:'Sin errores'}   : valor <= 5  ? {c:'amber',l:'Revisar'}         : {c:'red',l:'Alto'},
+    derivadas:   valor <= 20  ? {c:'green',l:'Bajo impacto'}  : valor <= 35 ? {c:'amber',l:'Moderado'}        : {c:'red',l:'Elevado'},
+    sinResol:    valor <= 10  ? {c:'green',l:'Bajo impacto'}  : valor <= 25 ? {c:'amber',l:'Moderado'}        : {c:'red',l:'Elevado'},
+  };
+  const s = map[tipo] || {c:'green',l:''};
+  return `<div class="kpi-semaforo"><span class="semaforo-dot ${s.c}"></span><span class="semaforo-label ${s.c}">${s.l}</span></div>`;
+}
+
+function kpiCard(label, val, sub, cls = '', mom = '', semaforoHtml = '') {
+  return `<div class="kpi-card ${cls}">
+    <div class="kpi-label">${label}</div>
+    <div class="kpi-val">${val}</div>
+    <div class="kpi-sub">${sub}</div>
+    ${semaforoHtml}
+    ${mom}
+  </div>`;
+}
+
+// ── Modal de detalle ──
+function openModal(title, rows, extraHeader = '') {
+  document.getElementById('modal-title').textContent = title;
+  const cols = [
+    { key: 'fecha',         label: 'Fecha',           fmt: v => v ? v.toLocaleString('es-CR', {dateStyle:'short',timeStyle:'short'}) : '—' },
+    { key: 'tipoSolicitud', label: 'Tipo de solicitud',fmt: v => v || '—' },
+    { key: 'estado',        label: 'Estado',           fmt: v => v || '—' },
+    { key: 'sentimiento',   label: 'Sentimiento',      fmt: v => v || '—' },
+    { key: 'resumen',       label: 'Resumen',          fmt: v => v ? `<span title="${v}">${v.length>60?v.slice(0,60)+'…':v}</span>` : '—' },
+    { key: 'url',           label: 'Conversación',     fmt: v => v ? `<a href="${v}" target="_blank">Abrir →</a>` : '—', tdCls: 'td-url' },
+  ];
+  let html = extraHeader ? `<div style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:4px">${extraHeader}</div>` : '';
+  html += `<p style="font-size:12px;color:#64748b;margin-bottom:12px">${rows.length} conversacion(es) encontradas</p>`;
+  if (!rows.length) { html += '<p style="color:#94a3b8;font-size:13px">Sin datos para este segmento.</p>'; }
+  else {
+    html += `<table class="modal-table"><thead><tr>${cols.map(c=>`<th>${c.label}</th>`).join('')}</tr></thead><tbody>`;
+    rows.forEach(r => {
+      html += `<tr>${cols.map(c=>`<td class="${c.tdCls||''}">${c.fmt(r[c.key])}</td>`).join('')}</tr>`;
+    });
+    html += '</tbody></table>';
+  }
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('detail-modal').style.display = 'flex';
+}
+function closeModal() { document.getElementById('detail-modal').style.display = 'none'; }
+
+// ══════════════════════════════════════════════════════════════
+//  MES SOBRE MES (MoM)
+// ══════════════════════════════════════════════════════════════
+const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+function getMonthRows(rows, offset = 0) {
+  const t = new Date(); t.setDate(1); t.setMonth(t.getMonth() + offset);
+  return rows.filter(r => r.fecha && r.fecha.getFullYear() === t.getFullYear() && r.fecha.getMonth() === t.getMonth());
+}
+function momBadge(curr, prev, higherIsBetter = true) {
+  if (prev === null || prev === undefined) return '';
+  const prevLabel = MESES_ES[new Date(new Date().getFullYear(), new Date().getMonth()-1, 1).getMonth()];
+  if (prev === 0 && curr === 0) return `<span class="kpi-mom flat">= igual que ${prevLabel}</span>`;
+  if (prev === 0 && curr  > 0) return `<span class="kpi-mom up">↑ nuevo vs ${prevLabel}</span>`;
+  if (prev  > 0 && curr === 0) return `<span class="kpi-mom down">↓ 100% vs ${prevLabel}</span>`;
+  const delta = Math.round((curr - prev) / prev * 100);
+  if (delta === 0) return `<span class="kpi-mom flat">= igual que ${prevLabel}</span>`;
+  const isUp   = delta > 0;
+  const isGood = higherIsBetter ? isUp : !isUp;
+  const cls    = isGood ? 'up' : 'down';
+  const sign   = isUp ? '↑' : '↓';   // flecha = dirección real del movimiento
+  return `<span class="kpi-mom ${cls}">${sign} ${Math.abs(delta)}% vs ${prevLabel}</span>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  COMPARATIVO HUMANO VS IA
+// ══════════════════════════════════════════════════════════════
+// Datos hardcodeados: estado de citas agendadas por el agente (Ene–Mar 2026)
+function renderEstadoCitas() {
+  const ctx = document.getElementById('ch-estado-citas');
+  if (!ctx) return;
+  if (CHARTS['ch-estado-citas']) CHARTS['ch-estado-citas'].destroy();
+
+  const data = RAW.estadoCitas;
+  if (!data.length) return;
+
+  const MESES_ES_CORTO = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+  const labels = data.map(d => MESES_ES_CORTO[d.mesNum] + ' ' + String(d.anio).slice(2));
+
+  const statuses = [
+    { key: 'completed',   label: 'Completada',  color: '#059669' },
+    { key: 'cancelled',   label: 'Cancelada',   color: '#dc2626' },
+    { key: 'rescheduled', label: 'Reagendada',  color: '#d97706' },
+    { key: 'noshow',      label: 'No show',     color: '#7c3aed' },
+    { key: 'booked',      label: 'Reservada',   color: '#2563eb' },
+  ];
+
+  const totals = data.map(d => statuses.reduce((sum, s) => sum + (d[s.key] || 0), 0));
+
+  CHARTS['ch-estado-citas'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: statuses.map((s, i) => ({
+        label: s.label,
+        data: data.map(d => d[s.key] || 0),
+        backgroundColor: s.color,
+        stack: 'estado',
+        barPercentage: 0.5,
+        categoryPercentage: 0.7,
+        borderRadius: i === statuses.length - 1
+          ? { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 }
+          : 0,
+        borderSkipped: false,
+      })),
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true, position: 'top',
+          labels: { font: { size: 11 }, boxWidth: 12, padding: 14 },
+        },
+        tooltip: {
+          filter: item => item.parsed.y > 0,
+          callbacks: {
+            afterBody(items) {
+              const idx = items[0].dataIndex;
+              const total = totals[idx];
+              return total > 0 ? [`── Total: ${total}`] : [];
+            },
+          },
+        },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          ticks: { font: { size: 11 } },
+          grid: { color: '#f1f5f9' },
+        },
+      },
+    },
+  });
+}
+
+function renderComparativo() {
+  const MESES_NUM   = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const MESES_LABEL = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
+
+  // ── Citas IA 2026 por mes ──
+  const iaPorMes = {};
+  RAW.agendadas.forEach(r => {
+    if (!r.fecha) return;
+    const k = getMonthKey(r.fecha);
+    iaPorMes[k] = (iaPorMes[k] || 0) + 1;
+  });
+
+  // ── Citas humanos 2026 por mes y por agente (nuevo sheet) ──
+  const humanos26PorMes    = {};
+  const humanos26PorAgente = {}; // { '2026-03': { narias: 5, scalderon: 3, ... } }
+  RAW.humanos2026.forEach(r => {
+    if (!r.fecha) return;
+    const k = getMonthKey(r.fecha);
+    humanos26PorMes[k] = (humanos26PorMes[k] || 0) + 1;
+    if (r.agente) {
+      if (!humanos26PorAgente[k]) humanos26PorAgente[k] = {};
+      humanos26PorAgente[k][r.agente] = (humanos26PorAgente[k][r.agente] || 0) + 1;
+    }
+  });
+
+  // Arrays alineados a los 12 meses
+  const humanos2025 = MESES_NUM.map(m => {
+    const entry = HUMANO_DATA['2025-' + m];
+    return entry ? entry.total : 0;
+  });
+  const iaData       = MESES_NUM.map(m => iaPorMes['2026-' + m]       || 0);
+  const humanos26    = MESES_NUM.map(m => humanos26PorMes['2026-' + m] || 0);
+  const total2026    = MESES_NUM.map((_, i) => iaData[i] + humanos26[i]);
+
+  // ── Desglose 2025 por agente (solo para tooltip) ──
+  const agentesSet = new Set();
+  Object.values(HUMANO_DATA).forEach(d => Object.keys(d.agentes).forEach(a => agentesSet.add(a)));
+  const agentes2025 = Array.from(agentesSet).sort();
+
+  const ctx = document.getElementById('ch-comparativo');
+  if (!ctx) return;
+  if (CHARTS['ch-comparativo']) CHARTS['ch-comparativo'].destroy();
+
+  CHARTS['ch-comparativo'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: MESES_LABEL,
+      datasets: [
+        // 2025 — barra única gris por mes
+        {
+          label: 'Humanos 2025',
+          data: humanos2025,
+          backgroundColor: '#64748b',
+          stack: 'y2025',
+          barPercentage: 0.4,
+          categoryPercentage: 0.8,
+          borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
+          borderSkipped: false,
+        },
+        // 2026 — Agente IA (verde, base de la barra 2026)
+        {
+          label: 'Agente IA 2026',
+          data: iaData,
+          backgroundColor: '#059669',
+          stack: 'y2026',
+          barPercentage: 0.4,
+          categoryPercentage: 0.8,
+          borderRadius: 0,
+          borderSkipped: false,
+        },
+        // 2026 — Humanos encima del IA (azul claro)
+        {
+          label: 'Humanos 2026',
+          data: humanos26,
+          backgroundColor: '#93c5fd',
+          stack: 'y2026',
+          barPercentage: 0.4,
+          categoryPercentage: 0.8,
+          borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
+          borderSkipped: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: false, // leyenda manual en el HTML
+        },
+        tooltip: {
+          callbacks: {
+            title: items => MESES_LABEL[items[0].dataIndex],
+            beforeBody: () => [],
+            label: () => null,
+            afterBody(items) {
+              const idx  = items[0].dataIndex;
+              const h25  = humanos2025[idx];
+              const ia   = iaData[idx];
+              const h26  = humanos26[idx];
+              const t26  = ia + h26;
+              const lines = [];
+
+              // Helpers
+              const fmt = (ag, v) => `${ag} (${v})`;
+              const chunk = (arr, n) => {
+                const out = [];
+                for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i+n).join('  '));
+                return out;
+              };
+
+              // ── 2025 ──
+              lines.push(`2025  |  Total: ${h25}`);
+              const entry = HUMANO_DATA['2025-' + MESES_NUM[idx]];
+              if (entry) {
+                const pares = Object.entries(entry.agentes)
+                  .filter(([, v]) => v > 0)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([ag, v]) => fmt(ag, v));
+                chunk(pares, 3).forEach(l => lines.push('  ' + l));
+              }
+
+              // ── 2026 ──
+              if (t26 > 0) {
+                lines.push('');
+                lines.push(`2026  |  Total: ${t26}`);
+                if (ia  > 0) lines.push(`  Agente IA: ${ia}`);
+                if (h26 > 0) {
+                  const mesKey  = '2026-' + MESES_NUM[idx];
+                  const desglose = humanos26PorAgente[mesKey];
+                  const paresH = desglose
+                    ? Object.entries(desglose).sort((a,b)=>b[1]-a[1]).map(([ag,v])=>fmt(ag,v))
+                    : [];
+                  if (paresH.length) {
+                    lines.push(`  Humanos: ${h26}`);
+                    chunk(paresH, 3).forEach(l => lines.push('    ' + l));
+                  }
+                }
+              }
+
+              // ── Delta ──
+              if (h25 > 0 && t26 > 0) {
+                const diff = t26 - h25;
+                const pct  = Math.round((diff / h25) * 100);
+                lines.push('');
+                lines.push(`Variacion: ${diff >= 0 ? '+' : ''}${diff} (${pct >= 0 ? '+' : ''}${pct}%)  Valor: ${diff >= 0 ? '+' : ''}${formatUSD(diff * CITA_VALOR)}`);
+              }
+
+              return lines;
+            },
+          },
+        },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          ticks: { font: { size: 11 } },
+          grid: { color: '#f1f5f9' },
+        },
+      },
+    },
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TENDENCIAS EN EL TIEMPO
+// ══════════════════════════════════════════════════════════════
+function renderTendencias() {
+  const keyFn   = tendenciaMode === 'meses' ? getMonthKey : getWeekKey;
+  const labelFn = tendenciaMode === 'meses' ? monthLabel  : weekLabel;
+
+  // ── Tasa de resolución ──
+  const resBuckets = {};
+  RAW.hh.forEach(r => {
+    if (!r.fecha) return;
+    const k = keyFn(r.fecha);
+    if (!resBuckets[k]) resBuckets[k] = { res: 0, total: 0 };
+    resBuckets[k].total++;
+    if (isResuelta(r)) resBuckets[k].res++;
+  });
+  const resKeys   = Object.keys(resBuckets).sort();
+  const resLabels = resKeys.map(labelFn);
+  const resTasa   = resKeys.map(k => pctNum(resBuckets[k].res, resBuckets[k].total));
+
+  // ── Citas agendadas ──
+  const citaBuckets = {};
+  RAW.agendadas.forEach(r => {
+    if (!r.fecha) return;
+    const k = keyFn(r.fecha);
+    citaBuckets[k] = (citaBuckets[k] || 0) + 1;
+  });
+  const citaKeys   = Object.keys(citaBuckets).sort();
+  const citaCounts = citaKeys.map(k => citaBuckets[k]);
+
+  // Detectar si el último período está incompleto (semana o mes en curso)
+  const currentPeriodKey = keyFn(new Date());
+  const citaLastIsPartial = citaKeys.length > 0 && citaKeys[citaKeys.length - 1] === currentPeriodKey;
+  const resLastIsPartial  = resKeys.length  > 0 && resKeys[resKeys.length - 1]   === currentPeriodKey;
+
+  const citaLabels = citaKeys.map((k, i) =>
+    (i === citaKeys.length - 1 && citaLastIsPartial) ? labelFn(k) + ' (en curso)' : labelFn(k)
+  );
+
+  // ── Helpers de línea ──
+  const lineOpts = (color) => ({
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } },
+      y: { beginAtZero: true, ticks: { font: { size: 11 } }, grid: { color: '#f1f5f9' } },
+    },
+    elements: { point: { radius: 3, hoverRadius: 5 } },
+  });
+
+  // Tasa de resolución chart
+  const ctx1 = document.getElementById('ch-tend-resolucion');
+  if (ctx1) {
+    if (CHARTS['ch-tend-resolucion']) CHARTS['ch-tend-resolucion'].destroy();
+    CHARTS['ch-tend-resolucion'] = new Chart(ctx1, {
+      type: 'line',
+      data: {
+        labels: resLabels,
+        datasets: [{
+          label: 'Tasa resolución %',
+          data: resTasa,
+          borderColor: '#059669',
+          backgroundColor: 'rgba(5,150,105,.08)',
+          fill: true,
+          tension: 0.3,
+        }],
+      },
+      options: {
+        ...lineOpts('#059669'),
+        plugins: {
+          ...lineOpts('#059669').plugins,
+          tooltip: { callbacks: { label: ctx => ctx.parsed.y + '%' } },
+        },
+        scales: {
+          ...lineOpts('#059669').scales,
+          y: { ...lineOpts('#059669').scales.y, max: 100,
+               ticks: { ...lineOpts('#059669').scales.y.ticks, callback: v => v + '%' } },
+        },
+      },
+    });
+  }
+
+  // Citas chart
+  const ctx2 = document.getElementById('ch-tend-citas');
+  if (ctx2) {
+    if (CHARTS['ch-tend-citas']) CHARTS['ch-tend-citas'].destroy();
+    const citaPointColors = citaKeys.map((k, i) =>
+      (i === citaKeys.length - 1 && citaLastIsPartial) ? '#f59e0b' : '#1a73e8'
+    );
+    const citaPointRadius = citaKeys.map((k, i) =>
+      (i === citaKeys.length - 1 && citaLastIsPartial) ? 6 : 3
+    );
+    CHARTS['ch-tend-citas'] = new Chart(ctx2, {
+      type: 'line',
+      data: {
+        labels: citaLabels,
+        datasets: [{
+          label: 'Citas agendadas',
+          data: citaCounts,
+          borderColor: '#1a73e8',
+          backgroundColor: 'rgba(26,115,232,.08)',
+          fill: true,
+          tension: 0.3,
+          pointBackgroundColor: citaPointColors,
+          pointRadius: citaPointRadius,
+          pointHoverRadius: 7,
+        }],
+      },
+      options: {
+        ...lineOpts('#1a73e8'),
+        plugins: {
+          ...lineOpts('#1a73e8').plugins,
+          tooltip: {
+            callbacks: {
+              afterLabel: ctx => (citaLastIsPartial && ctx.dataIndex === citaKeys.length - 1)
+                ? '  Semana en curso — dato parcial' : '',
+            }
+          }
+        }
+      },
+    });
+  }
+
+  // También marcar el último punto de resolución si está incompleto
+  if (resLastIsPartial) {
+    const resLabelsUpd = resKeys.map((k, i) =>
+      i === resKeys.length - 1 ? labelFn(k) + ' (en curso)' : labelFn(k)
+    );
+    // Re-renderizar con el label actualizado si aplica
+    const ctx1b = document.getElementById('ch-tend-resolucion');
+    if (ctx1b && CHARTS['ch-tend-resolucion']) {
+      CHARTS['ch-tend-resolucion'].data.labels = resLabelsUpd;
+      const ptColors = resKeys.map((k, i) =>
+        i === resKeys.length - 1 ? '#f59e0b' : '#059669'
+      );
+      CHARTS['ch-tend-resolucion'].data.datasets[0].pointBackgroundColor = ptColors;
+      CHARTS['ch-tend-resolucion'].data.datasets[0].pointRadius = resKeys.map((k, i) =>
+        i === resKeys.length - 1 ? 6 : 3
+      );
+      CHARTS['ch-tend-resolucion'].update();
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════════════════════
+function renderAll() {
+  const hh          = filterHH(RAW.hh);
+  const total       = hh.length;
+  const resueltas   = hh.filter(isResuelta).length;
+  const transferidas= hh.filter(isTransferida).length;
+  const sinResolucion = total - resueltas - transferidas;
+  const f = getFilters();
+  // Solo contar citas que tienen fecha válida Y caen en el rango
+  const citasTotal  = RAW.agendadas.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to)).length;
+  const canceladas  = RAW.canceladas.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to)).length;
+  const errores     = RAW.errores.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to)).length;
+
+  const baseHH = filterBaseHH();
+  const hhC = getMonthRows(baseHH, 0);
+  const hhP = getMonthRows(baseHH, -1);
+  const hhC_res = hhC.filter(isResuelta).length;
+  const hhP_res = hhP.filter(isResuelta).length;
+  const hhC_tr  = hhC.filter(isTransferida).length;
+  const hhP_tr  = hhP.filter(isTransferida).length;
+  const hhC_imp = hhC.length - hhC_res - hhC_tr;
+  const hhP_imp = hhP.length - hhP_res - hhP_tr;
+
+  // ── Hero banner ──
+  const tasa = pctNum(resueltas, total);
+  const valorGenerado = citasTotal * CITA_VALOR;
+  document.getElementById('hero-resolucion').textContent = total ? tasa + '%' : '—';
+  document.getElementById('hero-total').textContent      = total;
+  document.getElementById('hero-citas').textContent      = citasTotal;
+  document.getElementById('hero-mes').textContent        = hhC.length;
+  document.getElementById('hero-valor').textContent      = citasTotal ? formatUSD(valorGenerado) : '—';
+
+  // ── Insight cards ──
+  document.getElementById('insight-row').innerHTML = `
+    <div class="insight-card green">
+      <div class="insight-icon">&#10003;</div>
+      <div class="insight-text">
+        <div class="it-label">Resueltas sin transferir</div>
+        <div class="it-val">${resueltas} <span style="font-size:14px;font-weight:600">(${pct(resueltas,total)})</span></div>
+        <div class="it-desc">El agente resolvió la solicitud de forma autónoma</div>
+      </div>
+    </div>
+    <div class="insight-card amber">
+      <div class="insight-icon">&#8599;</div>
+      <div class="insight-text">
+        <div class="it-label">Derivadas a humano</div>
+        <div class="it-val">${transferidas} <span style="font-size:14px;font-weight:600">(${pct(transferidas,total)})</span></div>
+        <div class="it-desc">Casos que requirieron intervención del equipo</div>
+      </div>
+    </div>
+    <div class="insight-card red">
+      <div class="insight-icon">&#9651;</div>
+      <div class="insight-text">
+        <div class="it-label">Sin resolución</div>
+        <div class="it-val">${sinResolucion} <span style="font-size:14px;font-weight:600">(${pct(sinResolucion,total)})</span></div>
+        <div class="it-desc">Conversaciones que no pudieron gestionarse</div>
+      </div>
+    </div>`;
+
+  // ── KPI secundarios ──
+  const pctCanceladas  = total ? Math.round(canceladas  / (citasTotal + canceladas  || 1) * 100) : 0;
+  const pctErrores     = total ? Math.round(errores     / (citasTotal + errores     || 1) * 100) : 0;
+  const pctDerivadas   = total ? Math.round(transferidas / total * 100) : 0;
+  const pctSinResol    = total ? Math.round(sinResolucion / total * 100) : 0;
+  document.getElementById('kpi-hh').innerHTML =
+    kpiCard('Total conversaciones', total,        'Canal texto',                              'hh',   '', '') +
+    kpiCard('Citas agendadas',      citasTotal,   formatUSD(valorGenerado) + ' generados · ' + RAW.agendadas.length + ' en sheet', 'ok', '', '') +
+    kpiCard('Citas canceladas',     canceladas,   pct(canceladas, citasTotal+canceladas) + ' del total', 'warn', '', semaforo('canceladas', pctCanceladas)) +
+    kpiCard('Errores en citas',     errores,      pct(errores, citasTotal+errores) + ' del total',       'err',  '', semaforo('errores', pctErrores)) +
+    kpiCard('Derivadas a humano',   transferidas, pct(transferidas,total),                               'warn', momBadge(hhC_tr, hhP_tr, false)) +
+    kpiCard('Sin resolución',       sinResolucion,pct(sinResolucion,total),                              'err',  momBadge(hhC_imp, hhP_imp, false));
+
+  // ── Resultado conversaciones (donut principal, con drill-down) ──
+  // Precalcular desglose por tipo para cada segmento del donut principal
+  const desglosePorSegmento = [
+    countBy(hh.filter(isResuelta).filter(r => r.tipoSolicitud), r => r.tipoSolicitud),
+    countBy(hh.filter(isTransferida).filter(r => r.tipoSolicitud), r => r.tipoSolicitud),
+    countBy(hh.filter(r => !isResuelta(r) && !isTransferida(r)).filter(r => r.tipoSolicitud), r => r.tipoSolicitud),
+  ];
+
+  makeDonut('ch-hh-gestion',
+    [`Resueltas (${pct(resueltas,total)})`, `Derivadas a humano (${pct(transferidas,total)})`, `Sin resolución (${pct(sinResolucion,total)})`],
+    [resueltas, transferidas, sinResolucion],
+    ['#059669','#f59e0b','#ef4444'],
+    (label) => {
+      if (label.startsWith('Resueltas')) {
+        const rows = hh.filter(isResuelta);
+        const byTipoRes = countBy(rows, r => r.tipoSolicitud || '(sin tipo)');
+        const resumenTipo = Object.entries(byTipoRes)
+          .sort((a,b) => b[1]-a[1])
+          .map(([k,v]) => `<span style="display:inline-flex;align-items:center;gap:5px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:3px 10px;font-size:11px;margin:2px"><strong>${v}</strong> ${k}</span>`)
+          .join(' ');
+        openModal('Resueltas — desglose por tipo de solicitud', rows, resumenTipo);
+      } else if (label.startsWith('Derivadas')) {
+        openModal('Derivadas a humano', hh.filter(isTransferida));
+      } else {
+        openModal('Sin resolución', hh.filter(r => !isResuelta(r) && !isTransferida(r)));
+      }
+    },
+    // Tooltip con desglose por tipo inline
+    (idx) => {
+      const byTipo = desglosePorSegmento[idx];
+      if (!byTipo || !Object.keys(byTipo).length) return [];
+      const lines = Object.entries(byTipo)
+        .sort((a,b) => b[1]-a[1])
+        .map(([k,v]) => `  · ${k}: ${v}`);
+      return ['  ─────────────', ...lines];
+    }
+  );
+
+  // ── Actividad diaria ──
+  const DIAS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const days    = dateRange30();
+  const hhByDay = days.map(d => hh.filter(r => r.fecha && toYMD(r.fecha) === d).length);
+  const avgVal  = hhByDay.filter(v => v > 0).length
+    ? Math.round(hhByDay.filter(v => v > 0).reduce((a,b) => a+b, 0) / hhByDay.filter(v => v > 0).length)
+    : 0;
+
+  // Colores por día: fin de semana = gris, entre semana = verde
+  const pointColors = days.map(d => {
+    const dow = new Date(d + 'T12:00:00').getDay();
+    return (dow === 0 || dow === 6) ? '#94a3b8' : '#059669';
+  });
+
+  // Etiquetas: "Lun 02-17", marcando fin de semana con *
+  const dayLabels = days.map(d => {
+    const date = new Date(d + 'T12:00:00');
+    const dow  = date.getDay();
+    const prefix = (dow === 0 || dow === 6) ? '* ' : '';
+    return prefix + DIAS_ES[dow] + ' ' + d.slice(5);
+  });
+
+  destroyChart('ch-hh-diario');
+  const ctxD = document.getElementById('ch-hh-diario');
+  if (ctxD) {
+    CHARTS['ch-hh-diario'] = new Chart(ctxD, {
+      type: 'line',
+      data: {
+        labels: dayLabels,
+        datasets: [
+          {
+            label: 'Conversaciones por día',
+            data: hhByDay,
+            borderColor: '#059669',
+            backgroundColor: 'rgba(5,150,105,.1)',
+            tension: .3, fill: true,
+            pointRadius: 5,
+            pointBackgroundColor: pointColors,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+          },
+          {
+            label: `Promedio días hábiles (${avgVal})`,
+            data: hhByDay.map(() => avgVal),
+            borderColor: '#94a3b8',
+            borderDash: [6, 4],
+            pointRadius: 0,
+            fill: false,
+            tension: 0,
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              title: ctx => ctx[0].label.replace('* ',''),
+              label: ctx => {
+                if (ctx.datasetIndex === 1) return ` Promedio: ${avgVal} conv.`;
+                const dow = new Date(days[ctx.dataIndex] + 'T12:00:00').getDay();
+                const esFinDeSemana = dow === 0 || dow === 6;
+                return ` ${ctx.parsed.y} conversaciones${esFinDeSemana ? ' (fin de semana)' : ''}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 9 }, maxTicksLimit: 12 } },
+          y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } }, beginAtZero: true },
+        }
+      }
+    });
+  }
+
+  // ── Tipo de solicitud (con drill-down, sin "Sin dato") ──
+  const byTipo = countBy(hh.filter(r => r.tipoSolicitud), r => r.tipoSolicitud);
+  makeDonut('ch-hh-solicitud', Object.keys(byTipo), Object.values(byTipo), undefined, (label) => {
+    const key = label.replace(/\s*\(.*\)/, '').trim();
+    const rows = hh.filter(r => r.tipoSolicitud === key);
+    openModal('Tipo de solicitud: ' + key, rows);
+  });
+
+  // ── Resultado de gestión (con drill-down + tooltip desglose) ──
+  const byEstatus = countBy(hh.filter(r => r.estado), r => r.estado);
+  const estatusKeys = Object.keys(byEstatus);
+  const desgloseEstatus = estatusKeys.map(estado =>
+    countBy(hh.filter(r => r.estado === estado && r.tipoSolicitud), r => r.tipoSolicitud)
+  );
+  makeDonut('ch-hh-estatus', estatusKeys, Object.values(byEstatus),
+    ['#10b981','#f59e0b','#ef4444','#94a3b8','#3b82f6'],
+    (label) => {
+      const key = label.replace(/\s*\(.*\)/, '').trim();
+      const rows = hh.filter(r => r.estado === key);
+      openModal('Estado: ' + key, rows);
+    },
+    (idx) => {
+      const byTipo = desgloseEstatus[idx];
+      if (!byTipo || !Object.keys(byTipo).length) return [];
+      const lines = Object.entries(byTipo)
+        .sort((a,b) => b[1]-a[1])
+        .map(([k,v]) => `  · ${k}: ${v}`);
+      return ['  ─────────────', ...lines];
+    }
+  );
+
+  // ── Sentimiento (con drill-down, sin "Sin dato") ──
+  // Colores fijos por tipo de sentimiento: positivo=verde, neutro=amarillo, negativo=rojo
+  const bySent = countBy(hh.filter(r => r.sentimiento), r => r.sentimiento);
+  const SENT_COLOR_MAP = {
+    'positivo': '#16a34a',
+    'neutral':  '#eab308',
+    'neutro':   '#eab308',
+    'negativo': '#dc2626',
+  };
+  const sentLabels = Object.keys(bySent);
+  const sentColors = sentLabels.map(l => {
+    const norm = l.toLowerCase().replace(/\s*\(.*\)/, '').trim();
+    return SENT_COLOR_MAP[norm] || '#94a3b8';
+  });
+  makeDonut('ch-hh-sentimiento', sentLabels, Object.values(bySent),
+    sentColors, (label) => {
+    const key = label.replace(/\s*\(.*\)/, '').trim();
+    const rows = hh.filter(r => r.sentimiento === key);
+    openModal('Sentimiento: ' + key, rows);
+  });
+
+  // ── Citas estado ──
+  makeBar('ch-citas-estado',
+    ['Agendadas','Canceladas','Errores'],
+    [{ label: 'Citas', data: [citasTotal, canceladas, errores],
+       backgroundColor: ['#059669','#f59e0b','#ef4444'] }],
+    { legend: false });
+
+  // ── Diagnóstico de citas agendadas ──
+  (function buildDebug() {
+    const el = document.getElementById('debug-citas-content');
+    if (!el) return;
+    const inRange = RAW.agendadas.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to));
+    // Detectar columnas dinámicamente
+    const sample = RAW.agendadas[0] || {};
+    const urlKey  = Object.keys(sample).find(k => k.trim().toLowerCase().includes('url')) || '';
+    const orgKey  = Object.keys(sample).find(k => k.trim().toLowerCase().includes('co del')) || 'CO del Dr';
+    let html = `<p style="margin-bottom:10px;color:#64748b;font-size:12px">${inRange.length} cita(s) en el rango seleccionado · ${RAW.agendadas.length} totales en el sheet</p>`;
+    html += `<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;width:100%">`;
+    html += `<tr style="background:#f1f5f9"><th style="padding:6px 12px;border:1px solid #e2e8f0;text-align:left">#</th><th style="padding:6px 12px;border:1px solid #e2e8f0;text-align:left">Fecha agendada</th><th style="padding:6px 12px;border:1px solid #e2e8f0;text-align:left">Org ID</th><th style="padding:6px 12px;border:1px solid #e2e8f0;text-align:left">Conversación</th></tr>`;
+    inRange.forEach((r, i) => {
+      const fecha  = r.fecha ? r.fecha.toLocaleString('es-CR', { dateStyle:'short', timeStyle:'short' }) : '—';
+      const orgId  = r[orgKey] || '—';
+      const urlVal = urlKey ? String(r[urlKey] || '') : '';
+      const urlCell = urlVal.startsWith('http') ? `<a href="${urlVal}" target="_blank" style="color:#1a73e8;font-size:11px">Abrir →</a>` : '—';
+      const bg = i % 2 === 0 ? '#fff' : '#f8fafc';
+      html += `<tr style="background:${bg}">
+        <td style="padding:5px 12px;border:1px solid #e2e8f0;color:#94a3b8">${i+1}</td>
+        <td style="padding:5px 12px;border:1px solid #e2e8f0">${fecha}</td>
+        <td style="padding:5px 12px;border:1px solid #e2e8f0;font-weight:600">${orgId}</td>
+        <td style="padding:5px 12px;border:1px solid #e2e8f0">${urlCell}</td>
+      </tr>`;
+    });
+    html += `</table></div>`;
+    el.innerHTML = html;
+  })();
+
+  // ── Top médicos ──
+  const byMedico = countBy(hh.filter(r => r.medico), r => r.medico);
+  const sorted = Object.entries(byMedico).sort((a,b) => b[1]-a[1]).slice(0,10);
+  if (sorted.length) {
+    makeBar('ch-hh-medicos', sorted.map(e=>e[0]), [
+      { label: 'Solicitudes', data: sorted.map(e=>e[1]), backgroundColor: '#059669' }
+    ], { legend: false, horizontal: true });
+  }
+
+  // ── Comparativo y tendencias ──
+  renderEstadoCitas();
+  renderComparativo();
+  renderTendencias();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  LOAD DATA
+// ══════════════════════════════════════════════════════════════
+async function reloadData() {
+  document.getElementById('loader').style.display = 'flex';
+  document.getElementById('loader-msg').textContent = 'Cargando datos...';
+  try {
+    const [hh1raw, hh2raw, agendadas, canceladas, errores, humanos2026raw, estadoCitasRaw] = await Promise.all([
+      fetchCSV(SHEETS.hh),
+      fetchCSV(SHEETS.hh2),
+      fetchCSV(SHEETS.agendadas),
+      fetchCSV(SHEETS.canceladas),
+      fetchCSV(SHEETS.errores),
+      fetchCSV(SHEETS.humanos2026),
+      fetchCSV(SHEETS.estadoCitas),
+    ]);
+    // hh = sheet activo (tiene columna País)
+    // hh2 = base histórica sin columna País — todas son Costa Rica
+    const hh1 = normalizeHH(hh1raw);
+    const hh2 = normalizeHH(hh2raw).map(r => ({
+      ...r,
+      pais: r.pais || 'HuliHealth_CostaRica'
+    }));
+    // DEBUG — abrir DevTools > Console para ver esto
+    const paisValues = [...new Set([...hh1, ...hh2].map(r => r.pais))];
+    console.log('=== DEBUG PAÍS ===');
+    console.log('Valores únicos de pais:', paisValues);
+    console.log('Chars en primer valor de hh1:', hh1[0]?.pais ? [...hh1[0].pais].map(c => c.charCodeAt(0)) : 'vacío');
+    console.log('hh1 total filas:', hh1.length, '| con pais:', hh1.filter(r=>r.pais).length);
+    console.log('hh2 total filas:', hh2.length, '| con pais:', hh2.filter(r=>r.pais).length);
+    const urlsSeen = new Set();
+    RAW.hh = [...hh1, ...hh2].filter(r => {
+      const key = r.url || (r.fecha ? r.fecha.getTime() + r.tipoSolicitud : null);
+      if (!key) return true;
+      if (urlsSeen.has(key)) return false;
+      urlsSeen.add(key);
+      return true;
+    });
+    RAW.agendadas  = normalizeCitas(agendadas.filter(r => Object.values(r).some(v => v && !isUndef(v))));
+    RAW.canceladas = normalizeCitas(canceladas.filter(r => Object.values(r).some(v => v && !isUndef(v))));
+    RAW.errores    = normalizeCitas(errores.filter(r => Object.values(r).some(v => v && !isUndef(v))));
+    // Humanos 2026: columnas Usuario, Tipo, Mes (nuevo formato)
+    const MESES_MAP_H26 = {
+      enero:1, febrero:2, marzo:3, abril:4, mayo:5, junio:6,
+      julio:7, agosto:8, setiembre:9, septiembre:9, octubre:10, noviembre:11, diciembre:12
+    };
+    const ANIO_H26 = 2026;
+    RAW.humanos2026 = humanos2026raw
+      .filter(r => Object.values(r).some(v => v && !isUndef(v)))
+      .map(r => {
+        const norm = {};
+        for (const k of Object.keys(r)) norm[k.trim().toLowerCase()] = r[k];
+        const agente = clean(norm['usuario'] || norm['agente'] || norm['agent'] || '');
+        const mesStr = clean(norm['mes'] || '').toLowerCase();
+        const mesNum = MESES_MAP_H26[mesStr] || null;
+        // Fecha sintética: día 1 del mes — usado solo para agrupar por getMonthKey()
+        const fecha  = mesNum ? new Date(ANIO_H26, mesNum - 1, 1) : null;
+        return { fecha, agente };
+      })
+      .filter(r => r.fecha);
+    // Estado de citas: columnas Año, Mes, Total agendadas, Completadas, Canceladas, Noshow, Rescheduled, Booked
+    const MESES_MAP = { enero:1, febrero:2, marzo:3, abril:4, mayo:5, junio:6,
+                        julio:7, agosto:8, setiembre:9, septiembre:9, octubre:10, noviembre:11, diciembre:12 };
+    RAW.estadoCitas = estadoCitasRaw
+      .filter(r => Object.values(r).some(v => v && !isUndef(v)))
+      .map(r => {
+        const norm = {};
+        for (const k of Object.keys(r)) norm[k.trim().toLowerCase()] = r[k];
+        // Buscar columna de año de forma flexible (ñ puede llegar mal codificada)
+        const findKey = (...candidates) => {
+          for (const c of candidates) {
+            if (norm[c] !== undefined) return norm[c];
+          }
+          // Búsqueda parcial como último recurso
+          const found = Object.keys(norm).find(k => candidates.some(c => k.includes(c.replace('ñ',''))));
+          return found ? norm[found] : '';
+        };
+        const anio   = parseInt(clean(String(findKey('año','ano','a\u00f1o','year')))) || null;
+        const mesStr = clean(norm['mes'] || findKey('mes') || '').toLowerCase();
+        const mesNum = MESES_MAP[mesStr] || null;
+        const nv = col => {
+          const val = norm[col] || findKey(col) || '0';
+          return parseInt(clean(String(val))) || 0;
+        };
+        return {
+          anio, mes: mesStr, mesNum,
+          total:       nv('total agendadas'),
+          completed:   nv('completadas'),
+          cancelled:   nv('canceladas'),
+          noshow:      nv('noshow'),
+          rescheduled: nv('rescheduled'),
+          booked:      nv('booked'),
+        };
+      })
+      .filter(r => r.anio && r.mesNum)
+      .sort((a, b) => a.anio !== b.anio ? a.anio - b.anio : a.mesNum - b.mesNum);
+    document.getElementById('last-update').textContent =
+      'Actualizado: ' + new Date().toLocaleTimeString('es-CR');
+    renderAll();
+    resetCountdown();
+  } catch(e) {
+    console.error(e);
+  } finally {
+    document.getElementById('loader').style.display = 'none';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  AUTO-REFRESH (cada 5 min)
+// ══════════════════════════════════════════════════════════════
+const REFRESH_INTERVAL = 5 * 60; // segundos
+let countdownSec = REFRESH_INTERVAL;
+let countdownTimer;
+
+function resetCountdown() {
+  countdownSec = REFRESH_INTERVAL;
+  clearInterval(countdownTimer);
+  countdownTimer = setInterval(() => {
+    countdownSec--;
+    const m = Math.floor(countdownSec / 60);
+    const s = String(countdownSec % 60).padStart(2,'0');
+    const el = document.getElementById('refresh-countdown');
+    if (el) el.textContent = `${m}:${s}`;
+    if (countdownSec <= 0) {
+      clearInterval(countdownTimer);
+      reloadData();
+    }
+  }, 1000);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════════
+(async () => {
+  const { from } = last30Days();
+  document.getElementById('f-from').value = toYMD(from);
+  document.getElementById('f-to').value   = toYMD(new Date());
+  await reloadData();
+})();
+</script>
+
+<!-- MODAL DE DETALLE -->
+<div class="modal-overlay" id="detail-modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modal-title">Detalle</h3>
+      <button class="modal-close" onclick="closeModal()">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-content"></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
