@@ -528,6 +528,17 @@ function parseDate(str) {
     return isNaN(result) ? null : result;
   }
 
+  // Formato MM/DD/YYYY HH:mm:ss (24h) — viene de hh2
+  const m24 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (m24) {
+    const [, mo, dy, yr, hh, mi, ss] = m24;
+    const result = new Date(parseInt(yr), parseInt(mo)-1, parseInt(dy), parseInt(hh), parseInt(mi), parseInt(ss||0));
+    return isNaN(result) ? null : result;
+  }
+
+  // Solo hora sin fecha (e.g. "3:40 p.m.") — ignorar, no tiene fecha útil
+  if (/^\d{1,2}:\d{2}/.test(s) && !/\d{4}/.test(s)) return null;
+
   // Fallback: si viene en formato ISO "YYYY-MM-DD..." agregamos T00:00:00 para forzar local
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
     const result = new Date(s + 'T00:00:00');
@@ -678,7 +689,11 @@ function normalizeCitas(rows) {
     .map(({ _norm, _orig }) => {
       const rawFecha = _norm['fecha'];
       const fecha = (rawFecha && !isUndef(rawFecha)) ? parseDate(clean(rawFecha)) : null;
-      return { ..._orig, fecha };
+      // Extraer país con normalización igual a HH
+      const PAIS_MAP_C = { 'CR': 'HuliHealth_CostaRica', 'PA': 'HuliHealth_Panama' };
+      const rawPais = _norm['país'] || _norm['pais'] || _norm['país'] || '';
+      const pais = PAIS_MAP_C[clean(rawPais)] || clean(rawPais) || '';
+      return { ..._orig, fecha, pais };
     });
 }
 
@@ -980,9 +995,11 @@ function renderComparativo() {
   const MESES_LABEL = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'];
 
   // ── Citas IA 2026 por mes ──
+  const f_comp = getFilters();
   const iaPorMes = {};
   RAW.agendadas.forEach(r => {
     if (!r.fecha) return;
+    if (f_comp.pais && r.pais !== f_comp.pais) return;
     const k = getMonthKey(r.fecha);
     iaPorMes[k] = (iaPorMes[k] || 0) + 1;
   });
@@ -1162,9 +1179,11 @@ function renderTendencias() {
   const resTasa   = resKeys.map(k => pctNum(resBuckets[k].res, resBuckets[k].total));
 
   // ── Citas agendadas ──
+  const f_tend = getFilters();
   const citaBuckets = {};
   RAW.agendadas.forEach(r => {
     if (!r.fecha) return;
+    if (f_tend.pais && r.pais !== f_tend.pais) return;
     const k = keyFn(r.fecha);
     citaBuckets[k] = (citaBuckets[k] || 0) + 1;
   });
@@ -1289,12 +1308,6 @@ function renderTendencias() {
 //  RENDER
 // ══════════════════════════════════════════════════════════════
 function renderAll() {
-  // DEBUG fechas — quitar después
-  const f0 = getFilters();
-  console.log('=== DEBUG FECHAS ===');
-  console.log('Filtro from:', f0.from, '| to:', f0.to);
-  console.log('Sample fechas RAW.hh (primeras 5):', RAW.hh.slice(0,5).map(r => r.fecha));
-  console.log('Total RAW.hh:', RAW.hh.length, '| con fecha:', RAW.hh.filter(r=>r.fecha).length, '| sin fecha:', RAW.hh.filter(r=>!r.fecha).length);
   const hh          = filterHH(RAW.hh);
   const total       = hh.length;
   const resueltas   = hh.filter(isResuelta).length;
@@ -1302,9 +1315,9 @@ function renderAll() {
   const sinResolucion = total - resueltas - transferidas;
   const f = getFilters();
   // Solo contar citas que tienen fecha válida Y caen en el rango
-  const citasTotal  = RAW.agendadas.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to)).length;
-  const canceladas  = RAW.canceladas.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to)).length;
-  const errores     = RAW.errores.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to)).length;
+  const citasTotal  = RAW.agendadas.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to) && (!f.pais || r.pais === f.pais)).length;
+  const canceladas  = RAW.canceladas.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to) && (!f.pais || r.pais === f.pais)).length;
+  const errores     = RAW.errores.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to) && (!f.pais || r.pais === f.pais)).length;
 
   const baseHH = filterBaseHH();
   const hhC = getMonthRows(baseHH, 0);
@@ -1542,7 +1555,7 @@ function renderAll() {
   (function buildDebug() {
     const el = document.getElementById('debug-citas-content');
     if (!el) return;
-    const inRange = RAW.agendadas.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to));
+    const inRange = RAW.agendadas.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to) && (!f.pais || r.pais === f.pais));
     // Detectar columnas dinámicamente
     const sample = RAW.agendadas[0] || {};
     const urlKey  = Object.keys(sample).find(k => k.trim().toLowerCase().includes('url')) || '';
@@ -1599,12 +1612,12 @@ async function reloadData() {
       fetchCSV(SHEETS.estadoCitas),
     ]);
     // hh = sheet activo (tiene columna País)
-    // hh2 = base histórica — puede tener 'CR'/'PA' (formato viejo) o vacío
-    // Normaliza ambos formatos al nuevo: HuliHealth_CostaRica / HuliHealth_Panama
-    const PAIS_MAP = { 'CR': 'HuliHealth_CostaRica', 'PA': 'HuliHealth_Panama' };
-    const normPais = p => PAIS_MAP[p] || p || 'HuliHealth_CostaRica';
-    const hh1 = normalizeHH(hh1raw).map(r => ({ ...r, pais: normPais(r.pais) }));
-    const hh2 = normalizeHH(hh2raw).map(r => ({ ...r, pais: normPais(r.pais) }));
+    // hh2 = base histórica sin columna País — todas son Costa Rica
+    const hh1 = normalizeHH(hh1raw);
+    const hh2 = normalizeHH(hh2raw).map(r => ({
+      ...r,
+      pais: r.pais || 'HuliHealth_CostaRica'
+    }));
     const urlsSeen = new Set();
     RAW.hh = [...hh1, ...hh2].filter(r => {
       const key = r.url || (r.fecha ? r.fecha.getTime() + r.tipoSolicitud : null);
