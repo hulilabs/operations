@@ -1597,6 +1597,13 @@ async function reloadData() {
       ...r,
       pais: r.pais || 'HuliHealth_CostaRica'
     }));
+    // DEBUG — abrir DevTools > Console para ver esto
+    const paisValues = [...new Set([...hh1, ...hh2].map(r => r.pais))];
+    console.log('=== DEBUG PAÍS ===');
+    console.log('Valores únicos de pais:', paisValues);
+    console.log('Chars en primer valor de hh1:', hh1[0]?.pais ? [...hh1[0].pais].map(c => c.charCodeAt(0)) : 'vacío');
+    console.log('hh1 total filas:', hh1.length, '| con pais:', hh1.filter(r=>r.pais).length);
+    console.log('hh2 total filas:', hh2.length, '| con pais:', hh2.filter(r=>r.pais).length);
     const urlsSeen = new Set();
     RAW.hh = [...hh1, ...hh2].filter(r => {
       const key = r.url || (r.fecha ? r.fecha.getTime() + r.tipoSolicitud : null);
