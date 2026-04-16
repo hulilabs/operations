@@ -773,6 +773,8 @@ function isResuelta(r) {
   if (isTransferida(r)) return false;
   const e = (r.estado       || '').toLowerCase().trim();
   const m = (r.motivoCierre || '').toLowerCase().trim();
+  // Gestión Imposible nunca es resuelta, sin importar el motivo de cierre
+  if (e.includes('imposible')) return false;
   return e.includes('exitosa')      // Autogestión Exitosa
       || e.includes('inactividad')  // Inactividad = paciente no respondió, filtro cumplido
       || m.includes('solucionada')  // Motivo de Cierre: Solucionada
