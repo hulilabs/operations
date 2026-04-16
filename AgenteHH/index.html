@@ -768,7 +768,8 @@ function isResuelta(r) {
   return e.includes('exitosa') || e === 'resuelta' || e === 'solucionada';
 }
 function isTransferida(r) {
-  return r.transferida || (r.estado || '').toLowerCase().includes('transfer');
+  const e = (r.estado || '').toLowerCase();
+  return r.transferida || e.includes('transfer') || e.includes('información recabada');
 }
 
 // ══════════════════════════════════════════════════════════════
