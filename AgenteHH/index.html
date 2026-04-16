@@ -766,29 +766,27 @@ function filterBaseHH() {
 //  CLASIFICACIÓN DE CONVERSACIONES
 // ══════════════════════════════════════════════════════════════
 function isTransferida(r) {
-  // Transferida tiene prioridad máxima — campo booleano ya procesado por isTruthy en normalizeHH
+  // Transferida tiene prioridad máxima
   return r.transferida === true;
 }
 function isInactividad(r) {
+  // Prioridad 2: el paciente dejó de responder — siempre que no sea transferida
   if (isTransferida(r)) return false;
-  const e = (r.estado       || '').toLowerCase().trim();
   const m = (r.motivoCierre || '').toLowerCase().trim();
-  return e.includes('inactividad') || m.includes('inactividad');
+  return m.includes('inactividad');
 }
 function isResuelta(r) {
   if (isTransferida(r)) return false;
   if (isInactividad(r)) return false;
   const e = (r.estado       || '').toLowerCase().trim();
   const m = (r.motivoCierre || '').toLowerCase().trim();
-  // Gestión Imposible nunca es resuelta
+  // Gestión Imposible e Información Recabada sin transferir nunca son resueltas
   if (e.includes('imposible')) return false;
-  // Información Recabada sin transferir = sin resolución
   if (e.includes('información recabada') || e.includes('informacion recabada')) return false;
-  // Resuelta: Autogestión Exitosa o Motivo de Cierre confirmatorio
   return e.includes('exitosa') || m.includes('solucionada') || m.includes('cierre');
 }
 function isSinResolucion(r) {
-  return !isTransferida(r) && !isResuelta(r) && !isInactividad(r);
+  return !isTransferida(r) && !isInactividad(r) && !isResuelta(r);
 }
 
 // ══════════════════════════════════════════════════════════════
