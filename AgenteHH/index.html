@@ -764,22 +764,23 @@ function filterBaseHH() {
 //  CLASIFICACIÓN DE CONVERSACIONES
 // ══════════════════════════════════════════════════════════════
 function isTransferida(r) {
-  // Transferida tiene prioridad máxima
-  return r.transferida === true
-      || ['si','sí','yes','true','1'].includes(String(r.transferida || '').trim().toLowerCase());
+  // Transferida tiene prioridad máxima — campo booleano ya procesado por isTruthy en normalizeHH
+  return r.transferida === true;
 }
 function isResuelta(r) {
   // Solo puede ser resuelta si NO fue transferida
   if (isTransferida(r)) return false;
   const e = (r.estado       || '').toLowerCase().trim();
   const m = (r.motivoCierre || '').toLowerCase().trim();
-  // Gestión Imposible nunca es resuelta, sin importar el motivo de cierre
+  // Gestión Imposible nunca es resuelta
   if (e.includes('imposible')) return false;
-  return e.includes('exitosa')      // Autogestión Exitosa
-      || e.includes('inactividad')  // Inactividad = paciente no respondió, filtro cumplido
-      || m.includes('solucionada')  // Motivo de Cierre: Solucionada
-      || m.includes('cierre')       // Motivo de Cierre: Cierre
-      || m.includes('inactividad'); // Motivo de Cierre: Inactividad
+  // Resuelta si el Estado indica éxito o inactividad (el paciente no necesitó más)
+  if (e.includes('exitosa') || e.includes('inactividad')) return true;
+  // Motivo de Cierre solo aplica cuando el Estado NO es "Información Recabada"
+  // (Información Recabada sin transferir = sin resolución, el agente no cerró)
+  if (e.includes('información recabada') || e.includes('informacion recabada')) return false;
+  // Para cualquier otro estado, el motivo de cierre puede confirmar resolución
+  return m.includes('solucionada') || m.includes('cierre') || m.includes('inactividad');
 }
 function isSinResolucion(r) {
   return !isTransferida(r) && !isResuelta(r);
