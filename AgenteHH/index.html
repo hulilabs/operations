@@ -763,13 +763,24 @@ function filterBaseHH() {
 // ══════════════════════════════════════════════════════════════
 //  CLASIFICACIÓN DE CONVERSACIONES
 // ══════════════════════════════════════════════════════════════
-function isResuelta(r) {
-  const e = (r.estado || '').toLowerCase();
-  return e.includes('exitosa') || e === 'resuelta' || e === 'solucionada';
-}
 function isTransferida(r) {
-  const e = (r.estado || '').toLowerCase();
-  return r.transferida || e.includes('transfer') || e.includes('información recabada');
+  // Transferida tiene prioridad máxima
+  return r.transferida === true
+      || ['si','sí','yes','true','1'].includes(String(r.transferida || '').trim().toLowerCase());
+}
+function isResuelta(r) {
+  // Solo puede ser resuelta si NO fue transferida
+  if (isTransferida(r)) return false;
+  const e = (r.estado       || '').toLowerCase().trim();
+  const m = (r.motivoCierre || '').toLowerCase().trim();
+  return e.includes('exitosa')      // Autogestión Exitosa
+      || e.includes('inactividad')  // Inactividad = paciente no respondió, filtro cumplido
+      || m.includes('solucionada')  // Motivo de Cierre: Solucionada
+      || m.includes('cierre')       // Motivo de Cierre: Cierre
+      || m.includes('inactividad'); // Motivo de Cierre: Inactividad
+}
+function isSinResolucion(r) {
+  return !isTransferida(r) && !isResuelta(r);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1317,9 +1328,9 @@ function renderTendencias() {
 function renderAll() {
   const hh          = filterHH(RAW.hh);
   const total       = hh.length;
-  const resueltas   = hh.filter(isResuelta).length;
-  const transferidas= hh.filter(isTransferida).length;
-  const sinResolucion = total - resueltas - transferidas;
+  const resueltas     = hh.filter(isResuelta).length;
+  const transferidas  = hh.filter(isTransferida).length;
+  const sinResolucion = hh.filter(isSinResolucion).length;
   const f = getFilters();
   // Solo contar citas que tienen fecha válida Y caen en el rango
   const citasTotal  = RAW.agendadas.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to) && (!f.pais || r.pais === f.pais)).length;
@@ -1333,8 +1344,8 @@ function renderAll() {
   const hhP_res = hhP.filter(isResuelta).length;
   const hhC_tr  = hhC.filter(isTransferida).length;
   const hhP_tr  = hhP.filter(isTransferida).length;
-  const hhC_imp = hhC.length - hhC_res - hhC_tr;
-  const hhP_imp = hhP.length - hhP_res - hhP_tr;
+  const hhC_imp = hhC.filter(isSinResolucion).length;
+  const hhP_imp = hhP.filter(isSinResolucion).length;
 
   // ── Hero banner ──
   const tasa = pctNum(resueltas, total);
@@ -1390,7 +1401,7 @@ function renderAll() {
   const desglosePorSegmento = [
     countBy(hh.filter(isResuelta).filter(r => r.tipoSolicitud), r => r.tipoSolicitud),
     countBy(hh.filter(isTransferida).filter(r => r.tipoSolicitud), r => r.tipoSolicitud),
-    countBy(hh.filter(r => !isResuelta(r) && !isTransferida(r)).filter(r => r.tipoSolicitud), r => r.tipoSolicitud),
+    countBy(hh.filter(isSinResolucion).filter(r => r.tipoSolicitud), r => r.tipoSolicitud),
   ];
 
   makeDonut('ch-hh-gestion',
@@ -1409,7 +1420,7 @@ function renderAll() {
       } else if (label.startsWith('Derivadas')) {
         openModal('Derivadas a humano', hh.filter(isTransferida));
       } else {
-        openModal('Sin resolución', hh.filter(r => !isResuelta(r) && !isTransferida(r)));
+        openModal('Sin resolución', hh.filter(isSinResolucion));
       }
     },
     // Tooltip con desglose por tipo inline
