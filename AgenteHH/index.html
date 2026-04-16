@@ -161,7 +161,7 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color:
 .sec-badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; color: #fff; }
 
 /* ── Insight box ── */
-.insight-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+.insight-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
 .insight-card {
   border-radius: 10px; padding: 14px 18px; display: flex; align-items: flex-start; gap: 12px;
 }
@@ -227,9 +227,11 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color:
 .chart-card .clickable-hint { font-size: 10px; color: #94a3b8; margin-top: -10px; margin-bottom: 10px; }
 
 /* ── Responsive ── */
+@media (max-width: 1200px) {
+  .insight-row { grid-template-columns: 1fr 1fr; }
+}
 @media (max-width: 1000px) {
   .chart-row.cols-3 { grid-template-columns: 1fr 1fr; }
-  .insight-row { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 700px) {
   .chart-row.cols-2, .chart-row.cols-3 { grid-template-columns: 1fr; }
@@ -767,23 +769,26 @@ function isTransferida(r) {
   // Transferida tiene prioridad máxima — campo booleano ya procesado por isTruthy en normalizeHH
   return r.transferida === true;
 }
-function isResuelta(r) {
-  // Solo puede ser resuelta si NO fue transferida
+function isInactividad(r) {
   if (isTransferida(r)) return false;
+  const e = (r.estado       || '').toLowerCase().trim();
+  const m = (r.motivoCierre || '').toLowerCase().trim();
+  return e.includes('inactividad') || m.includes('inactividad');
+}
+function isResuelta(r) {
+  if (isTransferida(r)) return false;
+  if (isInactividad(r)) return false;
   const e = (r.estado       || '').toLowerCase().trim();
   const m = (r.motivoCierre || '').toLowerCase().trim();
   // Gestión Imposible nunca es resuelta
   if (e.includes('imposible')) return false;
-  // Resuelta si el Estado indica éxito o inactividad (el paciente no necesitó más)
-  if (e.includes('exitosa') || e.includes('inactividad')) return true;
-  // Motivo de Cierre solo aplica cuando el Estado NO es "Información Recabada"
-  // (Información Recabada sin transferir = sin resolución, el agente no cerró)
+  // Información Recabada sin transferir = sin resolución
   if (e.includes('información recabada') || e.includes('informacion recabada')) return false;
-  // Para cualquier otro estado, el motivo de cierre puede confirmar resolución
-  return m.includes('solucionada') || m.includes('cierre') || m.includes('inactividad');
+  // Resuelta: Autogestión Exitosa o Motivo de Cierre confirmatorio
+  return e.includes('exitosa') || m.includes('solucionada') || m.includes('cierre');
 }
 function isSinResolucion(r) {
-  return !isTransferida(r) && !isResuelta(r);
+  return !isTransferida(r) && !isResuelta(r) && !isInactividad(r);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1333,6 +1338,7 @@ function renderAll() {
   const total       = hh.length;
   const resueltas     = hh.filter(isResuelta).length;
   const transferidas  = hh.filter(isTransferida).length;
+  const inactividad   = hh.filter(isInactividad).length;
   const sinResolucion = hh.filter(isSinResolucion).length;
   const f = getFilters();
   // Solo contar citas que tienen fecha válida Y caen en el rango
@@ -1343,12 +1349,14 @@ function renderAll() {
   const baseHH = filterBaseHH();
   const hhC = getMonthRows(baseHH, 0);
   const hhP = getMonthRows(baseHH, -1);
-  const hhC_res = hhC.filter(isResuelta).length;
-  const hhP_res = hhP.filter(isResuelta).length;
-  const hhC_tr  = hhC.filter(isTransferida).length;
-  const hhP_tr  = hhP.filter(isTransferida).length;
-  const hhC_imp = hhC.filter(isSinResolucion).length;
-  const hhP_imp = hhP.filter(isSinResolucion).length;
+  const hhC_res  = hhC.filter(isResuelta).length;
+  const hhP_res  = hhP.filter(isResuelta).length;
+  const hhC_tr   = hhC.filter(isTransferida).length;
+  const hhP_tr   = hhP.filter(isTransferida).length;
+  const hhC_inac = hhC.filter(isInactividad).length;
+  const hhP_inac = hhP.filter(isInactividad).length;
+  const hhC_imp  = hhC.filter(isSinResolucion).length;
+  const hhP_imp  = hhP.filter(isSinResolucion).length;
 
   // ── Hero banner ──
   const tasa = pctNum(resueltas, total);
@@ -1361,7 +1369,7 @@ function renderAll() {
 
   // ── Insight cards ──
   document.getElementById('insight-row').innerHTML = `
-    <div class="insight-card green">
+    <div class="insight-card green" style="cursor:pointer" onclick="openModal('Resueltas', filterHH(RAW.hh).filter(isResuelta))">
       <div class="insight-icon">&#10003;</div>
       <div class="insight-text">
         <div class="it-label">Resueltas sin transferir</div>
@@ -1369,7 +1377,7 @@ function renderAll() {
         <div class="it-desc">El agente resolvió la solicitud de forma autónoma</div>
       </div>
     </div>
-    <div class="insight-card amber">
+    <div class="insight-card amber" style="cursor:pointer" onclick="openModal('Derivadas a humano', filterHH(RAW.hh).filter(isTransferida))">
       <div class="insight-icon">&#8599;</div>
       <div class="insight-text">
         <div class="it-label">Derivadas a humano</div>
@@ -1377,7 +1385,15 @@ function renderAll() {
         <div class="it-desc">Casos que requirieron intervención del equipo</div>
       </div>
     </div>
-    <div class="insight-card red">
+    <div class="insight-card" style="background:#eff6ff;border:1px solid #bfdbfe;cursor:pointer" onclick="openModal('Inactividad', filterHH(RAW.hh).filter(isInactividad))">
+      <div class="insight-icon">&#9203;</div>
+      <div class="insight-text">
+        <div class="it-label">Inactividad</div>
+        <div class="it-val" style="color:#1d4ed8">${inactividad} <span style="font-size:14px;font-weight:600">(${pct(inactividad,total)})</span></div>
+        <div class="it-desc" style="color:#64748b">El paciente dejó de responder</div>
+      </div>
+    </div>
+    <div class="insight-card red" style="cursor:pointer" onclick="openModal('Sin resolución', filterHH(RAW.hh).filter(isSinResolucion))">
       <div class="insight-icon">&#9651;</div>
       <div class="insight-text">
         <div class="it-label">Sin resolución</div>
@@ -1392,25 +1408,31 @@ function renderAll() {
   const pctDerivadas   = total ? Math.round(transferidas / total * 100) : 0;
   const pctSinResol    = total ? Math.round(sinResolucion / total * 100) : 0;
   document.getElementById('kpi-hh').innerHTML =
-    kpiCard('Total conversaciones', total,        'Canal texto',                              'hh',   '', '') +
+    kpiCard('Total conversaciones', total,        'Canal texto',                                                          'hh',   '', '') +
     kpiCard('Citas agendadas',      citasTotal,   formatUSD(valorGenerado) + ' generados · ' + RAW.agendadas.length + ' en sheet', 'ok', '', '') +
-    kpiCard('Citas canceladas',     canceladas,   pct(canceladas, citasTotal+canceladas) + ' del total', 'warn', '', semaforo('canceladas', pctCanceladas)) +
-    kpiCard('Errores en citas',     errores,      pct(errores, citasTotal+errores) + ' del total',       'err',  '', semaforo('errores', pctErrores)) +
-    kpiCard('Derivadas a humano',   transferidas, pct(transferidas,total),                               'warn', momBadge(hhC_tr, hhP_tr, false)) +
-    kpiCard('Sin resolución',       sinResolucion,pct(sinResolucion,total),                              'err',  momBadge(hhC_imp, hhP_imp, false));
+    kpiCard('Citas canceladas',     canceladas,   pct(canceladas, citasTotal+canceladas) + ' del total',                 'warn', '', semaforo('canceladas', pctCanceladas)) +
+    kpiCard('Errores en citas',     errores,      pct(errores, citasTotal+errores) + ' del total',                       'err',  '', semaforo('errores', pctErrores)) +
+    kpiCard('Derivadas a humano',   transferidas, pct(transferidas,total),                                               'warn', momBadge(hhC_tr,   hhP_tr,   false)) +
+    kpiCard('Inactividad',          inactividad,  pct(inactividad,total),                                                '',     momBadge(hhC_inac, hhP_inac, false)) +
+    kpiCard('Sin resolución',       sinResolucion,pct(sinResolucion,total),                                              'err',  momBadge(hhC_imp,  hhP_imp,  false));
 
   // ── Resultado conversaciones (donut principal, con drill-down) ──
-  // Precalcular desglose por tipo para cada segmento del donut principal
   const desglosePorSegmento = [
-    countBy(hh.filter(isResuelta).filter(r => r.tipoSolicitud), r => r.tipoSolicitud),
-    countBy(hh.filter(isTransferida).filter(r => r.tipoSolicitud), r => r.tipoSolicitud),
-    countBy(hh.filter(isSinResolucion).filter(r => r.tipoSolicitud), r => r.tipoSolicitud),
+    countBy(hh.filter(isResuelta).filter(r => r.tipoSolicitud),     r => r.tipoSolicitud),
+    countBy(hh.filter(isTransferida).filter(r => r.tipoSolicitud),  r => r.tipoSolicitud),
+    countBy(hh.filter(isInactividad).filter(r => r.tipoSolicitud),  r => r.tipoSolicitud),
+    countBy(hh.filter(isSinResolucion).filter(r => r.tipoSolicitud),r => r.tipoSolicitud),
   ];
 
   makeDonut('ch-hh-gestion',
-    [`Resueltas (${pct(resueltas,total)})`, `Derivadas a humano (${pct(transferidas,total)})`, `Sin resolución (${pct(sinResolucion,total)})`],
-    [resueltas, transferidas, sinResolucion],
-    ['#059669','#f59e0b','#ef4444'],
+    [
+      `Resueltas (${pct(resueltas,total)})`,
+      `Derivadas a humano (${pct(transferidas,total)})`,
+      `Inactividad (${pct(inactividad,total)})`,
+      `Sin resolución (${pct(sinResolucion,total)})`,
+    ],
+    [resueltas, transferidas, inactividad, sinResolucion],
+    ['#059669','#f59e0b','#3b82f6','#ef4444'],
     (label) => {
       if (label.startsWith('Resueltas')) {
         const rows = hh.filter(isResuelta);
@@ -1422,11 +1444,12 @@ function renderAll() {
         openModal('Resueltas — desglose por tipo de solicitud', rows, resumenTipo);
       } else if (label.startsWith('Derivadas')) {
         openModal('Derivadas a humano', hh.filter(isTransferida));
+      } else if (label.startsWith('Inactividad')) {
+        openModal('Inactividad', hh.filter(isInactividad));
       } else {
         openModal('Sin resolución', hh.filter(isSinResolucion));
       }
     },
-    // Tooltip con desglose por tipo inline
     (idx) => {
       const byTipo = desglosePorSegmento[idx];
       if (!byTipo || !Object.keys(byTipo).length) return [];
