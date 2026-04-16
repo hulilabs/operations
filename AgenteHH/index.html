@@ -137,7 +137,7 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
 .hero-divider { width: 1px; background: rgba(255,255,255,.1); align-self: stretch; }
 
 /* ── KPI Cards ── */
-.kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
 .kpi-card {
   background: var(--card); border-radius: 12px; padding: 18px 20px;
   box-shadow: var(--shadow); border-top: 3px solid var(--blue);
@@ -419,15 +419,6 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
           <h3>Top 10 médicos más solicitados</h3>
           <p class="chart-subtitle">Basado en las conversaciones del período</p>
           <div class="chart-wrap tall"><canvas id="ch-hh-medicos"></canvas></div>
-        </div>
-      </div>
-
-      <!-- Tasa de éxito por tipo de solicitud -->
-      <div class="chart-row cols-1" style="margin-top:16px">
-        <div class="chart-card">
-          <h3>Tasa de resolución por tipo de solicitud</h3>
-          <p class="chart-subtitle">% de conversaciones resueltas vs transferidas vs inactividad vs sin resolución, por tipo</p>
-          <div class="chart-wrap tall"><canvas id="ch-tasa-por-tipo"></canvas></div>
         </div>
       </div>
 
@@ -1443,18 +1434,15 @@ function renderAll() {
   // Tasa de resolución real (excluye inactividad del denominador)
   const totalSinInac   = total - inactividad;
   const tasaReal       = pctNum(resueltas, totalSinInac);
-  // Tasa incluyendo inactividad (denominador = total)
-  const tasaTotal      = pctNum(resueltas, total);
   document.getElementById('kpi-hh').innerHTML =
-    kpiCard('Total conversaciones',       total,          'Canal texto · deduplicadas por URL',                           'hh',   '', '') +
-    kpiCard('Tasa de resolución real',    tasaReal + '%', 'Excluye inactividad del denominador',                          'hh',   momBadge(pctNum(hhC_res, hhC.length - hhC_inac), pctNum(hhP_res, hhP.length - hhP_inac)), semaforo('resolucion', tasaReal)) +
-    kpiCard('Tasa incl. inactividad',     tasaTotal + '%','Sobre el total de conversaciones',                             '',     momBadge(pctNum(hhC_res, hhC.length), pctNum(hhP_res, hhP.length)), semaforo('resolucion', tasaTotal)) +
-    kpiCard('Citas agendadas',            citasTotal,     formatUSD(valorGenerado) + ' generados · ' + RAW.agendadas.length + ' en sheet', 'ok', '', '') +
-    kpiCard('Citas canceladas',           canceladas,     pct(canceladas, citasTotal+canceladas) + ' del total',          'warn', '', semaforo('canceladas', pctCanceladas)) +
-    kpiCard('Errores en citas',           errores,        pct(errores, citasTotal+errores) + ' del total',                'err',  '', semaforo('errores', pctErrores)) +
-    kpiCard('Derivadas a humano',         transferidas,   pct(transferidas,total),                                        'warn', momBadge(hhC_tr,   hhP_tr,   false)) +
-    kpiCard('Inactividad',                inactividad,    pct(inactividad,total),                                         '',     momBadge(hhC_inac, hhP_inac, false)) +
-    kpiCard('Sin resolución',             sinResolucion,  pct(sinResolucion,total),                                       'err',  momBadge(hhC_imp,  hhP_imp,  false));
+    kpiCard('Total conversaciones',     total,          'Canal texto · deduplicadas por URL',                                       'hh',   '', '') +
+    kpiCard('Tasa de resolución real',  tasaReal + '%', 'Excluye inactividad del denominador',                                      'hh',   momBadge(pctNum(hhC_res, hhC.length - hhC_inac), pctNum(hhP_res, hhP.length - hhP_inac)), semaforo('resolucion', tasaReal)) +
+    kpiCard('Citas agendadas',          citasTotal,     formatUSD(valorGenerado) + ' generados · ' + RAW.agendadas.length + ' en sheet', 'ok', '', '') +
+    kpiCard('Citas canceladas',         canceladas,     pct(canceladas, citasTotal+canceladas) + ' del total',                      'warn', '', semaforo('canceladas', pctCanceladas)) +
+    kpiCard('Errores en citas',         errores,        pct(errores, citasTotal+errores) + ' del total',                            'err',  '', semaforo('errores', pctErrores)) +
+    kpiCard('Derivadas a humano',       transferidas,   pct(transferidas,total),                                                    'warn', momBadge(hhC_tr,   hhP_tr,   false)) +
+    kpiCard('Inactividad',              inactividad,    pct(inactividad,total),                                                     '',     momBadge(hhC_inac, hhP_inac, false)) +
+    kpiCard('Sin resolución',           sinResolucion,  pct(sinResolucion,total),                                                   'err',  momBadge(hhC_imp,  hhP_imp,  false));
 
   // ── Resultado conversaciones (donut — 3 segmentos, sin inactividad) ──
   const desglosePorSegmento = [
@@ -1709,57 +1697,6 @@ function renderAll() {
   }
 
   // ── Tasa de resolución por tipo de solicitud ──
-  const tipos = [...new Set(hh.map(r => r.tipoSolicitud).filter(Boolean))].sort();
-  const tasaPorTipo = {
-    resueltas:   tipos.map(t => hh.filter(r => r.tipoSolicitud === t && isResuelta(r)).length),
-    transferidas:tipos.map(t => hh.filter(r => r.tipoSolicitud === t && isTransferida(r)).length),
-    inactividad: tipos.map(t => hh.filter(r => r.tipoSolicitud === t && isInactividad(r)).length),
-    sinResol:    tipos.map(t => hh.filter(r => r.tipoSolicitud === t && isSinResolucion(r)).length),
-    totales:     tipos.map(t => hh.filter(r => r.tipoSolicitud === t).length),
-  };
-  destroyChart('ch-tasa-por-tipo');
-  const ctxTipo = document.getElementById('ch-tasa-por-tipo');
-  if (ctxTipo && tipos.length) {
-    CHARTS['ch-tasa-por-tipo'] = new Chart(ctxTipo, {
-      type: 'bar',
-      data: {
-        labels: tipos,
-        datasets: [
-          { label: 'Resuelta',         data: tasaPorTipo.resueltas,   backgroundColor: '#059669', stack: 'tipo' },
-          { label: 'Derivada a humano',data: tasaPorTipo.transferidas, backgroundColor: '#f59e0b', stack: 'tipo' },
-          { label: 'Inactividad',      data: tasaPorTipo.inactividad,  backgroundColor: '#3b82f6', stack: 'tipo' },
-          { label: 'Sin resolución',   data: tasaPorTipo.sinResol,     backgroundColor: '#ef4444', stack: 'tipo' },
-        ],
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 12, padding: 14 } },
-          tooltip: {
-            callbacks: {
-              afterBody(items) {
-                const idx = items[0].dataIndex;
-                const tot = tasaPorTipo.totales[idx];
-                const res = tasaPorTipo.resueltas[idx];
-                const tasaR = tot ? Math.round(res / (tot - tasaPorTipo.inactividad[idx]) * 100) : 0;
-                const tasaT = tot ? Math.round(res / tot * 100) : 0;
-                return [
-                  `── Total: ${tot}`,
-                  `── Tasa real: ${tasaR}%`,
-                  `── Tasa incl. inactividad: ${tasaT}%`,
-                ];
-              }
-            }
-          }
-        },
-        scales: {
-          x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } },
-          y: { stacked: true, beginAtZero: true, ticks: { font: { size: 11 } }, grid: { color: '#f1f5f9' } },
-        },
-      },
-    });
-  }
 
   // ── Comparativo y tendencias ──
   renderEstadoCitas();
