@@ -374,14 +374,6 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
           <div class="chart-wrap"><canvas id="ch-hh-gestion"></canvas></div>
         </div>
         <div class="chart-card">
-          <h3>Inactividad por tipo de solicitud</h3>
-          <p class="chart-subtitle">Conversaciones cerradas por inactividad del paciente</p>
-          <div class="chart-wrap"><canvas id="ch-hh-inactividad"></canvas></div>
-        </div>
-      </div>
-      <!-- Actividad diaria -->
-      <div class="chart-row cols-1">
-        <div class="chart-card">
           <h3>Actividad diaria — últimos 30 días</h3>
           <div class="chart-wrap tall"><canvas id="ch-hh-diario"></canvas></div>
         </div>
@@ -1481,47 +1473,6 @@ function renderAll() {
       return ['  ─────────────', ...lines];
     }
   );
-
-  // ── Inactividad por tipo de solicitud (gráfica aparte) ──
-  const inacRows = hh.filter(isInactividad);
-  const inacPorTipo = countBy(inacRows.filter(r => r.tipoSolicitud), r => r.tipoSolicitud);
-  const inacTipos = Object.entries(inacPorTipo).sort((a,b) => b[1]-a[1]);
-  destroyChart('ch-hh-inactividad');
-  const ctxInac = document.getElementById('ch-hh-inactividad');
-  if (ctxInac) {
-    if (inacTipos.length) {
-      CHARTS['ch-hh-inactividad'] = new Chart(ctxInac, {
-        type: 'bar',
-        data: {
-          labels: inacTipos.map(e => e[0]),
-          datasets: [{ label: 'Inactividad', data: inacTipos.map(e => e[1]), backgroundColor: '#2563eb', borderRadius: 6 }],
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: ctx => ` ${ctx.parsed.y} conversaciones`,
-                afterLabel: ctx => `  ${pct(ctx.parsed.y, inactividad)} del total de inactividad`,
-              }
-            }
-          },
-          scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-            y: { beginAtZero: true, ticks: { font: { size: 11 } }, grid: { color: '#f1f5f9' } },
-          },
-          onClick: (evt, elements) => {
-            if (!elements.length) return;
-            const tipo = inacTipos[elements[0].index][0];
-            openModal(`Inactividad — ${tipo}`, inacRows.filter(r => r.tipoSolicitud === tipo));
-          },
-        },
-      });
-    } else {
-      ctxInac.parentElement.innerHTML = '<div class="empty-state"><p>Sin datos de inactividad en el período</p></div>';
-    }
-  }
 
   // ── Actividad diaria ──
   const DIAS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
