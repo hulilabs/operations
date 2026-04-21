@@ -2129,17 +2129,7 @@ async function sendAIMessage(textOverride) {
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-    const data = await res.json();
-
-    // Intentar extraer la respuesta del webhook (ajustar según lo que devuelva Dapta)
-    const respuesta =
-      data?.respuesta ||
-      data?.output ||
-      data?.message ||
-      data?.text ||
-      data?.content ||
-      (typeof data === 'string' ? data : null) ||
-      'No se recibió respuesta del servidor.';
+    const respuesta = (await res.text()).trim() || 'No se recibió respuesta del servidor.';
 
     hideTyping();
     appendMessage('assistant', respuesta);
