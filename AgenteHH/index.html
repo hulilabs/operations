@@ -244,7 +244,147 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
 .modal-table .td-url a { color: var(--blue); font-size: 11px; }
 .chart-card .clickable-hint { font-size: 10px; color: var(--txt3); margin-bottom: 10px; }
 
-/* ── Responsive ── */
+/* ══ AI Chat Button ══ */
+#ai-chat-btn {
+  position: fixed; bottom: 28px; right: 28px; z-index: 400;
+  width: 54px; height: 54px; border-radius: 50%;
+  background: linear-gradient(135deg, #059669, #047857);
+  border: none; cursor: pointer; box-shadow: 0 4px 18px rgba(5,150,105,.45);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .2s, box-shadow .2s;
+  color: #fff; font-size: 22px;
+}
+#ai-chat-btn:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(5,150,105,.55); }
+#ai-chat-btn .ai-badge {
+  position: absolute; top: -4px; right: -4px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #2563eb; border: 2px solid #fff;
+  font-size: 9px; font-weight: 700; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ══ AI Chat Modal ══ */
+#ai-chat-modal {
+  position: fixed; inset: 0; z-index: 600;
+  display: none; align-items: flex-end; justify-content: flex-end;
+  padding: 0 28px 96px;
+  pointer-events: none;
+}
+#ai-chat-modal.open { display: flex; }
+#ai-chat-box {
+  width: 420px; height: 580px; background: #fff;
+  border-radius: 16px; box-shadow: 0 24px 60px rgba(13,27,46,.22);
+  display: flex; flex-direction: column; overflow: hidden;
+  pointer-events: all;
+  animation: chatSlideUp .25s ease;
+  border: 1px solid rgba(221,227,237,.8);
+}
+@keyframes chatSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#ai-chat-header {
+  background: linear-gradient(135deg, #0d1b2e, #112240);
+  padding: 14px 18px; display: flex; align-items: center; gap: 11px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+#ai-chat-header .chat-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(5,150,105,.25); border: 2px solid rgba(5,150,105,.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+#ai-chat-header .chat-info { flex: 1; }
+#ai-chat-header .chat-name { color: #fff; font-size: 13px; font-weight: 700; }
+#ai-chat-header .chat-status { color: #34d399; font-size: 11px; font-weight: 500; display: flex; align-items: center; gap: 5px; }
+#ai-chat-header .chat-status::before {
+  content: ''; display: inline-block; width: 6px; height: 6px;
+  border-radius: 50%; background: #34d399;
+}
+#ai-chat-close {
+  width: 28px; height: 28px; border-radius: 7px; border: none;
+  background: rgba(255,255,255,.1); cursor: pointer; color: #fff;
+  font-size: 15px; display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+#ai-chat-close:hover { background: rgba(255,255,255,.2); }
+#ai-chat-context-bar {
+  background: #f0fdf4; border-bottom: 1px solid #bbf7d0;
+  padding: 7px 14px; font-size: 10.5px; color: #15803d;
+  display: flex; align-items: center; gap: 6px; font-weight: 500;
+}
+#ai-chat-messages {
+  flex: 1; overflow-y: auto; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+  background: #f8fafc;
+}
+.chat-msg { display: flex; gap: 8px; align-items: flex-end; max-width: 100%; }
+.chat-msg.user { flex-direction: row-reverse; }
+.chat-bubble {
+  max-width: 78%; padding: 10px 14px; border-radius: 14px;
+  font-size: 12.5px; line-height: 1.55; word-break: break-word;
+}
+.chat-msg.assistant .chat-bubble {
+  background: #fff; border: 1px solid #e2e8f0; color: #0f172a;
+  border-bottom-left-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+.chat-msg.user .chat-bubble {
+  background: #059669; color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.chat-msg-avatar {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; background: #e2e8f0; color: #64748b;
+}
+.chat-msg.assistant .chat-msg-avatar { background: rgba(5,150,105,.15); color: #059669; }
+.chat-typing {
+  display: flex; gap: 4px; align-items: center; padding: 10px 14px;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+  border-bottom-left-radius: 4px; width: fit-content;
+}
+.chat-typing span {
+  width: 7px; height: 7px; border-radius: 50%; background: #94a3b8;
+  animation: typingDot 1.2s infinite;
+}
+.chat-typing span:nth-child(2) { animation-delay: .2s; }
+.chat-typing span:nth-child(3) { animation-delay: .4s; }
+@keyframes typingDot {
+  0%, 60%, 100% { transform: translateY(0); opacity: .5; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
+#ai-chat-suggestions {
+  padding: 8px 14px; display: flex; gap: 6px; flex-wrap: wrap;
+  border-top: 1px solid #f1f5f9; background: #fff;
+}
+.chat-suggestion {
+  padding: 5px 11px; border: 1px solid #e2e8f0; border-radius: 20px;
+  font-size: 11px; color: #475569; background: #f8fafc;
+  cursor: pointer; transition: all .15s; font-family: inherit; white-space: nowrap;
+}
+.chat-suggestion:hover { border-color: #059669; color: #059669; background: #f0fdf4; }
+#ai-chat-input-row {
+  padding: 10px 12px; border-top: 1px solid #e2e8f0; background: #fff;
+  display: flex; gap: 8px; align-items: flex-end;
+}
+#ai-chat-input {
+  flex: 1; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 9px 12px; font-size: 12.5px; font-family: inherit;
+  resize: none; outline: none; max-height: 90px; min-height: 36px;
+  line-height: 1.4; background: #f8fafc; color: #0f172a;
+  transition: border-color .15s;
+}
+#ai-chat-input:focus { border-color: #059669; background: #fff; box-shadow: 0 0 0 3px rgba(5,150,105,.1); }
+#ai-chat-send {
+  width: 36px; height: 36px; border-radius: 9px; border: none;
+  background: #059669; color: #fff; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; transition: background .15s;
+}
+#ai-chat-send:hover { background: #047857; }
+#ai-chat-send:disabled { background: #94a3b8; cursor: not-allowed; }
+
+/* ══ Responsive ══ */
 @media (max-width: 1200px) {
   .insight-row { grid-template-columns: 1fr 1fr; }
 }
@@ -1789,6 +1929,238 @@ function resetCountdown() {
 }
 
 // ══════════════════════════════════════════════════════════════
+//  AI CHAT
+// ══════════════════════════════════════════════════════════════
+const WEBHOOK_URL = 'https://api.dapta.ai/api/76b0fc9a51e86ac9/flujo-post-llamada-csx-v2?x-api-key=VVXur-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a';
+let aiChatHistory = [];
+let aiChatOpen = false;
+let aiChatSending = false;
+
+function toggleAIChat() {
+  aiChatOpen = !aiChatOpen;
+  const modal = document.getElementById('ai-chat-modal');
+  modal.classList.toggle('open', aiChatOpen);
+  if (aiChatOpen) {
+    updateAIContextBar();
+    setTimeout(() => document.getElementById('ai-chat-input').focus(), 100);
+  }
+}
+
+// ── Construye el contexto anonimizado de los datos actuales ──
+function buildAIContext() {
+  const hh          = filterHH(RAW.hh);
+  const total       = hh.length;
+  const resueltas   = hh.filter(isResuelta).length;
+  const transferidas= hh.filter(isTransferida).length;
+  const inactividad = hh.filter(isInactividad).length;
+  const sinResol    = hh.filter(isSinResolucion).length;
+  const f           = getFilters();
+
+  const agendadas  = RAW.agendadas.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to) && (!f.pais || r.pais === f.pais));
+  const canceladas = RAW.canceladas.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to) && (!f.pais || r.pais === f.pais));
+  const errores    = RAW.errores.filter(r => r.fecha && inDateRange(r.fecha, f.from, f.to) && (!f.pais || r.pais === f.pais));
+
+  // Tendencia diaria (últimos 30 días, sin datos personales)
+  const dailyBuckets = {};
+  hh.forEach(r => {
+    if (!r.fecha) return;
+    const k = toYMD(r.fecha);
+    if (!dailyBuckets[k]) dailyBuckets[k] = { total: 0, resueltas: 0, transferidas: 0 };
+    dailyBuckets[k].total++;
+    if (isResuelta(r)) dailyBuckets[k].resueltas++;
+    if (isTransferida(r)) dailyBuckets[k].transferidas++;
+  });
+  const tendencia_diaria = Object.entries(dailyBuckets)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-30)
+    .map(([fecha, d]) => ({ fecha, ...d }));
+
+  // Por tipo de solicitud (anonimizado)
+  const tipoMap = {};
+  hh.forEach(r => {
+    const tipo = r.tipoSolicitud || 'Sin clasificar';
+    if (!tipoMap[tipo]) tipoMap[tipo] = { total: 0, resueltas: 0, transferidas: 0 };
+    tipoMap[tipo].total++;
+    if (isResuelta(r)) tipoMap[tipo].resueltas++;
+    if (isTransferida(r)) tipoMap[tipo].transferidas++;
+  });
+  const por_tipo_solicitud = Object.entries(tipoMap)
+    .sort((a, b) => b[1].total - a[1].total)
+    .map(([tipo, d]) => ({ tipo, ...d, tasa_resolucion: pct(d.resueltas, d.total) }));
+
+  // Por sentimiento (anonimizado)
+  const sentMap = countBy(hh, r => r.sentimiento || 'Sin datos');
+  const por_sentimiento = Object.entries(sentMap).map(([s, n]) => ({ sentimiento: s, total: n }));
+
+  // Estado de citas (del sheet estadoCitas — ya anonimizado)
+  const estadoCitas = RAW.estadoCitas.map(d => ({
+    periodo: `${d.mes} ${d.anio}`,
+    total: d.total, completadas: d.completed, canceladas: d.cancelled,
+    noshow: d.noshow, reagendadas: d.rescheduled, reservadas: d.booked
+  }));
+
+  // Top errores por motivo de cierre (sin datos personales)
+  const motivoMap = countBy(hh.filter(isSinResolucion), r => r.motivoCierre || 'Sin motivo');
+  const top_motivos_sin_resolucion = Object.entries(motivoMap)
+    .sort((a, b) => b[1] - a[1]).slice(0, 8)
+    .map(([motivo, frecuencia]) => ({ motivo, frecuencia }));
+
+  return {
+    periodo: {
+      desde: f.from ? toYMD(f.from) : 'todo',
+      hasta: f.to   ? toYMD(f.to)   : 'hoy',
+    },
+    filtros_activos: {
+      pais: f.pais || 'Todos',
+    },
+    resumen_general: {
+      total_conversaciones: total,
+      resueltas,
+      transferidas_a_humano: transferidas,
+      inactividad,
+      sin_resolucion: sinResol,
+      tasa_resolucion: pct(resueltas, total),
+      tasa_transferencia: pct(transferidas, total),
+    },
+    citas: {
+      agendadas: agendadas.length,
+      canceladas: canceladas.length,
+      errores: errores.length,
+    },
+    por_tipo_solicitud,
+    por_sentimiento,
+    tendencia_diaria,
+    top_motivos_sin_resolucion,
+    estado_citas_historico: estadoCitas,
+  };
+}
+
+// ── Actualiza la barra de contexto ──
+function updateAIContextBar() {
+  const ctx = buildAIContext();
+  const label = document.getElementById('ai-ctx-label');
+  if (label) {
+    const desde = ctx.periodo.desde === 'todo' ? 'todo el período' : `${ctx.periodo.desde} → ${ctx.periodo.hasta}`;
+    label.textContent = `${ctx.resumen_general.total_conversaciones} conversaciones · ${desde} · ${ctx.filtros_activos.pais}`;
+  }
+}
+
+// ── Agrega mensaje al chat ──
+function appendMessage(role, text) {
+  const container = document.getElementById('ai-chat-messages');
+  const isUser = role === 'user';
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+
+  // Renderizar saltos de línea y emojis de alerta
+  const formatted = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\n/g, '<br>')
+    .replace(/🔴/g, '<span style="color:#dc2626">🔴</span>')
+    .replace(/🟡/g, '<span style="color:#d97706">🟡</span>')
+    .replace(/🟢/g, '<span style="color:#16a34a">🟢</span>');
+
+  div.innerHTML = `
+    ${!isUser ? '<div class="chat-msg-avatar">🤖</div>' : ''}
+    <div class="chat-bubble">${formatted}</div>
+    ${isUser ? '<div class="chat-msg-avatar" style="background:#059669;color:#fff">Tú</div>' : ''}
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+// ── Indicador de escritura ──
+function showTyping() {
+  const container = document.getElementById('ai-chat-messages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg assistant';
+  div.id = 'ai-typing-indicator';
+  div.innerHTML = `
+    <div class="chat-msg-avatar">🤖</div>
+    <div class="chat-typing">
+      <span></span><span></span><span></span>
+    </div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+function hideTyping() {
+  const el = document.getElementById('ai-typing-indicator');
+  if (el) el.remove();
+}
+
+// ── Enviar mensaje ──
+async function sendAIMessage(textOverride) {
+  if (aiChatSending) return;
+  const input = document.getElementById('ai-chat-input');
+  const text  = (textOverride || input.value).trim();
+  if (!text) return;
+
+  // Limpiar input
+  if (!textOverride) { input.value = ''; input.style.height = 'auto'; }
+
+  // Ocultar sugerencias tras primer mensaje
+  const sug = document.getElementById('ai-chat-suggestions');
+  if (sug) sug.style.display = 'none';
+
+  // Mostrar mensaje usuario
+  appendMessage('user', text);
+  aiChatHistory.push({ rol: 'user', mensaje: text });
+
+  // Bloquear envío y mostrar typing
+  aiChatSending = true;
+  document.getElementById('ai-chat-send').disabled = true;
+  showTyping();
+
+  // Construir payload
+  const payload = {
+    pregunta: text,
+    historial: aiChatHistory.slice(-10), // últimos 10 turnos
+    contexto: buildAIContext(),
+  };
+
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+
+    // Intentar extraer la respuesta del webhook (ajustar según lo que devuelva Dapta)
+    const respuesta =
+      data?.respuesta ||
+      data?.output ||
+      data?.message ||
+      data?.text ||
+      data?.content ||
+      (typeof data === 'string' ? data : null) ||
+      'No se recibió respuesta del servidor.';
+
+    hideTyping();
+    appendMessage('assistant', respuesta);
+    aiChatHistory.push({ rol: 'assistant', mensaje: respuesta });
+
+  } catch(err) {
+    hideTyping();
+    appendMessage('assistant', `⚠️ Error al conectar con el webhook:\n${err.message}\n\nVerifica que el flujo esté activo en Dapta.`);
+    console.error('AI Chat error:', err);
+  } finally {
+    aiChatSending = false;
+    document.getElementById('ai-chat-send').disabled = false;
+    if (!textOverride) input.focus();
+  }
+}
+
+function sendSuggestion(btn) {
+  sendAIMessage(btn.textContent);
+}
+
+// ══════════════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════════════
 (async () => {
@@ -1798,6 +2170,62 @@ function resetCountdown() {
   await reloadData();
 })();
 </script>
+
+<!-- ══ BOTÓN IA ══ -->
+<button id="ai-chat-btn" onclick="toggleAIChat()" title="Analizar con IA">
+  🤖
+  <span class="ai-badge">IA</span>
+</button>
+
+<!-- ══ MODAL CHAT IA ══ -->
+<div id="ai-chat-modal">
+  <div id="ai-chat-box">
+
+    <!-- Header -->
+    <div id="ai-chat-header">
+      <div class="chat-avatar">🤖</div>
+      <div class="chat-info">
+        <div class="chat-name">Analista IA — Agente HH</div>
+        <div class="chat-status">Conectado · datos en tiempo real</div>
+      </div>
+      <button id="ai-chat-close" onclick="toggleAIChat()">✕</button>
+    </div>
+
+    <!-- Barra de contexto -->
+    <div id="ai-chat-context-bar">
+      📊 <span id="ai-ctx-label">Cargando contexto...</span>
+    </div>
+
+    <!-- Mensajes -->
+    <div id="ai-chat-messages">
+      <div class="chat-msg assistant">
+        <div class="chat-msg-avatar">🤖</div>
+        <div class="chat-bubble">
+          Hola. Soy tu analista de operaciones para el Agente HH.<br><br>
+          Puedo analizar métricas, detectar anomalías, comparar tendencias y darte puntos de mejora concretos basados en los datos actuales del dashboard.<br><br>
+          ¿Qué quieres analizar?
+        </div>
+      </div>
+    </div>
+
+    <!-- Sugerencias rápidas -->
+    <div id="ai-chat-suggestions">
+      <button class="chat-suggestion" onclick="sendSuggestion(this)">¿Cómo va la tasa de resolución?</button>
+      <button class="chat-suggestion" onclick="sendSuggestion(this)">¿Qué anomalías detectas?</button>
+      <button class="chat-suggestion" onclick="sendSuggestion(this)">Dame puntos de mejora</button>
+      <button class="chat-suggestion" onclick="sendSuggestion(this)">Comparativo vs mes anterior</button>
+    </div>
+
+    <!-- Input -->
+    <div id="ai-chat-input-row">
+      <textarea id="ai-chat-input" placeholder="Escribe tu pregunta..." rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIMessage();}"
+        oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+      <button id="ai-chat-send" onclick="sendAIMessage()">➤</button>
+    </div>
+
+  </div>
+</div>
 
 <!-- MODAL DE DETALLE -->
 <div class="modal-overlay" id="detail-modal" style="display:none" onclick="if(event.target===this)closeModal()">
