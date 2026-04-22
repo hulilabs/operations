@@ -787,8 +787,7 @@ function isTransferida(r) {
   return r.transferida === true;
 }
 function isInactividad(r) {
-  // Prioridad 2: el paciente dejó de responder
-  // Autogestión Exitosa + Inactividad = igual va a Resuelta
+  // El paciente dejó de responder y el agente NO completó exitosamente
   if (isTransferida(r)) return false;
   const e = (r.estado       || '').toLowerCase().trim();
   const m = (r.motivoCierre || '').toLowerCase().trim();
@@ -796,14 +795,11 @@ function isInactividad(r) {
   return m.includes('inactividad');
 }
 function isResuelta(r) {
+  // Basado únicamente en Estado = "Autogestión Exitosa"
+  // El Motivo de Cierre no afecta este cálculo
   if (isTransferida(r)) return false;
-  if (isInactividad(r)) return false;
-  const e = (r.estado       || '').toLowerCase().trim();
-  const m = (r.motivoCierre || '').toLowerCase().trim();
-  // Gestión Imposible e Información Recabada sin transferir nunca son resueltas
-  if (e.includes('imposible')) return false;
-  if (e.includes('información recabada') || e.includes('informacion recabada')) return false;
-  return e.includes('exitosa') || m.includes('solucionada') || m.includes('cierre');
+  const e = (r.estado || '').toLowerCase().trim();
+  return e.includes('exitosa');
 }
 function isSinResolucion(r) {
   return !isTransferida(r) && !isInactividad(r) && !isResuelta(r);
@@ -1387,10 +1383,10 @@ function renderAll() {
 
   // ── Insight cards ──
   document.getElementById('insight-row').innerHTML = `
-    <div class="insight-card green" style="cursor:pointer" onclick="openModal('Resueltas', filterHH(RAW.hh).filter(isResuelta))">
+    <div class="insight-card green" style="cursor:pointer" onclick="openModal('Autogestión exitosa', filterHH(RAW.hh).filter(isResuelta))">
       <div class="insight-icon">&#10003;</div>
       <div class="insight-text">
-        <div class="it-label">Resueltas sin transferir</div>
+        <div class="it-label">Autogestión exitosa</div>
         <div class="it-val">${resueltas} <span style="font-size:14px;font-weight:600">(${pct(resueltas,total)})</span></div>
         <div class="it-desc">El agente resolvió la solicitud de forma autónoma</div>
       </div>
@@ -1403,12 +1399,12 @@ function renderAll() {
         <div class="it-desc">Casos que requirieron intervención del equipo</div>
       </div>
     </div>
-    <div class="insight-card" style="background:#eff6ff;border:1px solid #bfdbfe;cursor:pointer" onclick="openModal('Inactividad', filterHH(RAW.hh).filter(isInactividad))">
+    <div class="insight-card blue" style="cursor:pointer" onclick="openModal('Inactividad', filterHH(RAW.hh).filter(isInactividad))">
       <div class="insight-icon">&#9203;</div>
       <div class="insight-text">
         <div class="it-label">Inactividad</div>
-        <div class="it-val" style="color:#1d4ed8">${inactividad} <span style="font-size:14px;font-weight:600">(${pct(inactividad,total)})</span></div>
-        <div class="it-desc" style="color:#64748b">El paciente dejó de responder</div>
+        <div class="it-val">${inactividad} <span style="font-size:14px;font-weight:600">(${pct(inactividad,total)})</span></div>
+        <div class="it-desc">El paciente dejó de responder sin resolución</div>
       </div>
     </div>
     <div class="insight-card red" style="cursor:pointer" onclick="openModal('Sin resolución', filterHH(RAW.hh).filter(isSinResolucion))">
@@ -1423,14 +1419,17 @@ function renderAll() {
   // ── KPI secundarios ──
   const pctCanceladas  = total ? Math.round(canceladas  / (citasTotal + canceladas  || 1) * 100) : 0;
   const pctErrores     = total ? Math.round(errores     / (citasTotal + errores     || 1) * 100) : 0;
+  // Fila 1: Conversaciones
   document.getElementById('kpi-hh').innerHTML =
-    kpiCard('Total conversaciones',     total,          'Canal texto · deduplicadas por URL',                                       'hh',   '', '') +
-    kpiCard('Citas agendadas',          citasTotal,     formatUSD(valorGenerado) + ' generados · ' + RAW.agendadas.length + ' en sheet', 'ok', '', '') +
-    kpiCard('Citas canceladas',         canceladas,     pct(canceladas, citasTotal+canceladas) + ' del total',                      'warn', '', semaforo('canceladas', pctCanceladas)) +
-    kpiCard('Errores en citas',         errores,        pct(errores, citasTotal+errores) + ' del total',                            'err',  '', semaforo('errores', pctErrores)) +
-    kpiCard('Derivadas a humano',       transferidas,   pct(transferidas,total),                                                    'warn', momBadge(hhC_tr,   hhP_tr,   false)) +
-    kpiCard('Inactividad',              inactividad,    pct(inactividad,total),                                                     '',     momBadge(hhC_inac, hhP_inac, false)) +
-    kpiCard('Sin resolución',           sinResolucion,  pct(sinResolucion,total),                                                   'err',  momBadge(hhC_imp,  hhP_imp,  false));
+    kpiCard('Total conversaciones',  total,         'Canal texto · deduplicadas por URL',              'hh',   '', '') +
+    kpiCard('Derivadas a humano',    transferidas,  pct(transferidas,total),                           'warn', momBadge(hhC_tr,   hhP_tr,   false)) +
+    kpiCard('Inactividad',           inactividad,   pct(inactividad,total),                            '',     momBadge(hhC_inac, hhP_inac, false)) +
+    kpiCard('Sin resolución',        sinResolucion, pct(sinResolucion,total),                          'err',  momBadge(hhC_imp,  hhP_imp,  false)) +
+  // Fila 2: Citas
+    kpiCard('Citas agendadas',       citasTotal,    formatUSD(valorGenerado) + ' generados · ' + RAW.agendadas.length + ' en sheet', 'ok', '', '') +
+    kpiCard('Citas canceladas',      canceladas,    pct(canceladas, citasTotal+canceladas) + ' del total', 'warn', '', semaforo('canceladas', pctCanceladas)) +
+    kpiCard('Errores en citas',      errores,       pct(errores, citasTotal+errores) + ' del total',   'err',  '', semaforo('errores', pctErrores)) +
+    kpiCard('Valor generado',        formatUSD(valorGenerado), citasTotal + ' citas · $5.9 c/u',       'ok',   '', '');
 
   // ── Resultado conversaciones (donut — 3 segmentos, sin inactividad) ──
   const desglosePorSegmento = [
