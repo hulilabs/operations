@@ -336,7 +336,7 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
       <!-- Hero banner -->
       <div class="hero-banner" id="hero-hh">
         <div class="hero-main">
-          <div class="hero-title">Tasa de resolución autónoma</div>
+          <div class="hero-title">Tasa de autogestión exitosa</div>
           <div class="hero-val" id="hero-resolucion">—</div>
           <div class="hero-sub">de conversaciones resueltas sin intervención humana</div>
         </div>
@@ -450,7 +450,7 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
         </div>
         <div class="chart-row cols-2">
           <div class="chart-card">
-            <h3>Tasa de resolución autónoma</h3>
+            <h3>Tasa de autogestión exitosa</h3>
             <p class="chart-subtitle">% de conversaciones resueltas sin transferir al equipo</p>
             <div class="chart-wrap tall"><canvas id="ch-tend-resolucion"></canvas></div>
           </div>
@@ -1423,12 +1423,8 @@ function renderAll() {
   // ── KPI secundarios ──
   const pctCanceladas  = total ? Math.round(canceladas  / (citasTotal + canceladas  || 1) * 100) : 0;
   const pctErrores     = total ? Math.round(errores     / (citasTotal + errores     || 1) * 100) : 0;
-  // Tasa de resolución real (excluye inactividad del denominador)
-  const totalSinInac   = total - inactividad;
-  const tasaReal       = pctNum(resueltas, totalSinInac);
   document.getElementById('kpi-hh').innerHTML =
     kpiCard('Total conversaciones',     total,          'Canal texto · deduplicadas por URL',                                       'hh',   '', '') +
-    kpiCard('Tasa de resolución real',  tasaReal + '%', 'Excluye inactividad del denominador',                                      'hh',   momBadge(pctNum(hhC_res, hhC.length - hhC_inac), pctNum(hhP_res, hhP.length - hhP_inac)), semaforo('resolucion', tasaReal)) +
     kpiCard('Citas agendadas',          citasTotal,     formatUSD(valorGenerado) + ' generados · ' + RAW.agendadas.length + ' en sheet', 'ok', '', '') +
     kpiCard('Citas canceladas',         canceladas,     pct(canceladas, citasTotal+canceladas) + ' del total',                      'warn', '', semaforo('canceladas', pctCanceladas)) +
     kpiCard('Errores en citas',         errores,        pct(errores, citasTotal+errores) + ' del total',                            'err',  '', semaforo('errores', pctErrores)) +
