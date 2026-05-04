@@ -10,6 +10,7 @@
 // ══════════════════════════════════════════════════════════════
 let curTexTool = null;
 let curTexAgent = null;
+let curTexMode = 'form';
 
 function openToolExec(agentId, toolId){
   const t=(S.tools[agentId]||[]).find(x=>x.id===toolId);
@@ -22,8 +23,60 @@ function openToolExec(agentId, toolId){
   document.getElementById('tex-response').textContent='Ejecuta la tool para ver la respuesta...';
   document.getElementById('tex-status').className='badge b-gray';
   document.getElementById('tex-status').textContent='—';
+  // Reset to form mode
+  setTexMode('form');
+  // Add one empty param row to start
+  document.getElementById('tex-params').innerHTML='';
+  addTexParam();
   renderTexCases(agentId, toolId);
   document.getElementById('m-tool-exec').style.display='flex';
+}
+
+function setTexMode(mode){
+  curTexMode = mode;
+  const isForm = mode === 'form';
+  document.getElementById('tex-form-mode').style.display = isForm ? '' : 'none';
+  document.getElementById('tex-json-mode').style.display = isForm ? 'none' : '';
+  document.getElementById('tex-mode-form').classList.toggle('active', isForm);
+  document.getElementById('tex-mode-json').classList.toggle('active', !isForm);
+  // Sync between modes
+  if(!isForm){
+    // form → json
+    const body = getTexParamsAsObj();
+    document.getElementById('tex-body').value = JSON.stringify(body, null, 2);
+  } else {
+    // json → form
+    try{
+      const obj = JSON.parse(document.getElementById('tex-body').value || '{}');
+      document.getElementById('tex-params').innerHTML='';
+      const entries = Object.entries(obj);
+      if(entries.length === 0){ addTexParam(); return; }
+      entries.forEach(([k,v]) => addTexParam(k, v));
+    }catch(e){ addTexParam(); }
+  }
+}
+
+function addTexParam(key='', val=''){
+  const container = document.getElementById('tex-params');
+  const row = document.createElement('div');
+  row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:center';
+  row.innerHTML = `
+    <input class="fi" placeholder="Parámetro" value="${key}" style="font-family:var(--mono);font-size:11px">
+    <input class="fi" placeholder="Valor" value="${val}" style="font-size:12px">
+    <button class="btn btn-danger btn-sm btn-icon" onclick="this.parentElement.remove()" title="Eliminar">✕</button>`;
+  container.appendChild(row);
+}
+
+function getTexParamsAsObj(){
+  const rows = document.getElementById('tex-params').querySelectorAll('div');
+  const obj = {};
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const k = inputs[0]?.value.trim();
+    const v = inputs[1]?.value.trim();
+    if(k) obj[k] = v;
+  });
+  return obj;
 }
 
 function renderTexCases(agentId, toolId){
@@ -31,40 +84,53 @@ function renderTexCases(agentId, toolId){
   const cases = S.toolCases && S.toolCases[key] ? S.toolCases[key] : [];
   const el = document.getElementById('tex-cases');
   el.innerHTML = cases.length ? cases.map((c,i) => `
-    <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:7px">
-      <div style="flex:1;cursor:pointer" onclick="loadTexCase(${i},'${agentId}','${toolId}')">
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;cursor:pointer" onclick="loadTexCase(${i},'${agentId}','${toolId}')">
+      <div style="flex:1">
         <div style="font-size:11px;font-weight:600;color:var(--txt1)">${c.name}</div>
-        <div style="font-size:10px;color:var(--txt3);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${c.body.slice(0,40)}...</div>
+        <div style="font-size:10px;color:var(--txt3);font-family:var(--mono)">${Object.keys(c.params||{}).slice(0,3).join(', ')}${Object.keys(c.params||{}).length>3?'...':''}</div>
       </div>
-      <button class="btn btn-danger btn-sm btn-icon" onclick="delTexCase('${agentId}','${toolId}',${i})">✕</button>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="event.stopPropagation();delTexCase('${agentId}','${toolId}',${i})">✕</button>
     </div>`).join('')
-    : '<div style="font-size:11px;color:var(--txt3);text-align:center;padding:12px">Sin casos guardados</div>';
+    : '<div style="font-size:11px;color:var(--txt3);text-align:center;padding:12px">Sin casos guardados aún</div>';
 }
 
 function loadTexCase(idx, agentId, toolId){
   const key = agentId+'__'+toolId;
   const c = S.toolCases[key][idx];
-  if(c) document.getElementById('tex-body').value = c.body;
+  if(!c) return;
+  if(curTexMode === 'form'){
+    document.getElementById('tex-params').innerHTML='';
+    const entries = Object.entries(c.params||{});
+    if(entries.length === 0){ addTexParam(); return; }
+    entries.forEach(([k,v]) => addTexParam(k, v));
+  } else {
+    document.getElementById('tex-body').value = JSON.stringify(c.params||{}, null, 2);
+  }
 }
 
 function delTexCase(agentId, toolId, idx){
   const key = agentId+'__'+toolId;
-  if(!S.toolCases) S.toolCases={};
-  if(!S.toolCases[key]) return;
+  if(!S.toolCases||!S.toolCases[key]) return;
   S.toolCases[key].splice(idx,1);
   save();
   renderTexCases(agentId, toolId);
 }
 
 function saveTexCase(){
-  const body = document.getElementById('tex-body').value.trim();
-  if(!body || body==='{}'){alert('Agrega parámetros al body primero');return;}
+  let params;
+  if(curTexMode === 'form'){
+    params = getTexParamsAsObj();
+  } else {
+    try{ params = JSON.parse(document.getElementById('tex-body').value||'{}'); }
+    catch(e){ alert('JSON inválido');return; }
+  }
+  if(!Object.keys(params).length){alert('Agrega al menos un parámetro');return;}
   const name = prompt('Nombre para este caso:','Caso de prueba');
   if(!name) return;
   if(!S.toolCases) S.toolCases={};
   const key = curTexAgent+'__'+curTexTool.id;
   if(!S.toolCases[key]) S.toolCases[key]=[];
-  S.toolCases[key].push({name, body});
+  S.toolCases[key].push({name, params});
   save();
   renderTexCases(curTexAgent, curTexTool.id);
 }
@@ -84,8 +150,12 @@ function copyTexResponse(){
 async function runTool(){
   if(!curTexTool) return;
   let body;
-  try{ body=JSON.parse(document.getElementById('tex-body').value||'{}'); }
-  catch(e){ alert('JSON inválido: '+e.message); return; }
+  if(curTexMode === 'form'){
+    body = getTexParamsAsObj();
+  } else {
+    try{ body = JSON.parse(document.getElementById('tex-body').value||'{}'); }
+    catch(e){ alert('JSON inválido: '+e.message); return; }
+  }
 
   const btn=document.getElementById('tex-run-btn');
   btn.textContent='⏳ Ejecutando...';
@@ -1601,6 +1671,7 @@ function closeM(id){ document.getElementById(id).style.display='none'; }
 // ══════════════════════════════════════════════════════════════
 let curTexTool = null;
 let curTexAgent = null;
+let curTexMode = 'form';
 
 function openToolExec(agentId, toolId){
   const t=(S.tools[agentId]||[]).find(x=>x.id===toolId);
@@ -1613,8 +1684,60 @@ function openToolExec(agentId, toolId){
   document.getElementById('tex-response').textContent='Ejecuta la tool para ver la respuesta...';
   document.getElementById('tex-status').className='badge b-gray';
   document.getElementById('tex-status').textContent='—';
+  // Reset to form mode
+  setTexMode('form');
+  // Add one empty param row to start
+  document.getElementById('tex-params').innerHTML='';
+  addTexParam();
   renderTexCases(agentId, toolId);
   document.getElementById('m-tool-exec').style.display='flex';
+}
+
+function setTexMode(mode){
+  curTexMode = mode;
+  const isForm = mode === 'form';
+  document.getElementById('tex-form-mode').style.display = isForm ? '' : 'none';
+  document.getElementById('tex-json-mode').style.display = isForm ? 'none' : '';
+  document.getElementById('tex-mode-form').classList.toggle('active', isForm);
+  document.getElementById('tex-mode-json').classList.toggle('active', !isForm);
+  // Sync between modes
+  if(!isForm){
+    // form → json
+    const body = getTexParamsAsObj();
+    document.getElementById('tex-body').value = JSON.stringify(body, null, 2);
+  } else {
+    // json → form
+    try{
+      const obj = JSON.parse(document.getElementById('tex-body').value || '{}');
+      document.getElementById('tex-params').innerHTML='';
+      const entries = Object.entries(obj);
+      if(entries.length === 0){ addTexParam(); return; }
+      entries.forEach(([k,v]) => addTexParam(k, v));
+    }catch(e){ addTexParam(); }
+  }
+}
+
+function addTexParam(key='', val=''){
+  const container = document.getElementById('tex-params');
+  const row = document.createElement('div');
+  row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:center';
+  row.innerHTML = `
+    <input class="fi" placeholder="Parámetro" value="${key}" style="font-family:var(--mono);font-size:11px">
+    <input class="fi" placeholder="Valor" value="${val}" style="font-size:12px">
+    <button class="btn btn-danger btn-sm btn-icon" onclick="this.parentElement.remove()" title="Eliminar">✕</button>`;
+  container.appendChild(row);
+}
+
+function getTexParamsAsObj(){
+  const rows = document.getElementById('tex-params').querySelectorAll('div');
+  const obj = {};
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const k = inputs[0]?.value.trim();
+    const v = inputs[1]?.value.trim();
+    if(k) obj[k] = v;
+  });
+  return obj;
 }
 
 function renderTexCases(agentId, toolId){
@@ -1622,40 +1745,53 @@ function renderTexCases(agentId, toolId){
   const cases = S.toolCases && S.toolCases[key] ? S.toolCases[key] : [];
   const el = document.getElementById('tex-cases');
   el.innerHTML = cases.length ? cases.map((c,i) => `
-    <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:7px">
-      <div style="flex:1;cursor:pointer" onclick="loadTexCase(${i},'${agentId}','${toolId}')">
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;cursor:pointer" onclick="loadTexCase(${i},'${agentId}','${toolId}')">
+      <div style="flex:1">
         <div style="font-size:11px;font-weight:600;color:var(--txt1)">${c.name}</div>
-        <div style="font-size:10px;color:var(--txt3);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${c.body.slice(0,40)}...</div>
+        <div style="font-size:10px;color:var(--txt3);font-family:var(--mono)">${Object.keys(c.params||{}).slice(0,3).join(', ')}${Object.keys(c.params||{}).length>3?'...':''}</div>
       </div>
-      <button class="btn btn-danger btn-sm btn-icon" onclick="delTexCase('${agentId}','${toolId}',${i})">✕</button>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="event.stopPropagation();delTexCase('${agentId}','${toolId}',${i})">✕</button>
     </div>`).join('')
-    : '<div style="font-size:11px;color:var(--txt3);text-align:center;padding:12px">Sin casos guardados</div>';
+    : '<div style="font-size:11px;color:var(--txt3);text-align:center;padding:12px">Sin casos guardados aún</div>';
 }
 
 function loadTexCase(idx, agentId, toolId){
   const key = agentId+'__'+toolId;
   const c = S.toolCases[key][idx];
-  if(c) document.getElementById('tex-body').value = c.body;
+  if(!c) return;
+  if(curTexMode === 'form'){
+    document.getElementById('tex-params').innerHTML='';
+    const entries = Object.entries(c.params||{});
+    if(entries.length === 0){ addTexParam(); return; }
+    entries.forEach(([k,v]) => addTexParam(k, v));
+  } else {
+    document.getElementById('tex-body').value = JSON.stringify(c.params||{}, null, 2);
+  }
 }
 
 function delTexCase(agentId, toolId, idx){
   const key = agentId+'__'+toolId;
-  if(!S.toolCases) S.toolCases={};
-  if(!S.toolCases[key]) return;
+  if(!S.toolCases||!S.toolCases[key]) return;
   S.toolCases[key].splice(idx,1);
   save();
   renderTexCases(agentId, toolId);
 }
 
 function saveTexCase(){
-  const body = document.getElementById('tex-body').value.trim();
-  if(!body || body==='{}'){alert('Agrega parámetros al body primero');return;}
+  let params;
+  if(curTexMode === 'form'){
+    params = getTexParamsAsObj();
+  } else {
+    try{ params = JSON.parse(document.getElementById('tex-body').value||'{}'); }
+    catch(e){ alert('JSON inválido');return; }
+  }
+  if(!Object.keys(params).length){alert('Agrega al menos un parámetro');return;}
   const name = prompt('Nombre para este caso:','Caso de prueba');
   if(!name) return;
   if(!S.toolCases) S.toolCases={};
   const key = curTexAgent+'__'+curTexTool.id;
   if(!S.toolCases[key]) S.toolCases[key]=[];
-  S.toolCases[key].push({name, body});
+  S.toolCases[key].push({name, params});
   save();
   renderTexCases(curTexAgent, curTexTool.id);
 }
@@ -1675,8 +1811,12 @@ function copyTexResponse(){
 async function runTool(){
   if(!curTexTool) return;
   let body;
-  try{ body=JSON.parse(document.getElementById('tex-body').value||'{}'); }
-  catch(e){ alert('JSON inválido: '+e.message); return; }
+  if(curTexMode === 'form'){
+    body = getTexParamsAsObj();
+  } else {
+    try{ body = JSON.parse(document.getElementById('tex-body').value||'{}'); }
+    catch(e){ alert('JSON inválido: '+e.message); return; }
+  }
 
   const btn=document.getElementById('tex-run-btn');
   btn.textContent='⏳ Ejecutando...';
@@ -1712,40 +1852,65 @@ async function runTool(){
 
 <!-- Tool Executor Modal -->
 <div class="modal-ov" id="m-tool-exec" style="display:none" onclick="if(event.target===this)closeM('m-tool-exec')">
-  <div class="modal-box wide" style="width:720px;max-height:90vh">
+  <div class="modal-box wide" style="width:780px;max-height:92vh">
     <div class="modal-hd">
-      <div>
+      <div style="flex:1">
         <h3 id="tex-title">Ejecutar Tool</h3>
-        <div id="tex-url" style="font-family:var(--mono);font-size:10px;color:var(--txt3);margin-top:3px;word-break:break-all"></div>
+        <div id="tex-url" style="font-family:var(--mono);font-size:10px;color:var(--txt3);margin-top:3px;word-break:break-all;max-width:600px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
       </div>
-      <button class="modal-close" onclick="closeM('m-tool-exec')">✕</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px;display:flex;gap:2px">
+          <button id="tex-mode-form" class="tab active" style="padding:5px 12px;font-size:11px" onclick="setTexMode('form')">≡ Formulario</button>
+          <button id="tex-mode-json" class="tab" style="padding:5px 12px;font-size:11px" onclick="setTexMode('json')">{ } JSON</button>
+        </div>
+        <button class="modal-close" onclick="closeM('m-tool-exec')">✕</button>
+      </div>
     </div>
-    <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px">
-      <!-- Left: editor + casos -->
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div>
+    <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;overflow:hidden">
+      <!-- Left -->
+      <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto">
+        <!-- Form mode -->
+        <div id="tex-form-mode">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <label class="fl" style="margin:0">Parámetros</label>
+            <button class="btn btn-ghost btn-sm" onclick="addTexParam()">+ Agregar campo</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:2px;margin-bottom:6px;padding:0 4px">
+            <span style="font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px">Param</span>
+            <span style="font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px">Valor</span>
+            <span></span>
+          </div>
+          <div id="tex-params" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+        <!-- JSON mode -->
+        <div id="tex-json-mode" style="display:none">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
             <label class="fl" style="margin:0">Body JSON</label>
             <button class="btn btn-ghost btn-sm" onclick="formatTexJSON()">{ } Formatear</button>
           </div>
-          <textarea class="fta" id="tex-body" style="min-height:200px;font-family:var(--mono);font-size:12px;line-height:1.6" placeholder='{
+          <textarea class="fta" id="tex-body" style="min-height:220px;font-family:var(--mono);font-size:12px;line-height:1.6" placeholder='{
   "param": "valor"
 }'></textarea>
         </div>
+        <!-- Saved cases -->
         <div>
-          <label class="fl">Casos guardados</label>
-          <div id="tex-cases" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto"></div>
-          <button class="btn btn-ghost btn-sm" style="margin-top:8px;width:100%" onclick="saveTexCase()">💾 Guardar body actual como caso</button>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label class="fl" style="margin:0">Casos guardados</label>
+            <button class="btn btn-ghost btn-sm" onclick="saveTexCase()">💾 Guardar caso</button>
+          </div>
+          <div id="tex-cases" style="display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto"></div>
         </div>
       </div>
       <!-- Right: response -->
-      <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;flex-direction:column;gap:8px;overflow:hidden">
         <div style="display:flex;align-items:center;justify-content:space-between">
           <label class="fl" style="margin:0">Respuesta</label>
-          <span id="tex-status" class="badge b-gray">—</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span id="tex-status" class="badge b-gray">—</span>
+            <button class="btn btn-ghost btn-sm" onclick="copyTexResponse()">📋 Copiar</button>
+          </div>
         </div>
-        <div id="tex-response" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:11px;color:var(--green2);line-height:1.6;min-height:200px;max-height:400px;overflow-y:auto;white-space:pre-wrap;word-break:break-all">Ejecuta la tool para ver la respuesta...</div>
-        <button class="btn btn-ghost btn-sm" onclick="copyTexResponse()">📋 Copiar respuesta</button>
+        <div id="tex-response" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:11px;color:var(--green2);line-height:1.7;overflow-y:auto;white-space:pre-wrap;word-break:break-all;min-height:300px;max-height:420px">Ejecuta la tool para ver la respuesta...</div>
       </div>
     </div>
     <div class="modal-ft">
