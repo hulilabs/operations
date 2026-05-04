@@ -6,6 +6,116 @@
 <title>Huli Ops — Panel de Operaciones IA</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js">
 // ══════════════════════════════════════════════════════════════
+//  TOOL DEFAULT PARAMS
+// ══════════════════════════════════════════════════════════════
+const TEX_DEFAULT_PARAMS = {
+  // Agente HH
+  'AgendarHH': [
+    {k:'Nombre', v:'Manuel Briones'},
+    {k:'idClinic', v:''},
+    {k:'Paciente_Nuevo', v:'No'},
+    {k:'Fecha', v:''},
+    {k:'IDevento', v:''},
+    {k:'CO del Doctor', v:''},
+    {k:'IdPaciente', v:''},
+    {k:'session_id', v:''},
+    {k:'Hora', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+  ],
+  'AgendarPCN': [
+    {k:'Nombre', v:'Manuel'},
+    {k:'Apellido', v:'Briones'},
+    {k:'Correo', v:'manuel.briones@huli.io'},
+    {k:'idClinic', v:''},
+    {k:'Genero', v:''},
+    {k:'Paciente_Nuevo', v:'Si'},
+    {k:'Fecha', v:''},
+    {k:'Fnacimiento', v:''},
+    {k:'CO del Doctor', v:''},
+    {k:'IdPaciente', v:''},
+    {k:'tipoID', v:''},
+    {k:'provincia', v:''},
+    {k:'Hora', v:''},
+    {k:'Telefono', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'IDevento', v:''},
+  ],
+  'CLINICINF': [
+    {k:'idClinic', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'CO del Doctor', v:''},
+  ],
+  'CancelarHH': [
+    {k:'eventID', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'session_id', v:''},
+    {k:'CO del Doctor', v:''},
+  ],
+  'DataMed': [
+    {k:'Nombre', v:'Manuel Briones'},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+  ],
+  'DisponibilidadHH': [
+    {k:'idClinic', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'Fecha', v:'2026-05-05'},
+    {k:'CO del Doctor', v:''},
+  ],
+  'DisponibilidadnextHH': [
+    {k:'idClinic', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'Fecha', v:'2026-05-05'},
+    {k:'CO del Doctor', v:''},
+  ],
+  'InfoMD': [
+    {k:'Zona', v:''},
+    {k:'Seguro', v:''},
+    {k:'Especialidad', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+  ],
+  'ValidarDRHH': [
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'CO del Doctor', v:''},
+  ],
+  'VcitaHH': [
+    {k:'Nombre', v:'Manuel'},
+    {k:'idPaciente', v:''},
+    {k:'Hora', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'Fecha', v:''},
+    {k:'Apellido', v:'Briones'},
+    {k:'CO del Doctor', v:''},
+  ],
+  'VerificarHHN': [
+    {k:'CO del Doctor', v:''},
+    {k:'Hora', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'Fecha', v:''},
+    {k:'ID de paciente', v:''},
+  ],
+  'getDate': [
+    {k:'campana_agente', v:'HuliHealth_CostaRica'},
+  ],
+  'getDate10': [
+    {k:'campana_agente', v:'HuliHealth_CostaRica'},
+  ],
+  // SDR
+  'Agendar': [
+    {k:'propietario', v:'kevin'},
+    {k:'correo', v:'manuel.briones@huli.io'},
+    {k:'year', v:'2026'},
+    {k:'month', v:'05'},
+    {k:'day', v:'05'},
+    {k:'hour', v:'10'},
+    {k:'minute', v:'00'},
+    {k:'contact_name', v:'Manuel'},
+  ],
+  'Espacios': [
+    {k:'propietario', v:'kevin'},
+  ],
+};
+
+// ══════════════════════════════════════════════════════════════
 //  TOOL EXECUTOR
 // ══════════════════════════════════════════════════════════════
 let curTexTool = null;
@@ -25,9 +135,11 @@ function openToolExec(agentId, toolId){
   document.getElementById('tex-status').textContent='—';
   // Reset to form mode
   setTexMode('form');
-  // Add one empty param row to start
+  // Preload default params for this tool
   document.getElementById('tex-params').innerHTML='';
-  addTexParam();
+  const defParams = TEX_DEFAULT_PARAMS[t.id] || [];
+  if(defParams.length){ defParams.forEach(p => addTexParam(p.k, p.v)); }
+  else { addTexParam(); }
   renderTexCases(agentId, toolId);
   document.getElementById('m-tool-exec').style.display='flex';
 }
@@ -1667,6 +1779,116 @@ function closeM(id){ document.getElementById(id).style.display='none'; }
 })();
 
 // ══════════════════════════════════════════════════════════════
+//  TOOL DEFAULT PARAMS
+// ══════════════════════════════════════════════════════════════
+const TEX_DEFAULT_PARAMS = {
+  // Agente HH
+  'AgendarHH': [
+    {k:'Nombre', v:'Manuel Briones'},
+    {k:'idClinic', v:''},
+    {k:'Paciente_Nuevo', v:'No'},
+    {k:'Fecha', v:''},
+    {k:'IDevento', v:''},
+    {k:'CO del Doctor', v:''},
+    {k:'IdPaciente', v:''},
+    {k:'session_id', v:''},
+    {k:'Hora', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+  ],
+  'AgendarPCN': [
+    {k:'Nombre', v:'Manuel'},
+    {k:'Apellido', v:'Briones'},
+    {k:'Correo', v:'manuel.briones@huli.io'},
+    {k:'idClinic', v:''},
+    {k:'Genero', v:''},
+    {k:'Paciente_Nuevo', v:'Si'},
+    {k:'Fecha', v:''},
+    {k:'Fnacimiento', v:''},
+    {k:'CO del Doctor', v:''},
+    {k:'IdPaciente', v:''},
+    {k:'tipoID', v:''},
+    {k:'provincia', v:''},
+    {k:'Hora', v:''},
+    {k:'Telefono', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'IDevento', v:''},
+  ],
+  'CLINICINF': [
+    {k:'idClinic', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'CO del Doctor', v:''},
+  ],
+  'CancelarHH': [
+    {k:'eventID', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'session_id', v:''},
+    {k:'CO del Doctor', v:''},
+  ],
+  'DataMed': [
+    {k:'Nombre', v:'Manuel Briones'},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+  ],
+  'DisponibilidadHH': [
+    {k:'idClinic', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'Fecha', v:'2026-05-05'},
+    {k:'CO del Doctor', v:''},
+  ],
+  'DisponibilidadnextHH': [
+    {k:'idClinic', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'Fecha', v:'2026-05-05'},
+    {k:'CO del Doctor', v:''},
+  ],
+  'InfoMD': [
+    {k:'Zona', v:''},
+    {k:'Seguro', v:''},
+    {k:'Especialidad', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+  ],
+  'ValidarDRHH': [
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'CO del Doctor', v:''},
+  ],
+  'VcitaHH': [
+    {k:'Nombre', v:'Manuel'},
+    {k:'idPaciente', v:''},
+    {k:'Hora', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'Fecha', v:''},
+    {k:'Apellido', v:'Briones'},
+    {k:'CO del Doctor', v:''},
+  ],
+  'VerificarHHN': [
+    {k:'CO del Doctor', v:''},
+    {k:'Hora', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'Fecha', v:''},
+    {k:'ID de paciente', v:''},
+  ],
+  'getDate': [
+    {k:'campana_agente', v:'HuliHealth_CostaRica'},
+  ],
+  'getDate10': [
+    {k:'campana_agente', v:'HuliHealth_CostaRica'},
+  ],
+  // SDR
+  'Agendar': [
+    {k:'propietario', v:'kevin'},
+    {k:'correo', v:'manuel.briones@huli.io'},
+    {k:'year', v:'2026'},
+    {k:'month', v:'05'},
+    {k:'day', v:'05'},
+    {k:'hour', v:'10'},
+    {k:'minute', v:'00'},
+    {k:'contact_name', v:'Manuel'},
+  ],
+  'Espacios': [
+    {k:'propietario', v:'kevin'},
+  ],
+};
+
+// ══════════════════════════════════════════════════════════════
 //  TOOL EXECUTOR
 // ══════════════════════════════════════════════════════════════
 let curTexTool = null;
@@ -1686,9 +1908,11 @@ function openToolExec(agentId, toolId){
   document.getElementById('tex-status').textContent='—';
   // Reset to form mode
   setTexMode('form');
-  // Add one empty param row to start
+  // Preload default params for this tool
   document.getElementById('tex-params').innerHTML='';
-  addTexParam();
+  const defParams = TEX_DEFAULT_PARAMS[t.id] || [];
+  if(defParams.length){ defParams.forEach(p => addTexParam(p.k, p.v)); }
+  else { addTexParam(); }
   renderTexCases(agentId, toolId);
   document.getElementById('m-tool-exec').style.display='flex';
 }
