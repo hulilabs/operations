@@ -751,7 +751,13 @@ tr:hover td{background:rgba(255,255,255,.02)}
           <div class="chat-msgs" id="chat-msgs">
             <div class="cm sys">Selecciona un agente para comenzar</div>
           </div>
-          <div class="chat-presets" id="chat-presets" style="display:none"></div>
+          <div id="chat-presets-wrap" style="display:none;border-top:1px solid var(--border)">
+            <div onclick="togglePresets()" style="display:flex;align-items:center;justify-content:space-between;padding:7px 16px;cursor:pointer;user-select:none">
+              <span style="font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.7px">Casos de tools</span>
+              <span id="presets-toggle-icon" style="font-size:11px;color:var(--txt3)">▾ mostrar</span>
+            </div>
+            <div class="chat-presets" id="chat-presets" style="display:none;padding:0 16px 10px"></div>
+          </div>
           <div class="chat-input-area">
             <textarea class="chat-input" id="chat-in" placeholder="Escribe un mensaje..." rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
             <button class="btn btn-primary btn-icon" onclick="sendMsg()">↑</button>
@@ -1393,11 +1399,23 @@ function renderCasesPanel(agentId){
 function renderToolCasesForAgent(agentId){
   const tools=S.tools[agentId]||[];
   const toolCases=tools.filter(t=>t.cases&&t.cases.length>0);
-  if(!toolCases.length) return;
+  const wrap=document.getElementById('chat-presets-wrap');
   const presets=document.getElementById('chat-presets');
-  presets.style.display='flex';
-  presets.innerHTML='<div style="width:100%;font-size:10px;color:var(--txt3);margin-bottom:4px">Casos de tools:</div>'+
-    toolCases.flatMap(t=>t.cases.map(c=>`<button class="preset-btn" title="${t.name}" onclick="sendPreset('${c.replace(/'/g,"\\'")}')">[${t.name}] ${c.slice(0,30)}</button>`)).join('');
+  if(!toolCases.length){ if(wrap) wrap.style.display='none'; return; }
+  if(wrap) wrap.style.display='';
+  presets.style.display='none';
+  const icon=document.getElementById('presets-toggle-icon');
+  if(icon) icon.textContent='▾ mostrar';
+  presets.innerHTML=toolCases.flatMap(t=>t.cases.map(c=>`<button class="preset-btn" title="${t.name}" onclick="sendPreset('${c.replace(/'/g,"\'")}')">[${t.name}] ${c.slice(0,30)}</button>`)).join('');
+}
+
+function togglePresets(){
+  const presets=document.getElementById('chat-presets');
+  const icon=document.getElementById('presets-toggle-icon');
+  const open=presets.style.display==='none';
+  presets.style.display=open?'flex':'none';
+  if(open){ presets.style.flexWrap='wrap'; presets.style.gap='6px'; }
+  icon.textContent=open?'▴ ocultar':'▾ mostrar';
 }
 
 async function sendMsg(){
