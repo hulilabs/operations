@@ -4,7 +4,120 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Huli Ops — Panel de Operaciones IA</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js">
+// ══════════════════════════════════════════════════════════════
+//  TOOL EXECUTOR
+// ══════════════════════════════════════════════════════════════
+let curTexTool = null;
+let curTexAgent = null;
+
+function openToolExec(agentId, toolId){
+  const t=(S.tools[agentId]||[]).find(x=>x.id===toolId);
+  if(!t) return;
+  curTexTool=t;
+  curTexAgent=agentId;
+  document.getElementById('tex-title').textContent='▶ ' + t.name;
+  document.getElementById('tex-url').textContent=t.url;
+  document.getElementById('tex-body').value='{}';
+  document.getElementById('tex-response').textContent='Ejecuta la tool para ver la respuesta...';
+  document.getElementById('tex-status').className='badge b-gray';
+  document.getElementById('tex-status').textContent='—';
+  renderTexCases(agentId, toolId);
+  document.getElementById('m-tool-exec').style.display='flex';
+}
+
+function renderTexCases(agentId, toolId){
+  const key = agentId+'__'+toolId;
+  const cases = S.toolCases && S.toolCases[key] ? S.toolCases[key] : [];
+  const el = document.getElementById('tex-cases');
+  el.innerHTML = cases.length ? cases.map((c,i) => `
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:7px">
+      <div style="flex:1;cursor:pointer" onclick="loadTexCase(${i},'${agentId}','${toolId}')">
+        <div style="font-size:11px;font-weight:600;color:var(--txt1)">${c.name}</div>
+        <div style="font-size:10px;color:var(--txt3);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${c.body.slice(0,40)}...</div>
+      </div>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="delTexCase('${agentId}','${toolId}',${i})">✕</button>
+    </div>`).join('')
+    : '<div style="font-size:11px;color:var(--txt3);text-align:center;padding:12px">Sin casos guardados</div>';
+}
+
+function loadTexCase(idx, agentId, toolId){
+  const key = agentId+'__'+toolId;
+  const c = S.toolCases[key][idx];
+  if(c) document.getElementById('tex-body').value = c.body;
+}
+
+function delTexCase(agentId, toolId, idx){
+  const key = agentId+'__'+toolId;
+  if(!S.toolCases) S.toolCases={};
+  if(!S.toolCases[key]) return;
+  S.toolCases[key].splice(idx,1);
+  save();
+  renderTexCases(agentId, toolId);
+}
+
+function saveTexCase(){
+  const body = document.getElementById('tex-body').value.trim();
+  if(!body || body==='{}'){alert('Agrega parámetros al body primero');return;}
+  const name = prompt('Nombre para este caso:','Caso de prueba');
+  if(!name) return;
+  if(!S.toolCases) S.toolCases={};
+  const key = curTexAgent+'__'+curTexTool.id;
+  if(!S.toolCases[key]) S.toolCases[key]=[];
+  S.toolCases[key].push({name, body});
+  save();
+  renderTexCases(curTexAgent, curTexTool.id);
+}
+
+function formatTexJSON(){
+  try{
+    const parsed = JSON.parse(document.getElementById('tex-body').value);
+    document.getElementById('tex-body').value = JSON.stringify(parsed, null, 2);
+  }catch(e){ alert('JSON inválido: '+e.message); }
+}
+
+function copyTexResponse(){
+  const text = document.getElementById('tex-response').textContent;
+  navigator.clipboard.writeText(text).then(()=>alert('Copiado ✓'));
+}
+
+async function runTool(){
+  if(!curTexTool) return;
+  let body;
+  try{ body=JSON.parse(document.getElementById('tex-body').value||'{}'); }
+  catch(e){ alert('JSON inválido: '+e.message); return; }
+
+  const btn=document.getElementById('tex-run-btn');
+  btn.textContent='⏳ Ejecutando...';
+  btn.disabled=true;
+  document.getElementById('tex-response').textContent='Ejecutando...';
+  document.getElementById('tex-status').className='badge b-gray';
+  document.getElementById('tex-status').textContent='...';
+
+  try{
+    const r = await fetch(curTexTool.url, {
+      method: curTexTool.method||'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const text = await r.text();
+    let display;
+    try{ display = JSON.stringify(JSON.parse(text), null, 2); }
+    catch(e){ display = text; }
+    document.getElementById('tex-response').textContent = display;
+    document.getElementById('tex-status').className = r.ok ? 'badge b-green' : 'badge b-err';
+    document.getElementById('tex-status').textContent = r.status + ' ' + (r.ok ? 'OK' : 'Error');
+  }catch(e){
+    document.getElementById('tex-response').textContent = '⚠ Error: '+e.message;
+    document.getElementById('tex-status').className='badge b-err';
+    document.getElementById('tex-status').textContent='Error';
+  }finally{
+    btn.textContent='▶ Ejecutar';
+    btn.disabled=false;
+  }
+}
+
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -1139,7 +1252,7 @@ async function dispararLlamada(){
   const num=document.getElementById('voz-num').value.trim();
   if(!num){addSysMsg('⚠ Ingresa un número');return;}
   addSysMsg('📞 Disparando llamada a '+num+'...');
-  const payload={phone:num,id:'108568050698',correo:'manuel.briones@huli.io',contact_name:document.getElementById('voz-cn').value||'Manuel',especialidad:document.getElementById('voz-esp').value,propietario:document.getElementById('voz-prop').value,pais:document.getElementById('voz-pais').value};
+  const payload={'Número':num,'ID':'108568050698','Correo':'manuel.briones@huli.io','Contact_name':document.getElementById('voz-cn').value||'Manuel','Especialidad':document.getElementById('voz-esp').value,'propietario':document.getElementById('voz-prop').value,'País':document.getElementById('voz-pais').value};
   try{
     const r=await fetch(VOZ_HOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const t=await r.text();
@@ -1343,6 +1456,7 @@ function renderTools(id){
           <span class="tool-name">${t.name}</span>
           <span class="${t.method==='GET'?'mget':'mpost'}">${t.method}</span>
           ${t.cfgLink?`<a href="${t.cfgLink}" target="_blank" class="tool-link">Config ↗</a>`:''}
+          <button class="btn btn-primary btn-sm" onclick="openToolExec('${id}','${t.id}')">▶ Ejecutar</button>
           <button class="btn btn-ghost btn-sm btn-icon" onclick="openToolModal('${id}','${t.id}')" title="Editar">✎</button>
           <button class="btn btn-danger btn-sm btn-icon" onclick="delTool('${id}','${t.id}')" title="Eliminar">✕</button>
         </div>
@@ -1481,6 +1595,165 @@ function closeM(id){ document.getElementById(id).style.display='none'; }
   renderChecklist();
   document.getElementById('last-upd').textContent='Act: '+new Date().toLocaleTimeString('es-MX');
 })();
+
+// ══════════════════════════════════════════════════════════════
+//  TOOL EXECUTOR
+// ══════════════════════════════════════════════════════════════
+let curTexTool = null;
+let curTexAgent = null;
+
+function openToolExec(agentId, toolId){
+  const t=(S.tools[agentId]||[]).find(x=>x.id===toolId);
+  if(!t) return;
+  curTexTool=t;
+  curTexAgent=agentId;
+  document.getElementById('tex-title').textContent='▶ ' + t.name;
+  document.getElementById('tex-url').textContent=t.url;
+  document.getElementById('tex-body').value='{}';
+  document.getElementById('tex-response').textContent='Ejecuta la tool para ver la respuesta...';
+  document.getElementById('tex-status').className='badge b-gray';
+  document.getElementById('tex-status').textContent='—';
+  renderTexCases(agentId, toolId);
+  document.getElementById('m-tool-exec').style.display='flex';
+}
+
+function renderTexCases(agentId, toolId){
+  const key = agentId+'__'+toolId;
+  const cases = S.toolCases && S.toolCases[key] ? S.toolCases[key] : [];
+  const el = document.getElementById('tex-cases');
+  el.innerHTML = cases.length ? cases.map((c,i) => `
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:7px">
+      <div style="flex:1;cursor:pointer" onclick="loadTexCase(${i},'${agentId}','${toolId}')">
+        <div style="font-size:11px;font-weight:600;color:var(--txt1)">${c.name}</div>
+        <div style="font-size:10px;color:var(--txt3);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${c.body.slice(0,40)}...</div>
+      </div>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="delTexCase('${agentId}','${toolId}',${i})">✕</button>
+    </div>`).join('')
+    : '<div style="font-size:11px;color:var(--txt3);text-align:center;padding:12px">Sin casos guardados</div>';
+}
+
+function loadTexCase(idx, agentId, toolId){
+  const key = agentId+'__'+toolId;
+  const c = S.toolCases[key][idx];
+  if(c) document.getElementById('tex-body').value = c.body;
+}
+
+function delTexCase(agentId, toolId, idx){
+  const key = agentId+'__'+toolId;
+  if(!S.toolCases) S.toolCases={};
+  if(!S.toolCases[key]) return;
+  S.toolCases[key].splice(idx,1);
+  save();
+  renderTexCases(agentId, toolId);
+}
+
+function saveTexCase(){
+  const body = document.getElementById('tex-body').value.trim();
+  if(!body || body==='{}'){alert('Agrega parámetros al body primero');return;}
+  const name = prompt('Nombre para este caso:','Caso de prueba');
+  if(!name) return;
+  if(!S.toolCases) S.toolCases={};
+  const key = curTexAgent+'__'+curTexTool.id;
+  if(!S.toolCases[key]) S.toolCases[key]=[];
+  S.toolCases[key].push({name, body});
+  save();
+  renderTexCases(curTexAgent, curTexTool.id);
+}
+
+function formatTexJSON(){
+  try{
+    const parsed = JSON.parse(document.getElementById('tex-body').value);
+    document.getElementById('tex-body').value = JSON.stringify(parsed, null, 2);
+  }catch(e){ alert('JSON inválido: '+e.message); }
+}
+
+function copyTexResponse(){
+  const text = document.getElementById('tex-response').textContent;
+  navigator.clipboard.writeText(text).then(()=>alert('Copiado ✓'));
+}
+
+async function runTool(){
+  if(!curTexTool) return;
+  let body;
+  try{ body=JSON.parse(document.getElementById('tex-body').value||'{}'); }
+  catch(e){ alert('JSON inválido: '+e.message); return; }
+
+  const btn=document.getElementById('tex-run-btn');
+  btn.textContent='⏳ Ejecutando...';
+  btn.disabled=true;
+  document.getElementById('tex-response').textContent='Ejecutando...';
+  document.getElementById('tex-status').className='badge b-gray';
+  document.getElementById('tex-status').textContent='...';
+
+  try{
+    const r = await fetch(curTexTool.url, {
+      method: curTexTool.method||'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const text = await r.text();
+    let display;
+    try{ display = JSON.stringify(JSON.parse(text), null, 2); }
+    catch(e){ display = text; }
+    document.getElementById('tex-response').textContent = display;
+    document.getElementById('tex-status').className = r.ok ? 'badge b-green' : 'badge b-err';
+    document.getElementById('tex-status').textContent = r.status + ' ' + (r.ok ? 'OK' : 'Error');
+  }catch(e){
+    document.getElementById('tex-response').textContent = '⚠ Error: '+e.message;
+    document.getElementById('tex-status').className='badge b-err';
+    document.getElementById('tex-status').textContent='Error';
+  }finally{
+    btn.textContent='▶ Ejecutar';
+    btn.disabled=false;
+  }
+}
+
 </script>
+
+<!-- Tool Executor Modal -->
+<div class="modal-ov" id="m-tool-exec" style="display:none" onclick="if(event.target===this)closeM('m-tool-exec')">
+  <div class="modal-box wide" style="width:720px;max-height:90vh">
+    <div class="modal-hd">
+      <div>
+        <h3 id="tex-title">Ejecutar Tool</h3>
+        <div id="tex-url" style="font-family:var(--mono);font-size:10px;color:var(--txt3);margin-top:3px;word-break:break-all"></div>
+      </div>
+      <button class="modal-close" onclick="closeM('m-tool-exec')">✕</button>
+    </div>
+    <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px">
+      <!-- Left: editor + casos -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label class="fl" style="margin:0">Body JSON</label>
+            <button class="btn btn-ghost btn-sm" onclick="formatTexJSON()">{ } Formatear</button>
+          </div>
+          <textarea class="fta" id="tex-body" style="min-height:200px;font-family:var(--mono);font-size:12px;line-height:1.6" placeholder='{
+  "param": "valor"
+}'></textarea>
+        </div>
+        <div>
+          <label class="fl">Casos guardados</label>
+          <div id="tex-cases" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto"></div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:8px;width:100%" onclick="saveTexCase()">💾 Guardar body actual como caso</button>
+        </div>
+      </div>
+      <!-- Right: response -->
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <label class="fl" style="margin:0">Respuesta</label>
+          <span id="tex-status" class="badge b-gray">—</span>
+        </div>
+        <div id="tex-response" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:11px;color:var(--green2);line-height:1.6;min-height:200px;max-height:400px;overflow-y:auto;white-space:pre-wrap;word-break:break-all">Ejecuta la tool para ver la respuesta...</div>
+        <button class="btn btn-ghost btn-sm" onclick="copyTexResponse()">📋 Copiar respuesta</button>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeM('m-tool-exec')">Cerrar</button>
+      <button class="btn btn-primary" id="tex-run-btn" onclick="runTool()">▶ Ejecutar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
