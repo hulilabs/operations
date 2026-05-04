@@ -4,497 +4,346 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Huli Ops — Panel de Operaciones IA</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0a0f1a;
-  --bg2: #0f1623;
-  --surface: #141c2e;
-  --surface2: #1a2540;
-  --border: rgba(255,255,255,.07);
-  --border2: rgba(255,255,255,.12);
-  --txt1: #e8edf5;
-  --txt2: #8a9bbf;
-  --txt3: #4a5a7a;
-  --accent: #3b82f6;
-  --accent2: #60a5fa;
-  --green: #10b981;
-  --green2: #34d399;
-  --warn: #f59e0b;
-  --err: #ef4444;
-  --purple: #8b5cf6;
-  --cyan: #06b6d4;
-  --shadow: 0 2px 8px rgba(0,0,0,.4);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,.5);
-  --radius: 12px;
-  --sidebar-w: 220px;
+  --bg:       #080c14;
+  --bg2:      #0c1220;
+  --surface:  #111827;
+  --surface2: #1a2235;
+  --surface3: #1f2d45;
+  --border:   rgba(255,255,255,.06);
+  --border2:  rgba(255,255,255,.12);
+  --txt1:     #f0f4ff;
+  --txt2:     #8896b3;
+  --txt3:     #3d4f6e;
+  --accent:   #4f8ef7;
+  --accent2:  #7eb3ff;
+  --green:    #0fb877;
+  --green2:   #2fd99a;
+  --warn:     #f5a623;
+  --err:      #f04d4d;
+  --purple:   #9b72f7;
+  --cyan:     #22d3ee;
+  --mono:     'DM Mono', monospace;
+  --sans:     'DM Sans', sans-serif;
+  --display:  'Syne', sans-serif;
+  --sidebar-w: 224px;
+  --radius:   10px;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--txt1); display: flex; min-height: 100vh; font-size: 14px; }
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--bg);color:var(--txt1);display:flex;min-height:100vh;font-size:13px;line-height:1.5}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:4px}
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
-
-/* ── Sidebar ── */
-#sidebar {
-  width: var(--sidebar-w); min-height: 100vh; background: var(--bg2);
-  border-right: 1px solid var(--border); position: fixed; top: 0; left: 0;
-  display: flex; flex-direction: column; z-index: 100; overflow-y: auto;
+/* ── SIDEBAR ── */
+#sidebar{
+  width:var(--sidebar-w);min-height:100vh;background:var(--bg2);
+  border-right:1px solid var(--border);position:fixed;top:0;left:0;
+  display:flex;flex-direction:column;z-index:100;overflow-y:auto;
 }
-.sidebar-brand {
-  padding: 20px 18px 16px;
-  border-bottom: 1px solid var(--border);
+.sb-brand{
+  padding:22px 18px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:11px;
 }
-.sidebar-brand .logo { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
-.sidebar-brand .logo-dot {
-  width: 28px; height: 28px; background: var(--accent);
-  border-radius: 8px; display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0;
+.sb-logomark{
+  width:32px;height:32px;background:linear-gradient(135deg,#4f8ef7,#9b72f7);
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-weight:800;font-size:15px;color:#fff;flex-shrink:0;
 }
-.sidebar-brand h1 { font-size: 14px; font-weight: 700; color: var(--txt1); letter-spacing: -.2px; }
-.sidebar-brand .tagline { font-size: 10px; color: var(--txt3); margin-top: 2px; letter-spacing: .3px; }
+.sb-title{font-family:var(--display);font-size:14px;font-weight:700;color:var(--txt1)}
+.sb-sub{font-size:10px;color:var(--txt3);margin-top:1px}
 
-.nav-section { padding: 12px 10px 4px; }
-.nav-label { font-size: 9.5px; font-weight: 600; color: var(--txt3); text-transform: uppercase; letter-spacing: 1px; padding: 0 8px; margin-bottom: 4px; }
-.nav-item {
-  display: flex; align-items: center; gap: 9px; padding: 8px 10px;
-  border-radius: 8px; cursor: pointer; color: var(--txt2); font-size: 12.5px;
-  font-weight: 500; transition: all .15s; margin-bottom: 1px; text-decoration: none;
+.sb-section{padding:16px 12px 4px}
+.sb-label{font-size:9px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:1.2px;padding:0 6px;margin-bottom:5px}
+.sb-item{
+  display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
+  cursor:pointer;color:var(--txt2);font-size:12px;font-weight:500;
+  transition:all .15s;margin-bottom:1px;border:none;background:none;
+  font-family:var(--sans);width:100%;text-align:left;
 }
-.nav-item:hover { background: var(--surface); color: var(--txt1); }
-.nav-item.active { background: rgba(59,130,246,.15); color: var(--accent2); }
-.nav-item.active .nav-icon { color: var(--accent); }
-.nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
-.nav-badge {
-  margin-left: auto; background: var(--err); color: #fff;
-  font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 10px;
+.sb-item:hover{background:var(--surface);color:var(--txt1)}
+.sb-item.active{background:rgba(79,142,247,.12);color:var(--accent2);border-left:2px solid var(--accent)}
+.sb-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.sb-badge{margin-left:auto;background:var(--err);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center}
+
+.sb-agents{padding:12px;border-top:1px solid var(--border);margin-top:auto}
+.sb-agent-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;margin-bottom:2px;cursor:pointer;transition:background .15s}
+.sb-agent-row:hover{background:var(--surface)}
+.sa-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sa-dot.on{background:var(--green);box-shadow:0 0 0 3px rgba(15,184,119,.18)}
+.sa-dot.off{background:var(--txt3)}
+.sa-name{font-size:11px;color:var(--txt2);flex:1}
+.sa-tag{font-size:9px;color:var(--txt3);background:var(--surface2);padding:1px 5px;border-radius:4px}
+
+.sb-footer{padding:12px 16px;border-top:1px solid var(--border)}
+.sb-footer p{font-size:10px;color:var(--txt3)}
+
+/* ── MAIN ── */
+#main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* ── TOPBAR ── */
+#topbar{
+  background:rgba(12,18,32,.95);border-bottom:1px solid var(--border);
+  padding:13px 26px;display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);
 }
+#topbar-title{font-family:var(--display);font-size:15px;font-weight:700;flex:1;color:var(--txt1)}
+.topbar-pill{font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;background:rgba(15,184,119,.12);color:var(--green2);border:1px solid rgba(15,184,119,.2)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:var(--sans);transition:all .15s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#3d7ae8}
+.btn-ghost{background:var(--surface2);color:var(--txt1);border:1px solid var(--border2)}
+.btn-ghost:hover{background:var(--surface3)}
+.btn-danger{background:rgba(240,77,77,.12);color:#f87171;border:1px solid rgba(240,77,77,.2)}
+.btn-danger:hover{background:rgba(240,77,77,.22)}
+.btn-sm{padding:5px 11px;font-size:11px}
+.btn-icon{width:30px;height:30px;padding:0;justify-content:center}
 
-.sidebar-agents { padding: 10px 10px; border-top: 1px solid var(--border); margin-top: 4px; }
-.agent-pill {
-  display: flex; align-items: center; gap: 8px; padding: 7px 10px;
-  border-radius: 8px; margin-bottom: 3px; cursor: pointer;
-  transition: background .15s; font-size: 12px;
-}
-.agent-pill:hover { background: var(--surface); }
-.agent-pill.active { background: var(--surface2); }
-.agent-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.agent-dot.online { background: var(--green); box-shadow: 0 0 0 3px rgba(16,185,129,.2); }
-.agent-dot.warn { background: var(--warn); }
-.agent-dot.offline { background: var(--txt3); }
-.agent-name { font-weight: 500; color: var(--txt2); flex: 1; font-size: 11.5px; }
-.agent-type { font-size: 9px; color: var(--txt3); background: var(--surface); padding: 1px 6px; border-radius: 4px; }
+/* ── CONTENT ── */
+#content{padding:24px;flex:1}
+.page{display:none}
+.page.active{display:block}
 
-.sidebar-footer { padding: 12px 18px; border-top: 1px solid var(--border); margin-top: auto; }
-.sidebar-footer p { font-size: 10px; color: var(--txt3); }
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.card+.card{margin-top:14px}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px}
 
-/* ── Main ── */
-#main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+/* ── GRID ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
 
-/* ── Topbar ── */
-#topbar {
-  background: var(--bg2); border-bottom: 1px solid var(--border);
-  padding: 12px 24px; display: flex; align-items: center; gap: 12px;
-  position: sticky; top: 0; z-index: 50;
-}
-#topbar h2 { font-size: 15px; font-weight: 700; flex: 1; color: var(--txt1); }
-.topbar-badge {
-  font-size: 10px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
-  background: rgba(16,185,129,.15); color: var(--green2); border: 1px solid rgba(16,185,129,.25);
-}
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px}
+.b-green{background:rgba(15,184,119,.14);color:var(--green2)}
+.b-warn{background:rgba(245,166,35,.14);color:#fbbf24}
+.b-err{background:rgba(240,77,77,.14);color:#f87171}
+.b-blue{background:rgba(79,142,247,.14);color:var(--accent2)}
+.b-purple{background:rgba(155,114,247,.14);color:#b89fff}
+.b-gray{background:var(--surface2);color:var(--txt2)}
+.b-cyan{background:rgba(34,211,238,.14);color:var(--cyan)}
 
-/* ── Content ── */
-#content { padding: 24px; flex: 1; }
-.page { display: none; }
-.page.active { display: block; }
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.7px;padding:10px 14px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+td{font-size:12px;color:var(--txt2);padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
 
-/* ── Cards ── */
-.card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 20px;
-}
-.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.card-title { font-size: 12px; font-weight: 600; color: var(--txt2); text-transform: uppercase; letter-spacing: .6px; }
+/* ── FORM ── */
+.fg{margin-bottom:13px}
+.fl{font-size:11px;font-weight:600;color:var(--txt2);margin-bottom:5px;display:block}
+.fi,.fs,.fta{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--txt1);font-size:12px;font-family:var(--sans);outline:none;transition:border-color .15s}
+.fi:focus,.fs:focus,.fta:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,142,247,.1)}
+.fta{resize:vertical;min-height:80px}
+.fs option{background:var(--surface)}
 
-/* ── Grid ── */
-.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 20px; }
-.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 20px; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-.grid-1 { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 20px; }
+/* ── MODAL ── */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px)}
+.modal-box{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:560px;max-width:95vw;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.modal-box.wide{width:680px}
+.modal-hd{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-hd h3{font-family:var(--display);font-size:14px;font-weight:700}
+.modal-close{background:none;border:none;color:var(--txt3);font-size:20px;cursor:pointer;padding:0 4px;line-height:1}
+.modal-close:hover{color:var(--txt1)}
+.modal-body{padding:20px;overflow-y:auto;flex:1}
+.modal-ft{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
 
-/* ── KPI Card ── */
-.kpi {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 18px 20px;
-  transition: border-color .15s, transform .15s;
-}
-.kpi:hover { border-color: var(--border2); transform: translateY(-1px); }
-.kpi-label { font-size: 10px; font-weight: 600; color: var(--txt3); text-transform: uppercase; letter-spacing: .7px; margin-bottom: 8px; }
-.kpi-val { font-size: 30px; font-weight: 700; line-height: 1; letter-spacing: -1px; margin-bottom: 5px; }
-.kpi-sub { font-size: 11px; color: var(--txt3); }
-.kpi-bar { height: 3px; border-radius: 2px; background: var(--surface2); margin-top: 12px; overflow: hidden; }
-.kpi-bar-fill { height: 100%; border-radius: 2px; transition: width .6s ease; }
+/* ── TABS ── */
+.tabs{display:flex;gap:2px;background:var(--bg2);border-radius:9px;padding:3px;margin-bottom:18px;border:1px solid var(--border);width:fit-content}
+.tab{padding:7px 16px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;color:var(--txt3);transition:all .15s;border:none;background:none;font-family:var(--sans)}
+.tab.active{background:var(--surface2);color:var(--txt1)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
 
-/* ── Status badges ── */
-.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
-.badge-green { background: rgba(16,185,129,.15); color: var(--green2); }
-.badge-warn { background: rgba(245,158,11,.15); color: #fbbf24; }
-.badge-err { background: rgba(239,68,68,.15); color: #f87171; }
-.badge-blue { background: rgba(59,130,246,.15); color: var(--accent2); }
-.badge-purple { background: rgba(139,92,246,.15); color: #a78bfa; }
-.badge-gray { background: var(--surface2); color: var(--txt2); }
+/* ── PRIORITY ── */
+.prio{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600}
+.pd{width:7px;height:7px;border-radius:50%}
+.pc .pd{background:var(--err);box-shadow:0 0 0 3px rgba(240,77,77,.18)}
+.pa .pd{background:var(--warn)}
+.pn .pd{background:var(--accent)}
+.pb .pd{background:var(--txt3)}
 
-/* ── Table ── */
-.table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; }
-th { font-size: 10px; font-weight: 600; color: var(--txt3); text-transform: uppercase; letter-spacing: .6px; padding: 10px 14px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
-td { font-size: 12px; color: var(--txt2); padding: 11px 14px; border-bottom: 1px solid var(--border); }
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: var(--surface2); }
+/* ── VERSION ── */
+.vtag{font-family:var(--mono);font-size:10px;background:rgba(34,211,238,.1);color:var(--cyan);padding:2px 7px;border-radius:4px;border:1px solid rgba(34,211,238,.18)}
+.vitem{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .15s;margin-bottom:6px}
+.vitem:hover{border-color:var(--border2)}
+.vitem.cur{border-color:rgba(79,142,247,.4);background:rgba(79,142,247,.05)}
+.vmeta{flex:1}
+.vname{font-size:12px;font-weight:600;color:var(--txt1)}
+.vdate{font-size:10px;color:var(--txt3);margin-top:2px}
 
-/* ── Button ── */
-.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; transition: all .15s; }
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-primary:hover { background: #2563eb; }
-.btn-secondary { background: var(--surface2); color: var(--txt1); border: 1px solid var(--border2); }
-.btn-secondary:hover { background: #243050; }
-.btn-danger { background: rgba(239,68,68,.15); color: #f87171; border: 1px solid rgba(239,68,68,.2); }
-.btn-danger:hover { background: rgba(239,68,68,.25); }
-.btn-sm { padding: 5px 10px; font-size: 11px; }
-.btn-icon { width: 30px; height: 30px; padding: 0; justify-content: center; }
+/* ── TOOL CARD ── */
+.tool-card{padding:14px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;margin-bottom:9px;transition:border-color .15s}
+.tool-card:hover{border-color:var(--border2)}
+.tool-hd{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.tool-name{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--txt1);flex:1}
+.mpost{background:rgba(15,184,119,.12);color:var(--green2);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px}
+.mget{background:rgba(79,142,247,.12);color:var(--accent2);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px}
+.tool-url{font-family:var(--mono);font-size:10px;color:var(--txt3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:7px}
+.tool-inst{font-size:11px;color:var(--txt3);line-height:1.55}
+.tool-link{font-size:10px;color:var(--accent2);text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.tool-link:hover{text-decoration:underline}
 
-/* ── Form elements ── */
-.form-group { margin-bottom: 14px; }
-.form-label { font-size: 11px; font-weight: 600; color: var(--txt2); margin-bottom: 5px; display: block; }
-.form-input, .form-select, .form-textarea {
-  width: 100%; padding: 9px 12px; background: var(--bg2); border: 1px solid var(--border2);
-  border-radius: 8px; color: var(--txt1); font-size: 12px; font-family: inherit; outline: none;
-  transition: border-color .15s;
-}
-.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
-.form-textarea { resize: vertical; min-height: 80px; }
-.form-select option { background: var(--surface); }
+/* ── LINK ROW ── */
+.link-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:7px;transition:border-color .15s}
+.link-row:hover{border-color:var(--border2)}
+.link-label{font-size:12px;font-weight:600;color:var(--txt1);flex:1}
+.link-sub{font-size:10px;color:var(--txt3)}
+.link-btn{font-size:10px;font-weight:600;padding:4px 10px;border-radius:6px;background:rgba(79,142,247,.12);color:var(--accent2);border:1px solid rgba(79,142,247,.2);cursor:pointer;text-decoration:none;white-space:nowrap;font-family:var(--sans);transition:background .15s}
+.link-btn:hover{background:rgba(79,142,247,.22)}
 
-/* ── Modal ── */
-.modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.7);
-  display: flex; align-items: center; justify-content: center; z-index: 200;
-  backdrop-filter: blur(4px);
-}
-.modal-box {
-  background: var(--surface); border: 1px solid var(--border2);
-  border-radius: 14px; width: 560px; max-width: 95vw; max-height: 85vh;
-  overflow: hidden; display: flex; flex-direction: column;
-  box-shadow: var(--shadow-lg);
-}
-.modal-header { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-.modal-header h3 { font-size: 14px; font-weight: 700; }
-.modal-close { background: none; border: none; color: var(--txt3); font-size: 20px; cursor: pointer; padding: 0 4px; }
-.modal-close:hover { color: var(--txt1); }
-.modal-body { padding: 20px; overflow-y: auto; flex: 1; }
-.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+/* ── SANDBOX ── */
+.sb-layout{display:grid;grid-template-columns:1fr 320px;gap:14px;height:calc(100vh - 130px)}
+.chat-panel{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.chat-topbar{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.chat-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.cm{max-width:82%;padding:10px 13px;border-radius:10px;font-size:12.5px;line-height:1.55;word-break:break-word}
+.cm.user{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
+.cm.agent{background:var(--surface2);color:var(--txt1);align-self:flex-start;border-bottom-left-radius:3px}
+.cm.sys{background:transparent;border:1px solid var(--border);color:var(--txt3);font-size:11px;align-self:center;text-align:center;padding:5px 12px;border-radius:20px}
+.cm.fn{background:rgba(155,114,247,.1);border:1px solid rgba(155,114,247,.2);color:#c4aeff;font-family:var(--mono);font-size:11px;align-self:flex-start;max-width:95%;border-radius:8px}
+.chat-presets{padding:0 16px 10px;display:flex;flex-wrap:wrap;gap:6px}
+.preset-btn{font-size:11px;padding:5px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border2);color:var(--txt2);cursor:pointer;font-family:var(--sans);transition:all .15s}
+.preset-btn:hover{border-color:var(--accent);color:var(--accent2)}
+.chat-input-area{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px}
+.chat-input{flex:1;padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--txt1);font-size:12px;font-family:var(--sans);outline:none;resize:none}
+.chat-input:focus{border-color:var(--accent)}
+.sandbox-ctrl{display:flex;flex-direction:column;gap:12px;overflow-y:auto}
 
-/* ── Tabs ── */
-.tabs { display: flex; gap: 2px; background: var(--bg2); border-radius: 10px; padding: 3px; margin-bottom: 20px; border: 1px solid var(--border); }
-.tab { padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--txt3); transition: all .15s; border: none; background: none; font-family: inherit; }
-.tab.active { background: var(--surface2); color: var(--txt1); }
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
+/* ── RUNBOOK ── */
+.rb-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.rb-item:last-child{border-bottom:none}
+.rb-cb{width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;margin-top:2px;cursor:pointer}
+.rb-text{font-size:12.5px;color:var(--txt2);flex:1;line-height:1.55}
+.rb-text.done{text-decoration:line-through;color:var(--txt3)}
 
-/* ── Priority dots ── */
-.priority { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; }
-.priority-dot { width: 7px; height: 7px; border-radius: 50%; }
-.p-critical .priority-dot { background: var(--err); box-shadow: 0 0 0 3px rgba(239,68,68,.2); }
-.p-high .priority-dot { background: var(--warn); }
-.p-normal .priority-dot { background: var(--accent); }
-.p-low .priority-dot { background: var(--txt3); }
+/* ── CADENCIA ── */
+.cad-block{display:flex;gap:14px;margin-bottom:13px}
+.cad-time{width:72px;font-size:11px;font-weight:700;color:var(--accent2);flex-shrink:0;padding-top:2px}
+.cad-title{font-size:12.5px;font-weight:700;color:var(--txt1);margin-bottom:3px}
+.cad-desc{font-size:11px;color:var(--txt3);line-height:1.55}
 
-/* ── Chart containers ── */
-.chart-box { position: relative; }
-.chart-box canvas { max-height: 220px; }
+/* ── TAG ── */
+.tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;font-size:11px;color:var(--txt2)}
+.tag-x{cursor:pointer;color:var(--txt3);font-size:13px;line-height:1}
+.tag-x:hover{color:var(--err)}
 
-/* ── Dashboard overview cards ── */
-.agent-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 18px; transition: all .15s; cursor: pointer;
-}
-.agent-card:hover { border-color: var(--border2); box-shadow: var(--shadow); }
-.agent-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
-.agent-card-name { font-size: 13px; font-weight: 700; color: var(--txt1); margin-bottom: 3px; }
-.agent-card-type { font-size: 10px; color: var(--txt3); }
-.agent-card-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.mini-metric .mm-val { font-size: 18px; font-weight: 700; }
-.mini-metric .mm-label { font-size: 10px; color: var(--txt3); margin-top: 2px; }
+/* ── IFRAME ── */
+.iframe-wrap{width:100%;height:calc(100vh - 112px);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.iframe-wrap iframe{width:100%;height:100%;border:none}
 
-/* ── Sandbox ── */
-.sandbox-layout { display: grid; grid-template-columns: 1fr 340px; gap: 16px; height: calc(100vh - 140px); }
-.chat-panel { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-.chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
-.chat-msg { max-width: 80%; padding: 10px 13px; border-radius: 10px; font-size: 12.5px; line-height: 1.5; }
-.chat-msg.user { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 3px; }
-.chat-msg.agent { background: var(--surface2); color: var(--txt1); align-self: flex-start; border-bottom-left-radius: 3px; }
-.chat-msg.system { background: transparent; border: 1px solid var(--border); color: var(--txt3); font-size: 11px; align-self: center; text-align: center; padding: 6px 12px; }
-.chat-msg.function { background: rgba(139,92,246,.1); border: 1px solid rgba(139,92,246,.2); color: #a78bfa; font-family: 'DM Mono', monospace; font-size: 11px; align-self: flex-start; max-width: 95%; }
-.chat-input-area { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
-.chat-input { flex: 1; padding: 9px 12px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 8px; color: var(--txt1); font-size: 12px; font-family: inherit; outline: none; resize: none; }
-.chat-input:focus { border-color: var(--accent); }
-.sandbox-controls { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+/* ── EMPTY ── */
+.empty{text-align:center;padding:48px 24px;color:var(--txt3)}
+.empty-icon{font-size:32px;margin-bottom:12px;opacity:.4}
+.empty p{font-size:12px}
 
-/* ── Runbook ── */
-.checklist-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
-.checklist-item:last-child { border-bottom: none; }
-.checklist-cb { width: 16px; height: 16px; accent-color: var(--accent); flex-shrink: 0; margin-top: 1px; cursor: pointer; }
-.checklist-text { font-size: 12.5px; color: var(--txt2); flex: 1; line-height: 1.5; }
-.checklist-text.done { text-decoration: line-through; color: var(--txt3); }
+/* ── LOADER ── */
+#loader{position:fixed;inset:0;background:rgba(8,12,20,.95);display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:14px}
+.spin{width:34px;height:34px;border:3px solid rgba(255,255,255,.08);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+#loader p{color:var(--txt2);font-size:12px}
 
-/* ── Version badge ── */
-.version-tag { font-family: 'DM Mono', monospace; font-size: 10px; background: var(--surface2); color: var(--cyan); padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(6,182,212,.2); }
+/* ── TEST CASE ── */
+.tcase{padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;margin-bottom:8px}
+.tcase-name{font-size:12px;font-weight:700;color:var(--txt1);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.tcase-msgs{display:flex;flex-direction:column;gap:5px}
+.tcase-result{margin-top:10px;font-size:11px;color:var(--txt3);padding:8px;background:var(--surface);border-radius:6px;border:1px solid var(--border)}
 
-/* ── Empty state ── */
-.empty-state { text-align: center; padding: 48px 24px; color: var(--txt3); }
-.empty-state .es-icon { font-size: 36px; margin-bottom: 12px; opacity: .5; }
-.empty-state p { font-size: 13px; }
+/* ── GRID 2col form ── */
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 
-/* ── Loader ── */
-#loader { position: fixed; inset: 0; background: rgba(10,15,26,.9); display: flex; align-items: center; justify-content: center; z-index: 999; flex-direction: column; gap: 14px; }
-.spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,.1); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-#loader p { color: var(--txt2); font-size: 13px; }
-
-/* ── Iframe container ── */
-.iframe-wrap { width: 100%; height: calc(100vh - 110px); border: none; border-radius: var(--radius); overflow: hidden; }
-.iframe-wrap iframe { width: 100%; height: 100%; border: none; border-radius: var(--radius); }
-
-/* ── Cadencia timeline ── */
-.cadencia-block { display: flex; gap: 16px; margin-bottom: 14px; }
-.cadencia-time { width: 80px; font-size: 11px; font-weight: 600; color: var(--accent2); flex-shrink: 0; padding-top: 2px; }
-.cadencia-content { flex: 1; }
-.cadencia-title { font-size: 13px; font-weight: 600; color: var(--txt1); margin-bottom: 4px; }
-.cadencia-desc { font-size: 11.5px; color: var(--txt3); line-height: 1.5; }
-
-/* ── SDR Chart container ── */
-.sdr-chart-wrap { position: relative; height: 200px; }
-
-/* ── Notification dot ── */
-.notif { width: 6px; height: 6px; background: var(--err); border-radius: 50%; flex-shrink: 0; }
-
-/* ── Tag input ── */
-.tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 20px; font-size: 11px; color: var(--txt2); }
-.tag-remove { cursor: pointer; color: var(--txt3); font-size: 13px; line-height: 1; }
-.tag-remove:hover { color: var(--err); }
-
-/* ── Prompt editor ── */
-.prompt-editor { font-family: 'DM Mono', monospace; font-size: 12px; line-height: 1.7; min-height: 200px; }
-.version-history { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-.version-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: border-color .15s; }
-.version-item:hover { border-color: var(--border2); }
-.version-item.current { border-color: rgba(59,130,246,.4); background: rgba(59,130,246,.05); }
-.version-meta { flex: 1; }
-.version-name { font-size: 12px; font-weight: 600; color: var(--txt1); }
-.version-date { font-size: 10px; color: var(--txt3); margin-top: 2px; }
-
-/* ── Tool card ── */
-.tool-card { padding: 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; }
-.tool-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.tool-name { font-size: 12px; font-weight: 700; color: var(--txt1); font-family: 'DM Mono', monospace; flex: 1; }
-.tool-method { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
-.method-post { background: rgba(16,185,129,.15); color: var(--green2); }
-.method-get { background: rgba(59,130,246,.15); color: var(--accent2); }
-.tool-url { font-size: 10px; color: var(--txt3); font-family: 'DM Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px; }
-
-/* ── Responsive ── */
-@media (max-width: 900px) {
-  .grid-4 { grid-template-columns: repeat(2,1fr); }
-  .grid-3 { grid-template-columns: repeat(2,1fr); }
-  .sandbox-layout { grid-template-columns: 1fr; }
-}
+/* ── SDR stats row ── */
+.stat-row{display:flex;gap:20px;padding:14px 0;border-bottom:1px solid var(--border)}
+.stat-row:last-child{border-bottom:none}
+.stat-num{font-family:var(--display);font-size:22px;font-weight:700;line-height:1}
+.stat-lbl{font-size:10px;color:var(--txt3);margin-top:3px}
 </style>
 </head>
 <body>
 
-<div id="loader">
-  <div class="spinner"></div>
-  <p id="loader-msg">Iniciando Huli Ops...</p>
-</div>
+<div id="loader"><div class="spin"></div><p id="lmsg">Iniciando Huli Ops...</p></div>
 
-<!-- ── SIDEBAR ── -->
+<!-- ══ SIDEBAR ══ -->
 <nav id="sidebar">
-  <div class="sidebar-brand">
-    <div class="logo">
-      <div class="logo-dot">H</div>
-      <div>
-        <h1>Huli Ops</h1>
-        <div class="tagline">Panel de Operaciones IA</div>
-      </div>
-    </div>
+  <div class="sb-brand">
+    <div class="sb-logomark">H</div>
+    <div><div class="sb-title">Huli Ops</div><div class="sb-sub">Operaciones IA</div></div>
   </div>
 
-  <div class="nav-section">
-    <div class="nav-label">General</div>
-    <div class="nav-item active" onclick="showPage('dashboard')">
-      <span class="nav-icon">⬡</span> Dashboard
-    </div>
-    <div class="nav-item" onclick="showPage('issues')">
-      <span class="nav-icon">◈</span> Issues & Mejoras
-      <span class="nav-badge" id="issues-badge">0</span>
-    </div>
-    <div class="nav-item" onclick="showPage('cadencia')">
-      <span class="nav-icon">◷</span> Cadencia
-    </div>
+  <div class="sb-section">
+    <div class="sb-label">General</div>
+    <button class="sb-item active" onclick="nav('issues')"><span class="sb-icon">◈</span>Issues & Mejoras<span class="sb-badge" id="ib">0</span></button>
+    <button class="sb-item" onclick="nav('cadencia')"><span class="sb-icon">◷</span>Cadencia</button>
   </div>
 
-  <div class="nav-section">
-    <div class="nav-label">Agentes</div>
-    <div class="nav-item" onclick="showPage('agente-hh')">
-      <span class="nav-icon">🏥</span> Agente HH
-    </div>
-    <div class="nav-item" onclick="showPage('sdr-dashboard')">
-      <span class="nav-icon">📊</span> SDR Dashboard
-    </div>
-    <div class="nav-item" onclick="showPage('sandbox')">
-      <span class="nav-icon">⚗</span> Sandbox
-    </div>
-    <div class="nav-item" onclick="showPage('runbooks')">
-      <span class="nav-icon">📋</span> Runbooks
-    </div>
+  <div class="sb-section">
+    <div class="sb-label">Agentes</div>
+    <button class="sb-item" onclick="nav('agente-hh')"><span class="sb-icon">🏥</span>Agente HH</button>
+    <button class="sb-item" onclick="nav('sdr')"><span class="sb-icon">📊</span>SDR Dashboard</button>
+    <button class="sb-item" onclick="nav('sandbox')"><span class="sb-icon">⚗</span>Sandbox</button>
+    <button class="sb-item" onclick="nav('runbooks')"><span class="sb-icon">📋</span>Runbooks</button>
   </div>
 
-  <div class="nav-section">
-    <div class="nav-label">Config</div>
-    <div class="nav-item" onclick="showPage('prompts')">
-      <span class="nav-icon">✦</span> Prompts
-    </div>
-    <div class="nav-item" onclick="showPage('tools')">
-      <span class="nav-icon">⚙</span> Tools
-    </div>
-    <div class="nav-item" onclick="showPage('config')">
-      <span class="nav-icon">◉</span> Configuración
-    </div>
+  <div class="sb-section">
+    <div class="sb-label">Config</div>
+    <button class="sb-item" onclick="nav('prompts')"><span class="sb-icon">✦</span>Prompts</button>
+    <button class="sb-item" onclick="nav('tools')"><span class="sb-icon">⚙</span>Tools</button>
+    <button class="sb-item" onclick="nav('config')"><span class="sb-icon">◉</span>Configuración</button>
+    <button class="sb-item" onclick="nav('links')"><span class="sb-icon">↗</span>Accesos directos</button>
   </div>
 
-  <div class="sidebar-agents" id="sidebar-agents-list"></div>
+  <div class="sb-agents" id="sb-agents"></div>
 
-  <div class="sidebar-footer">
+  <div class="sb-footer">
     <p>Huli © 2026</p>
-    <p id="last-update" style="color:var(--txt3);font-size:10px;margin-top:3px;"></p>
+    <p id="last-upd" style="margin-top:3px;color:var(--txt3)"></p>
   </div>
 </nav>
 
-<!-- ── MAIN ── -->
+<!-- ══ MAIN ══ -->
 <div id="main">
   <div id="topbar">
-    <h2 id="topbar-title">Dashboard</h2>
-    <div id="topbar-badge" class="topbar-badge">Sistema operativo</div>
-    <button class="btn btn-secondary btn-sm" onclick="refreshAll()">↺ Actualizar</button>
+    <div id="topbar-title">Issues & Mejoras</div>
+    <span class="topbar-pill" id="topbar-pill">Sistema operativo</span>
+    <button class="btn btn-ghost btn-sm" onclick="refreshSDR()">↺ Actualizar</button>
   </div>
 
   <div id="content">
 
-    <!-- ══ DASHBOARD ══ -->
-    <div class="page active" id="page-dashboard">
-      <div class="grid-4" id="dashboard-kpis"></div>
-      <div class="grid-2" id="dashboard-agents-grid"></div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-header"><span class="card-title">Issues abiertos</span><button class="btn btn-primary btn-sm" onclick="showPage('issues')">Ver todos</button></div>
-          <div id="dashboard-issues-list"></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><span class="card-title">Próximas cadencias</span></div>
-          <div id="dashboard-cadencia-list"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ AGENTE HH ══ -->
-    <div class="page" id="page-agente-hh">
-      <div class="iframe-wrap">
-        <iframe src="agente-hh/index.html" title="Agente HH Dashboard"></iframe>
-      </div>
-    </div>
-
-    <!-- ══ SDR DASHBOARD ══ -->
-    <div class="page" id="page-sdr-dashboard">
-      <div class="grid-4" id="sdr-kpis"></div>
-
-      <div class="tabs" id="sdr-tabs">
-        <button class="tab active" onclick="switchSDRTab('voz')">📞 SDR Voz</button>
-        <button class="tab" onclick="switchSDRTab('texto')">💬 SDR Texto</button>
-        <button class="tab" onclick="switchSDRTab('mx')">🇲🇽 México</button>
-        <button class="tab" onclick="switchSDRTab('cr')">🇨🇷 Costa Rica</button>
-      </div>
-
-      <div id="sdr-tab-voz" class="tab-panel active">
-        <div class="grid-2">
-          <div class="card">
-            <div class="card-header"><span class="card-title">Llamadas exitosas</span></div>
-            <div class="sdr-chart-wrap"><canvas id="ch-sdr-voz-exitosas"></canvas></div>
-          </div>
-          <div class="card">
-            <div class="card-header"><span class="card-title">Demos agendadas</span></div>
-            <div class="sdr-chart-wrap"><canvas id="ch-sdr-demos"></canvas></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><span class="card-title">Actividad reciente — Voz</span></div>
-          <div class="table-wrap"><table id="sdr-voz-table"><thead><tr><th>ID</th><th>Agente</th><th>País</th><th>Fecha</th><th>Llamada exitosa</th><th>Demo agendada</th><th>Resumen</th></tr></thead><tbody></tbody></table></div>
-        </div>
-      </div>
-
-      <div id="sdr-tab-texto" class="tab-panel">
-        <div class="card">
-          <div class="card-header"><span class="card-title">Actividad — Texto</span></div>
-          <div class="table-wrap"><table id="sdr-texto-table"><thead><tr><th>ID</th><th>Agente</th><th>País</th><th>Fecha</th><th>Canal</th><th>Resumen</th></tr></thead><tbody></tbody></table></div>
-        </div>
-      </div>
-
-      <div id="sdr-tab-mx" class="tab-panel">
-        <div class="grid-3" id="sdr-mx-kpis"></div>
-        <div class="card">
-          <div class="card-header"><span class="card-title">Actividad México</span></div>
-          <div class="table-wrap"><table id="sdr-mx-table"><thead><tr><th>ID</th><th>Agente</th><th>Canal</th><th>Fecha</th><th>Llamada exitosa</th><th>Demo</th></tr></thead><tbody></tbody></table></div>
-        </div>
-      </div>
-
-      <div id="sdr-tab-cr" class="tab-panel">
-        <div class="grid-3" id="sdr-cr-kpis"></div>
-        <div class="card">
-          <div class="card-header"><span class="card-title">Actividad Costa Rica</span></div>
-          <div class="table-wrap"><table id="sdr-cr-table"><thead><tr><th>ID</th><th>Agente</th><th>Canal</th><th>Fecha</th><th>Llamada exitosa</th><th>Demo</th></tr></thead><tbody></tbody></table></div>
-        </div>
-      </div>
-    </div>
-
     <!-- ══ ISSUES ══ -->
-    <div class="page" id="page-issues">
-      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
+    <div class="page active" id="page-issues">
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="openIssueModal()">+ Nuevo issue</button>
-        <select class="form-select" style="width:140px" onchange="filterIssues(this.value,'status')" id="filter-status">
+        <select class="fs" style="width:140px" onchange="issueF.status=this.value;renderIssues()">
           <option value="">Todos los estados</option>
           <option value="abierto">Abierto</option>
           <option value="en progreso">En progreso</option>
           <option value="resuelto">Resuelto</option>
         </select>
-        <select class="form-select" style="width:140px" onchange="filterIssues(this.value,'priority')" id="filter-priority">
+        <select class="fs" style="width:140px" onchange="issueF.priority=this.value;renderIssues()">
           <option value="">Todas las prioridades</option>
           <option value="crítico">Crítico</option>
           <option value="alto">Alto</option>
           <option value="normal">Normal</option>
           <option value="bajo">Bajo</option>
         </select>
-        <select class="form-select" style="width:160px" onchange="filterIssues(this.value,'agent')" id="filter-agent">
+        <select class="fs" style="width:160px" id="f-agent-sel" onchange="issueF.agent=this.value;renderIssues()">
           <option value="">Todos los agentes</option>
         </select>
       </div>
       <div class="card">
-        <div class="table-wrap">
-          <table id="issues-table">
+        <div class="tbl-wrap">
+          <table id="issues-tbl">
             <thead><tr><th>Prioridad</th><th>Agente</th><th>Tipo</th><th>Título</th><th>Responsable</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
             <tbody></tbody>
           </table>
@@ -504,126 +353,188 @@ tr:hover td { background: var(--surface2); }
 
     <!-- ══ CADENCIA ══ -->
     <div class="page" id="page-cadencia">
-      <div class="grid-3">
+      <div class="g3">
         <div class="card">
-          <div class="card-header"><span class="card-title">🌅 Revisión diaria</span></div>
-          <div class="cadencia-block"><div class="cadencia-time">Mañana</div><div class="cadencia-content"><div class="cadencia-title">Check de estado</div><div class="cadencia-desc">Revisar dashboard de cada agente. Verificar issues abiertos críticos. Revisar notificaciones de Slack.</div></div></div>
-          <div class="cadencia-block"><div class="cadencia-time">Tarde</div><div class="cadencia-content"><div class="cadencia-title">Revisión de conversaciones</div><div class="cadencia-desc">Muestreo aleatorio de 5 conversaciones por agente. Anotar anomalías o comportamientos inesperados.</div></div></div>
+          <div class="card-hd"><span class="card-title">🌅 Revisión diaria</span></div>
+          <div class="cad-block"><div class="cad-time">Mañana</div><div><div class="cad-title">Check de estado</div><div class="cad-desc">Revisar canal de Slack, notificaciones de errores y estado de cada agente.</div></div></div>
+          <div class="cad-block"><div class="cad-time">Tarde</div><div><div class="cad-title">Muestreo de conversaciones</div><div class="cad-desc">5 conversaciones aleatorias por agente. Anotar anomalías en Issues.</div></div></div>
         </div>
         <div class="card">
-          <div class="card-header"><span class="card-title">📅 Sesión semanal</span></div>
-          <div class="cadencia-block"><div class="cadencia-time">Lunes</div><div class="cadencia-content"><div class="cadencia-title">Revisión de métricas</div><div class="cadencia-desc">Comparar KPIs vs semana anterior. Identificar tendencias. Priorizar mejoras del backlog.</div></div></div>
-          <div class="cadencia-block"><div class="cadencia-time">Viernes</div><div class="cadencia-content"><div class="cadencia-title">Implementación</div><div class="cadencia-desc">Ejecutar mejoras priorizadas. Correr casos de prueba en sandbox. Documentar cambios en prompts/tools.</div></div></div>
+          <div class="card-hd"><span class="card-title">📅 Sesión semanal</span></div>
+          <div class="cad-block"><div class="cad-time">Lunes</div><div><div class="cad-title">Revisión de métricas</div><div class="cad-desc">Comparar KPIs vs semana anterior. Priorizar mejoras del backlog.</div></div></div>
+          <div class="cad-block"><div class="cad-time">Viernes</div><div><div class="cad-title">Implementación</div><div class="cad-desc">Ejecutar mejoras priorizadas. Correr casos en Sandbox. Documentar cambios.</div></div></div>
         </div>
         <div class="card">
-          <div class="card-header"><span class="card-title">📆 Retrospectiva mensual</span></div>
-          <div class="cadencia-block"><div class="cadencia-time">Día 1</div><div class="cadencia-content"><div class="cadencia-title">Análisis de desempeño</div><div class="cadencia-desc">Revisar todas las métricas del mes. Calcular ROI por agente. Identificar casos de éxito y fallo.</div></div></div>
-          <div class="cadencia-block"><div class="cadencia-time">Día 3</div><div class="cadencia-content"><div class="cadencia-title">Planificación</div><div class="cadencia-desc">Definir OKRs del próximo mes. Asignar responsables. Actualizar runbooks si es necesario.</div></div></div>
+          <div class="card-hd"><span class="card-title">📆 Retrospectiva mensual</span></div>
+          <div class="cad-block"><div class="cad-time">Día 1</div><div><div class="cad-title">Análisis de desempeño</div><div class="cad-desc">Revisar métricas del mes. Calcular ROI. Identificar casos de éxito y fallo.</div></div></div>
+          <div class="cad-block"><div class="cad-time">Día 3</div><div><div class="cad-title">Planificación</div><div class="cad-desc">Definir OKRs del próximo mes. Asignar responsables. Actualizar runbooks.</div></div></div>
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">Checklist de esta semana</span><button class="btn btn-secondary btn-sm" onclick="resetWeeklyChecklist()">↺ Reiniciar</button></div>
-        <div id="weekly-checklist"></div>
+        <div class="card-hd"><span class="card-title">Checklist semanal</span><button class="btn btn-ghost btn-sm" onclick="resetChecklist()">↺ Reiniciar</button></div>
+        <div id="weekly-cl"></div>
+      </div>
+    </div>
+
+    <!-- ══ AGENTE HH ══ -->
+    <div class="page" id="page-agente-hh">
+      <div class="iframe-wrap">
+        <iframe src="https://hulilabs.github.io/operations/AgenteHH/" title="Agente HH Dashboard" allowfullscreen></iframe>
+      </div>
+    </div>
+
+    <!-- ══ SDR DASHBOARD ══ -->
+    <div class="page" id="page-sdr">
+      <div id="sdr-loading" style="text-align:center;padding:40px;color:var(--txt3)">Cargando datos SDR...</div>
+      <div id="sdr-content" style="display:none">
+        <div class="tabs">
+          <button class="tab active" onclick="sdrTab('voz',this)">📞 Voz</button>
+          <button class="tab" onclick="sdrTab('texto',this)">💬 Texto</button>
+          <button class="tab" onclick="sdrTab('mx',this)">🇲🇽 México</button>
+          <button class="tab" onclick="sdrTab('cr',this)">🇨🇷 Costa Rica</button>
+        </div>
+
+        <div class="tab-pane active" id="sp-voz">
+          <div class="g4" id="sdr-voz-kpis"></div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Actividad — Canal Voz</span></div>
+            <div class="tbl-wrap"><table id="sdr-voz-tbl"><thead><tr><th>Agente</th><th>País</th><th>Fecha</th><th>Llamada exitosa</th><th>Demo agendada</th><th>Resumen</th></tr></thead><tbody></tbody></table></div>
+          </div>
+        </div>
+
+        <div class="tab-pane" id="sp-texto">
+          <div class="g4" id="sdr-txt-kpis"></div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Actividad — Canal Texto</span></div>
+            <div class="tbl-wrap"><table id="sdr-txt-tbl"><thead><tr><th>Agente</th><th>País</th><th>Fecha</th><th>Canal</th><th>Resumen</th></tr></thead><tbody></tbody></table></div>
+          </div>
+        </div>
+
+        <div class="tab-pane" id="sp-mx">
+          <div class="g4" id="sdr-mx-kpis"></div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Actividad — México</span></div>
+            <div class="tbl-wrap"><table id="sdr-mx-tbl"><thead><tr><th>Agente</th><th>Canal</th><th>Fecha</th><th>Llamada exitosa</th><th>Demo</th><th>Resumen</th></tr></thead><tbody></tbody></table></div>
+          </div>
+        </div>
+
+        <div class="tab-pane" id="sp-cr">
+          <div class="g4" id="sdr-cr-kpis"></div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Actividad — Costa Rica</span></div>
+            <div class="tbl-wrap"><table id="sdr-cr-tbl"><thead><tr><th>Agente</th><th>Canal</th><th>Fecha</th><th>Llamada exitosa</th><th>Demo</th><th>Resumen</th></tr></thead><tbody></tbody></table></div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- ══ SANDBOX ══ -->
     <div class="page" id="page-sandbox">
-      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
-        <select class="form-select" style="width:200px" id="sandbox-agent-select" onchange="onSandboxAgentChange()">
+      <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
+        <select class="fs" style="width:200px" id="sb-agent-sel" onchange="onSBAgent()">
           <option value="">Seleccionar agente...</option>
           <option value="hh">Agente HH — Citas</option>
           <option value="sdr-voz">SDR Voz</option>
           <option value="eva-mx">Eva Whatson MX</option>
           <option value="eva-cr">Eva Whatson CR</option>
         </select>
-        <select class="form-select" style="width:160px" id="sandbox-mode-select">
+        <select class="fs" style="width:150px" id="sb-mode-sel" onchange="onSBMode()">
           <option value="libre">Modo libre</option>
-          <option value="prearmado">Caso pre-armado</option>
+          <option value="caso">Caso pre-armado</option>
         </select>
-        <button class="btn btn-secondary btn-sm" onclick="openCaseManager()">📁 Gestionar casos</button>
-        <button class="btn btn-danger btn-sm" onclick="clearChat()">✕ Limpiar chat</button>
+        <button class="btn btn-ghost btn-sm" onclick="openCaseMgr()">📁 Gestionar casos</button>
+        <button class="btn btn-danger btn-sm" onclick="clearChat()">✕ Limpiar</button>
       </div>
-      <div class="sandbox-layout">
+      <div class="sb-layout">
         <div class="chat-panel">
-          <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
-            <span id="sandbox-agent-name" style="font-size:13px;font-weight:700;">Selecciona un agente</span>
-            <span id="sandbox-status-badge" class="badge badge-gray">Inactivo</span>
-            <span id="sandbox-session-id" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--txt3);margin-left:auto;"></span>
+          <div class="chat-topbar">
+            <span id="sb-agent-lbl" style="font-family:var(--display);font-size:13px;font-weight:700">Selecciona un agente</span>
+            <span id="sb-status" class="badge b-gray">Inactivo</span>
+            <span id="sb-sess" style="font-family:var(--mono);font-size:10px;color:var(--txt3);margin-left:auto"></span>
           </div>
-          <div class="chat-messages" id="chat-messages">
-            <div class="chat-msg system">Selecciona un agente y modo para comenzar</div>
+          <div class="chat-msgs" id="chat-msgs">
+            <div class="cm sys">Selecciona un agente para comenzar</div>
           </div>
-          <div id="chat-presets" style="padding:0 16px 10px;display:none;flex-wrap:wrap;gap:6px;"></div>
+          <div class="chat-presets" id="chat-presets" style="display:none"></div>
           <div class="chat-input-area">
-            <textarea class="chat-input" id="chat-input" placeholder="Escribe un mensaje..." rows="2" onkeydown="handleChatKey(event)"></textarea>
-            <button class="btn btn-primary btn-icon" onclick="sendMessage()" title="Enviar">↑</button>
+            <textarea class="chat-input" id="chat-in" placeholder="Escribe un mensaje..." rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+            <button class="btn btn-primary btn-icon" onclick="sendMsg()">↑</button>
           </div>
         </div>
-        <div class="sandbox-controls">
+
+        <div class="sandbox-ctrl" id="sb-ctrl">
           <!-- HH Config -->
-          <div class="card" id="sandbox-hh-config" style="display:none;">
-            <div class="card-header"><span class="card-title">Config — Agente HH</span></div>
-            <div class="form-group">
-              <label class="form-label">Campaña</label>
-              <select class="form-select" id="hh-campaign">
+          <div class="card" id="cfg-hh" style="display:none">
+            <div class="card-hd"><span class="card-title">Agente HH — Config</span></div>
+            <div class="fg">
+              <label class="fl">Campaña</label>
+              <select class="fs" id="hh-cam">
                 <option value="HuliHealth_CostaRica">Costa Rica</option>
                 <option value="HuliHealth_Panama">Panamá</option>
               </select>
             </div>
-            <div class="form-group">
-              <label class="form-label">Bearer Token</label>
-              <input class="form-input" type="password" id="hh-token" placeholder="Token de autenticación">
+            <div class="fg">
+              <label class="fl">Bearer Token</label>
+              <input class="fi" type="password" id="hh-tok" placeholder="Token...">
+              <div style="margin-top:5px;display:flex;gap:6px">
+                <button class="btn btn-ghost btn-sm" onclick="saveToken()">💾 Guardar token</button>
+                <button class="btn btn-ghost btn-sm" onclick="newSess()">↺ Nueva sesión</button>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">stored_values (JSON)</label>
-              <textarea class="form-textarea prompt-editor" id="hh-stored" style="min-height:60px;">{}</textarea>
+            <div class="fg">
+              <label class="fl">stored_values (JSON)</label>
+              <textarea class="fta" id="hh-sv" style="min-height:50px;font-family:var(--mono);font-size:11px">{}</textarea>
             </div>
-            <button class="btn btn-secondary btn-sm" onclick="newSession()">↺ Nueva sesión</button>
           </div>
 
           <!-- SDR Voz Config -->
-          <div class="card" id="sandbox-voz-config" style="display:none;">
-            <div class="card-header"><span class="card-title">Config — SDR Voz</span></div>
-            <div class="form-group">
-              <label class="form-label">País</label>
-              <select class="form-select" id="voz-pais">
-                <option value="mexico">México (+52)</option>
-                <option value="costa_rica">Costa Rica (+506)</option>
-              </select>
+          <div class="card" id="cfg-voz" style="display:none">
+            <div class="card-hd"><span class="card-title">SDR Voz — Config</span></div>
+            <div class="fg2">
+              <div class="fg">
+                <label class="fl">País</label>
+                <select class="fs" id="voz-pais">
+                  <option value="mexico">🇲🇽 México (+52)</option>
+                  <option value="costa_rica">🇨🇷 Costa Rica (+506)</option>
+                </select>
+              </div>
+              <div class="fg">
+                <label class="fl">Contact Name</label>
+                <input class="fi" id="voz-cn" value="Manuel">
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Número de teléfono</label>
-              <input class="form-input" id="voz-numero" value="+525587342208" placeholder="+52...">
+            <div class="fg">
+              <label class="fl">Número de teléfono</label>
+              <input class="fi" id="voz-num" value="+525587342208">
             </div>
-            <div class="form-group">
-              <label class="form-label">Contact Name</label>
-              <input class="form-input" id="voz-contact" value="Manuel">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Especialidad</label>
-              <input class="form-input" id="voz-especialidad" placeholder="Ej: Cardiología">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Propietario</label>
-              <select class="form-select" id="voz-propietario"></select>
+            <div class="fg2">
+              <div class="fg">
+                <label class="fl">Especialidad</label>
+                <input class="fi" id="voz-esp" placeholder="Ej: Cardiología">
+              </div>
+              <div class="fg">
+                <label class="fl">Propietario</label>
+                <select class="fs" id="voz-prop"></select>
+              </div>
             </div>
             <button class="btn btn-primary" style="width:100%" onclick="dispararLlamada()">📞 Disparar llamada</button>
           </div>
 
-          <!-- Eva Texto Config -->
-          <div class="card" id="sandbox-eva-config" style="display:none;">
-            <div class="card-header"><span class="card-title" id="eva-config-title">Config — Eva Whatson</span></div>
-            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;" id="eva-widget-container">
-              <div style="padding:20px;text-align:center;color:var(--txt3);font-size:12px;">Widget cargando...</div>
+          <!-- Eva Config -->
+          <div class="card" id="cfg-eva" style="display:none">
+            <div class="card-hd"><span class="card-title" id="eva-cfg-title">Eva Whatson</span></div>
+            <div style="padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:12px">
+              <div style="font-size:11px;color:var(--txt3);margin-bottom:8px">Widget ID:</div>
+              <code id="eva-wid" style="font-family:var(--mono);font-size:11px;color:var(--cyan);word-break:break-all"></code>
             </div>
-            <div style="margin-top:10px;font-size:10px;color:var(--txt3);">El widget de Dapta se carga en el panel de chat</div>
+            <a id="eva-dapta-link" href="#" target="_blank" class="btn btn-primary" style="width:100%;justify-content:center;text-decoration:none">🔗 Abrir agente en Dapta</a>
+            <div style="margin-top:8px;font-size:10px;color:var(--txt3);text-align:center">Las pruebas de texto se realizan directamente en Dapta</div>
           </div>
 
           <!-- Cases panel -->
-          <div class="card" id="sandbox-cases-panel" style="display:none;">
-            <div class="card-header"><span class="card-title">Casos pre-armados</span></div>
-            <div id="cases-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div class="card" id="sb-cases" style="display:none">
+            <div class="card-hd"><span class="card-title">Casos pre-armados</span></div>
+            <div id="cases-panel"></div>
           </div>
         </div>
       </div>
@@ -631,55 +542,53 @@ tr:hover td { background: var(--surface2); }
 
     <!-- ══ RUNBOOKS ══ -->
     <div class="page" id="page-runbooks">
-      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;">
-        <select class="form-select" style="width:200px" id="runbook-agent-select" onchange="loadRunbook(this.value)">
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
+        <select class="fs" style="width:220px" id="rb-agent-sel" onchange="loadRB(this.value)">
           <option value="">Seleccionar agente...</option>
           <option value="hh">Agente HH — Citas</option>
           <option value="sdr-voz">SDR Voz</option>
           <option value="eva-mx">Eva Whatson MX</option>
           <option value="eva-cr">Eva Whatson CR</option>
         </select>
-        <button class="btn btn-secondary btn-sm" onclick="addRunbookStep()">+ Paso</button>
-        <button class="btn btn-primary btn-sm" onclick="saveRunbook()">Guardar</button>
+        <button class="btn btn-ghost btn-sm" onclick="addRBStep()">+ Paso</button>
+        <button class="btn btn-primary btn-sm" onclick="saveRB()">Guardar</button>
       </div>
-      <div class="card" id="runbook-content">
-        <div class="empty-state"><div class="es-icon">📋</div><p>Selecciona un agente para ver su runbook</p></div>
+      <div class="card" id="rb-content">
+        <div class="empty"><div class="empty-icon">📋</div><p>Selecciona un agente</p></div>
       </div>
     </div>
 
     <!-- ══ PROMPTS ══ -->
     <div class="page" id="page-prompts">
-      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;">
-        <select class="form-select" style="width:200px" id="prompt-agent-select" onchange="loadPromptVersions(this.value)">
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
+        <select class="fs" style="width:220px" id="pr-agent-sel" onchange="loadPrompts(this.value)">
           <option value="">Seleccionar agente...</option>
           <option value="hh">Agente HH — Citas</option>
           <option value="sdr-voz">SDR Voz</option>
           <option value="eva-mx">Eva Whatson MX</option>
           <option value="eva-cr">Eva Whatson CR</option>
         </select>
-        <button class="btn btn-primary btn-sm" onclick="savePromptVersion()">💾 Guardar versión</button>
+        <button class="btn btn-primary btn-sm" onclick="savePromptV()">💾 Guardar versión</button>
       </div>
-      <div class="grid-2">
+      <div class="g2">
         <div class="card">
-          <div class="card-header">
+          <div class="card-hd">
             <span class="card-title">Editor de prompt</span>
-            <span class="version-tag" id="current-prompt-version">v0</span>
+            <span class="vtag" id="pv-tag">v0</span>
           </div>
-          <textarea class="form-textarea prompt-editor" id="prompt-editor" placeholder="Escribe el prompt del agente aquí..." style="min-height:380px;"></textarea>
+          <textarea class="fta" id="pr-editor" placeholder="Escribe el prompt del agente aquí..." style="min-height:400px;font-family:var(--mono);font-size:12px;line-height:1.7"></textarea>
         </div>
         <div class="card">
-          <div class="card-header"><span class="card-title">Historial de versiones</span></div>
-          <div class="version-history" id="prompt-versions-list">
-            <div class="empty-state"><div class="es-icon">✦</div><p>Sin versiones guardadas</p></div>
-          </div>
+          <div class="card-hd"><span class="card-title">Historial de versiones</span></div>
+          <div id="pv-list"><div class="empty"><div class="empty-icon">✦</div><p>Sin versiones</p></div></div>
         </div>
       </div>
     </div>
 
     <!-- ══ TOOLS ══ -->
     <div class="page" id="page-tools">
-      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;">
-        <select class="form-select" style="width:200px" id="tools-agent-select" onchange="loadTools(this.value)">
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
+        <select class="fs" style="width:220px" id="tl-agent-sel" onchange="loadTools(this.value)">
           <option value="">Seleccionar agente...</option>
           <option value="hh">Agente HH — Citas</option>
           <option value="sdr-voz">SDR Voz / Texto</option>
@@ -689,1377 +598,888 @@ tr:hover td { background: var(--surface2); }
         <button class="btn btn-primary btn-sm" onclick="openToolModal()">+ Nueva tool</button>
       </div>
       <div id="tools-list">
-        <div class="empty-state card"><div class="es-icon">⚙</div><p>Selecciona un agente para ver sus tools</p></div>
+        <div class="empty card"><div class="empty-icon">⚙</div><p>Selecciona un agente</p></div>
       </div>
     </div>
 
     <!-- ══ CONFIG ══ -->
     <div class="page" id="page-config">
       <div class="tabs">
-        <button class="tab active" onclick="switchConfigTab('agents')">Agentes</button>
-        <button class="tab" onclick="switchConfigTab('propietarios')">Propietarios</button>
-        <button class="tab" onclick="switchConfigTab('sdr-list')">SDR List</button>
-        <button class="tab" onclick="switchConfigTab('export')">Exportar / Importar</button>
+        <button class="tab active" onclick="cfgTab('agents',this)">Agentes</button>
+        <button class="tab" onclick="cfgTab('props',this)">Propietarios</button>
+        <button class="tab" onclick="cfgTab('sdrl',this)">SDR List</button>
+        <button class="tab" onclick="cfgTab('export',this)">Exportar / Importar</button>
       </div>
-
-      <div class="tab-panel active" id="config-agents">
-        <div style="display:flex;gap:10px;margin-bottom:16px;">
-          <button class="btn btn-primary" onclick="openAgentModal()">+ Agregar agente</button>
-        </div>
-        <div id="config-agents-list"></div>
+      <div class="tab-pane active" id="cfg-agents">
+        <button class="btn btn-primary btn-sm" style="margin-bottom:14px" onclick="openAgentModal()">+ Agregar agente</button>
+        <div id="cfg-agents-list"></div>
       </div>
-
-      <div class="tab-panel" id="config-propietarios">
+      <div class="tab-pane" id="cfg-props">
         <div class="card" style="max-width:500px">
-          <div class="card-header"><span class="card-title">Lista de propietarios</span><button class="btn btn-primary btn-sm" onclick="addPropietario()">+ Agregar</button></div>
-          <div class="tag-list" id="propietarios-list"></div>
-          <div style="margin-top:12px;display:flex;gap:8px;">
-            <input class="form-input" id="new-propietario" placeholder="Nuevo propietario..." onkeydown="if(event.key==='Enter')addPropietario()">
-            <button class="btn btn-primary btn-sm" onclick="addPropietario()">Agregar</button>
+          <div class="card-hd"><span class="card-title">Propietarios</span></div>
+          <div class="tag-list" id="props-tags"></div>
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <input class="fi" id="new-prop" placeholder="Nuevo propietario..." onkeydown="if(event.key==='Enter')addProp()">
+            <button class="btn btn-primary btn-sm" onclick="addProp()">Agregar</button>
           </div>
         </div>
       </div>
-
-      <div class="tab-panel" id="config-sdr-list">
+      <div class="tab-pane" id="cfg-sdrl">
         <div class="card" style="max-width:500px">
-          <div class="card-header"><span class="card-title">Lista de SDR</span><button class="btn btn-primary btn-sm" onclick="addSDR()">+ Agregar</button></div>
-          <div class="tag-list" id="sdr-list-tags"></div>
-          <div style="margin-top:12px;display:flex;gap:8px;">
-            <input class="form-input" id="new-sdr" placeholder="Nuevo SDR..." onkeydown="if(event.key==='Enter')addSDR()">
-            <button class="btn btn-primary btn-sm" onclick="addSDR()">Agregar</button>
+          <div class="card-hd"><span class="card-title">SDR List</span></div>
+          <div class="tag-list" id="sdrl-tags"></div>
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <input class="fi" id="new-sdrl" placeholder="Nuevo SDR..." onkeydown="if(event.key==='Enter')addSDRL()">
+            <button class="btn btn-primary btn-sm" onclick="addSDRL()">Agregar</button>
           </div>
         </div>
       </div>
-
-      <div class="tab-panel" id="config-export">
-        <div class="card" style="max-width:500px">
-          <div class="card-header"><span class="card-title">Exportar / Importar datos</span></div>
-          <div style="display:flex;flex-direction:column;gap:10px;">
-            <button class="btn btn-secondary" onclick="exportData()">⬇ Exportar todo a JSON</button>
-            <div>
-              <label class="form-label">Importar desde JSON</label>
-              <input type="file" accept=".json" onchange="importData(event)" style="color:var(--txt2);font-size:12px;">
-            </div>
+      <div class="tab-pane" id="cfg-export">
+        <div class="card" style="max-width:460px">
+          <div class="card-hd"><span class="card-title">Datos</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <button class="btn btn-ghost" onclick="exportData()">⬇ Exportar JSON</button>
+            <div><label class="fl">Importar JSON</label><input type="file" accept=".json" onchange="importData(event)" style="color:var(--txt2);font-size:12px"></div>
           </div>
         </div>
       </div>
     </div>
 
-  </div><!-- /content -->
-</div><!-- /main -->
+    <!-- ══ LINKS ══ -->
+    <div class="page" id="page-links">
+      <div class="g2">
+        <!-- HH Links -->
+        <div>
+          <div class="card" style="margin-bottom:14px">
+            <div class="card-hd"><span class="card-title">🏥 Agente HH — Admin</span></div>
+            <a href="https://aiagent.net2phone.com/admin/company/hShDTWCb0KrMwIIgzS6P" target="_blank" class="link-row" style="text-decoration:none">
+              <div><div class="link-label">Panel de administración</div><div class="link-sub">net2phone Admin</div></div>
+              <span class="link-btn">Abrir ↗</span>
+            </a>
+            <a href="https://hulilabs.github.io/operations/AgenteHH/" target="_blank" class="link-row" style="text-decoration:none">
+              <div><div class="link-label">Dashboard del Agente</div><div class="link-sub">GitHub Pages</div></div>
+              <span class="link-btn">Abrir ↗</span>
+            </a>
+          </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">🔧 Tools — Agente HH</span></div>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">AgendarHH</div><div class="link-sub">Flujo: V2 AgendarHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarPCN/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">AgendarPCN</div><div class="link-sub">Flujo: V2 AgendarHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CLINICINF/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">CLINICINF</div><div class="link-sub">Flujo: V2 DireccionHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CancelarHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">CancelarHH</div><div class="link-sub">Flujo: V2 CancelarHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DataMed/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">DataMed</div><div class="link-sub">Flujo: Base de datos agente Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">DisponibilidadHH</div><div class="link-sub">Flujo: V2 DisponibilidadHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadnextHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">DisponibilidadnextHH</div><div class="link-sub">Flujo: V2 DisponibilidadHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/InfoMD/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">InfoMD</div><div class="link-sub">Flujo: V2 Búsqueda por especialidad HH</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/ValidarDRHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">ValidarDRHH</div><div class="link-sub">Flujo: V2 VerificarINFODRHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VcitaHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">VcitaHH</div><div class="link-sub">Flujo: V2 Verificar_CitaPCHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VerificarHHN/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">VerificarHHN</div><div class="link-sub">Flujo: V2 Verificar_CitaPCHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">getDate</div><div class="link-sub">Webhook — getDate</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate10/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">getDate10</div><div class="link-sub">Webhook — getDate (+10 días)</div></div><span class="link-btn">↗</span></a>
+          </div>
+        </div>
 
-<!-- ── MODALS ── -->
+        <!-- SDR Links -->
+        <div>
+          <div class="card" style="margin-bottom:14px">
+            <div class="card-hd"><span class="card-title">📞 SDR Voz — Config</span></div>
+            <a href="https://app.dapta.ai/agents-studio/voice-agents/02b3025c-99a5-4306-878a-b8a60f214150?segment=instructions" target="_blank" class="link-row" style="text-decoration:none">
+              <div><div class="link-label">SDR Voz — México</div><div class="link-sub">Dapta Studio — instrucciones</div></div>
+              <span class="link-btn">Abrir ↗</span>
+            </a>
+            <a href="https://app.dapta.ai/agents-studio/voice-agents/567fbf74-871d-4cdb-aa99-f0ff39138d13?segment=instructions" target="_blank" class="link-row" style="text-decoration:none">
+              <div><div class="link-label">SDR Voz — Costa Rica</div><div class="link-sub">Dapta Studio — instrucciones</div></div>
+              <span class="link-btn">Abrir ↗</span>
+            </a>
+          </div>
 
-<!-- Issue Modal -->
-<div class="modal-overlay" id="issue-modal" style="display:none" onclick="if(event.target===this)closeModal('issue-modal')">
+          <div class="card" style="margin-bottom:14px">
+            <div class="card-hd"><span class="card-title">💬 Eva Whatson — Config</span></div>
+            <a href="https://app.dapta.ai/agents-studio/text-agents/58b4d2bc-3271-48f6-b92d-1518e490abd1/settings" target="_blank" class="link-row" style="text-decoration:none">
+              <div><div class="link-label">Eva Whatson MX</div><div class="link-sub">Dapta Studio — settings</div></div>
+              <span class="link-btn">Abrir ↗</span>
+            </a>
+            <a href="https://app.dapta.ai/agents-studio/text-agents/a180cb8d-738a-4826-a241-323a64950d57/settings" target="_blank" class="link-row" style="text-decoration:none">
+              <div><div class="link-label">Eva Whatson CR</div><div class="link-sub">Dapta Studio — settings</div></div>
+              <span class="link-btn">Abrir ↗</span>
+            </a>
+          </div>
+
+          <div class="card">
+            <div class="card-hd"><span class="card-title">🔧 Tools SDR — Flujos Dapta</span></div>
+            <a href="https://app.dapta.ai/apis/api/H4VNb?api_id=H4VNb&api_name=Agendar%20v2&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">Agendar</div><div class="link-sub">Flujo: Agendar v2</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/dPui3?api_id=dPui3&api_name=espacios-1&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">Espacios</div><div class="link-sub">Flujo: espacios-1</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/ElGiW?api_id=ElGiW&api_name=V2%20AgendarHH%20-Supabase&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 AgendarHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/aKJJH?api_id=aKJJH&api_name=V2%20DireccionHH%20-%20Supabase%20&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 DireccionHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/TmyWf?api_id=TmyWf&api_name=V2%20CancelarHH%20-%20Supabase&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 CancelarHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/Awo7a?api_id=Awo7a&api_name=V2%20Base%20de%20datos%20agente%20Supabase%20-%20Consultas&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 Base datos Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/oMy41?api_id=oMy41&api_name=V2%20DisponibilidadHH%20-%20Supabase%20&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 DisponibilidadHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/VLGbA?api_id=VLGbA&api_name=V2%20Busqueda%20por%20especialidad%20-%20HH&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 Búsqueda por especialidad HH</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/SLXvl?api_id=SLXvl&api_name=V2%20VerificarINFODRHH%20-%20Supabase&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 VerificarINFODRHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/AKJjB?api_id=AKJjB&api_name=Copy%20of%20V2%20Verificar_CitaPCHH%20-%20Supabase&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 Verificar CitaPCHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODALS ══ -->
+<div class="modal-ov" id="m-issue" style="display:none" onclick="if(event.target===this)closeM('m-issue')">
   <div class="modal-box">
-    <div class="modal-header">
-      <h3 id="issue-modal-title">Nuevo Issue</h3>
-      <button class="modal-close" onclick="closeModal('issue-modal')">✕</button>
-    </div>
+    <div class="modal-hd"><h3 id="m-issue-title">Nuevo Issue</h3><button class="modal-close" onclick="closeM('m-issue')">✕</button></div>
     <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Título *</label>
-        <input class="form-input" id="issue-titulo" placeholder="Describe el issue o mejora...">
+      <div class="fg"><label class="fl">Título *</label><input class="fi" id="i-titulo" placeholder="Describe el issue o mejora..."></div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Agente</label><select class="fs" id="i-agente"><option value="hh">Agente HH</option><option value="sdr-voz">SDR Voz</option><option value="eva-mx">Eva Whatson MX</option><option value="eva-cr">Eva Whatson CR</option></select></div>
+        <div class="fg"><label class="fl">Tipo</label><select class="fs" id="i-tipo"><option value="bug">🐛 Bug</option><option value="mejora">✨ Mejora</option><option value="revision">🔍 Revisión</option></select></div>
+        <div class="fg"><label class="fl">Prioridad</label><select class="fs" id="i-prio"><option value="crítico">🔴 Crítico</option><option value="alto">🟠 Alto</option><option value="normal">🔵 Normal</option><option value="bajo">⚪ Bajo</option></select></div>
+        <div class="fg"><label class="fl">Responsable</label><input class="fi" id="i-resp" placeholder="Nombre..."></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="form-group">
-          <label class="form-label">Agente</label>
-          <select class="form-select" id="issue-agente">
-            <option value="hh">Agente HH</option>
-            <option value="sdr-voz">SDR Voz</option>
-            <option value="eva-mx">Eva Whatson MX</option>
-            <option value="eva-cr">Eva Whatson CR</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Tipo</label>
-          <select class="form-select" id="issue-tipo">
-            <option value="bug">🐛 Bug</option>
-            <option value="mejora">✨ Mejora</option>
-            <option value="revision">🔍 Revisión</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Prioridad</label>
-          <select class="form-select" id="issue-prioridad">
-            <option value="crítico">🔴 Crítico</option>
-            <option value="alto">🟠 Alto</option>
-            <option value="normal">🔵 Normal</option>
-            <option value="bajo">⚪ Bajo</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Responsable</label>
-          <input class="form-input" id="issue-responsable" placeholder="Nombre...">
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Descripción</label>
-        <textarea class="form-textarea" id="issue-desc" placeholder="Detalla el problema o mejora..."></textarea>
-      </div>
-      <input type="hidden" id="issue-edit-id">
+      <div class="fg"><label class="fl">Descripción</label><textarea class="fta" id="i-desc" placeholder="Detalla el problema..."></textarea></div>
+      <input type="hidden" id="i-edit-id">
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('issue-modal')">Cancelar</button>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeM('m-issue')">Cancelar</button>
       <button class="btn btn-primary" onclick="saveIssue()">Guardar</button>
     </div>
   </div>
 </div>
 
-<!-- Tool Modal -->
-<div class="modal-overlay" id="tool-modal" style="display:none" onclick="if(event.target===this)closeModal('tool-modal')">
-  <div class="modal-box" style="width:640px">
-    <div class="modal-header">
-      <h3 id="tool-modal-title">Nueva Tool</h3>
-      <button class="modal-close" onclick="closeModal('tool-modal')">✕</button>
-    </div>
+<div class="modal-ov" id="m-tool" style="display:none" onclick="if(event.target===this)closeM('m-tool')">
+  <div class="modal-box wide">
+    <div class="modal-hd"><h3 id="m-tool-title">Nueva Tool</h3><button class="modal-close" onclick="closeM('m-tool')">✕</button></div>
     <div class="modal-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="form-group">
-          <label class="form-label">Nombre *</label>
-          <input class="form-input" id="tool-nombre" placeholder="ej: AgendarHH" style="font-family:'DM Mono',monospace;">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Método</label>
-          <select class="form-select" id="tool-method">
-            <option value="POST">POST</option>
-            <option value="GET">GET</option>
-            <option value="PUT">PUT</option>
-            <option value="DELETE">DELETE</option>
-          </select>
-        </div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="t-name" style="font-family:var(--mono)"></div>
+        <div class="fg"><label class="fl">Método</label><select class="fs" id="t-method"><option value="POST">POST</option><option value="GET">GET</option><option value="PUT">PUT</option></select></div>
       </div>
-      <div class="form-group">
-        <label class="form-label">URL / Endpoint *</label>
-        <input class="form-input" id="tool-url" placeholder="https://..." style="font-family:'DM Mono',monospace;font-size:11px;">
+      <div class="fg"><label class="fl">URL / Endpoint</label><input class="fi" id="t-url" style="font-family:var(--mono);font-size:11px"></div>
+      <div class="fg"><label class="fl">Link de configuración (admin)</label><input class="fi" id="t-cfglink" style="font-family:var(--mono);font-size:11px"></div>
+      <div class="fg"><label class="fl">Instrucciones / descripción</label><textarea class="fta" id="t-inst" placeholder="Cuándo usar esta tool, parámetros, notas..."></textarea></div>
+      <div class="fg">
+        <label class="fl">Casos de prueba (uno por línea)</label>
+        <textarea class="fta" id="t-cases" placeholder="Ej: Buscar médico Manuel Briones&#10;Consultar disponibilidad martes&#10;Agendar cita para paciente nuevo" style="min-height:80px"></textarea>
+        <div style="font-size:10px;color:var(--txt3);margin-top:4px">Estos casos aparecerán como botones en el Sandbox al probar esta tool</div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Link de configuración (admin)</label>
-        <input class="form-input" id="tool-config-link" placeholder="https://..." style="font-family:'DM Mono',monospace;font-size:11px;">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Instrucciones / descripción</label>
-        <textarea class="form-textarea prompt-editor" id="tool-instrucciones" placeholder="Describe qué hace esta tool, cuándo usarla, parámetros importantes..."></textarea>
-      </div>
-      <input type="hidden" id="tool-edit-id">
-      <input type="hidden" id="tool-edit-agent">
+      <input type="hidden" id="t-edit-id">
+      <input type="hidden" id="t-edit-agent">
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('tool-modal')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveTool()">Guardar tool</button>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeM('m-tool')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveTool()">Guardar</button>
     </div>
   </div>
 </div>
 
-<!-- Agent Modal -->
-<div class="modal-overlay" id="agent-modal" style="display:none" onclick="if(event.target===this)closeModal('agent-modal')">
+<div class="modal-ov" id="m-agent" style="display:none" onclick="if(event.target===this)closeM('m-agent')">
   <div class="modal-box">
-    <div class="modal-header">
-      <h3>Agregar agente</h3>
-      <button class="modal-close" onclick="closeModal('agent-modal')">✕</button>
-    </div>
+    <div class="modal-hd"><h3>Agregar agente</h3><button class="modal-close" onclick="closeM('m-agent')">✕</button></div>
     <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Nombre del agente *</label>
-        <input class="form-input" id="agent-nombre" placeholder="ej: SDR Voz Colombia">
+      <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="a-name" placeholder="ej: SDR Voz Colombia"></div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Tipo de conector</label><select class="fs" id="a-conn" onchange="onAConn()"><option value="api_rest">API REST</option><option value="webhook">Webhook</option><option value="widget">Widget</option><option value="iframe">iFrame</option></select></div>
+        <div class="fg"><label class="fl">Canal</label><select class="fs" id="a-canal"><option value="chat">Chat/Texto</option><option value="voz">Voz</option><option value="whatsapp">WhatsApp</option></select></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="form-group">
-          <label class="form-label">Tipo de conector</label>
-          <select class="form-select" id="agent-connector" onchange="onConnectorChange()">
-            <option value="api_rest">API REST</option>
-            <option value="webhook">Webhook</option>
-            <option value="widget">Widget embed</option>
-            <option value="iframe">iFrame</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Canal</label>
-          <select class="form-select" id="agent-canal">
-            <option value="chat">Chat / Texto</option>
-            <option value="voz">Voz</option>
-            <option value="whatsapp">WhatsApp</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group" id="agent-endpoint-group">
-        <label class="form-label">Endpoint / URL *</label>
-        <input class="form-input" id="agent-endpoint" placeholder="https://..." style="font-family:'DM Mono',monospace;font-size:11px;">
-      </div>
-      <div class="form-group" id="agent-token-group">
-        <label class="form-label">Token / API Key</label>
-        <input class="form-input" id="agent-token" placeholder="Bearer token o API key" type="password">
-      </div>
-      <div class="form-group" id="agent-widgetid-group" style="display:none;">
-        <label class="form-label">Agent ID (widget)</label>
-        <input class="form-input" id="agent-widgetid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="font-family:'DM Mono',monospace;font-size:11px;">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Descripción</label>
-        <input class="form-input" id="agent-desc" placeholder="Breve descripción del agente...">
-      </div>
+      <div class="fg" id="a-ep-g"><label class="fl">Endpoint / URL</label><input class="fi" id="a-ep" style="font-family:var(--mono);font-size:11px"></div>
+      <div class="fg" id="a-tok-g"><label class="fl">Token / API Key</label><input class="fi" id="a-tok" type="password"></div>
+      <div class="fg" id="a-wid-g" style="display:none"><label class="fl">Agent ID (widget)</label><input class="fi" id="a-wid" style="font-family:var(--mono);font-size:11px"></div>
+      <div class="fg"><label class="fl">Descripción</label><input class="fi" id="a-desc"></div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('agent-modal')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveAgent()">Agregar agente</button>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeM('m-agent')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveAgent()">Agregar</button>
     </div>
   </div>
 </div>
 
-<!-- Case Manager Modal -->
-<div class="modal-overlay" id="case-modal" style="display:none" onclick="if(event.target===this)closeModal('case-modal')">
-  <div class="modal-box" style="width:640px">
-    <div class="modal-header">
-      <h3>Gestionar casos pre-armados</h3>
-      <button class="modal-close" onclick="closeModal('case-modal')">✕</button>
-    </div>
+<div class="modal-ov" id="m-cases" style="display:none" onclick="if(event.target===this)closeM('m-cases')">
+  <div class="modal-box wide">
+    <div class="modal-hd"><h3>Gestionar casos pre-armados</h3><button class="modal-close" onclick="closeM('m-cases')">✕</button></div>
     <div class="modal-body">
-      <button class="btn btn-primary btn-sm" style="margin-bottom:14px;" onclick="openNewCaseForm()">+ Nuevo caso</button>
-      <div id="case-form" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;">
-        <div class="form-group">
-          <label class="form-label">Nombre del caso *</label>
-          <input class="form-input" id="case-nombre" placeholder="ej: Médico escéptico — primer contacto">
+      <button class="btn btn-primary btn-sm" style="margin-bottom:14px" onclick="showCaseForm()">+ Nuevo caso</button>
+      <div id="case-form-wrap" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:14px">
+        <div class="fg"><label class="fl">Nombre del caso *</label><input class="fi" id="cf-name" placeholder="ej: Médico escéptico — primer contacto"></div>
+        <div class="fg2">
+          <div class="fg"><label class="fl">Agente</label><select class="fs" id="cf-agent"><option value="hh">Agente HH</option><option value="sdr-voz">SDR Voz</option><option value="eva-mx">Eva Whatson MX</option><option value="eva-cr">Eva Whatson CR</option></select></div>
+          <div class="fg"><label class="fl">Notas / objetivo</label><input class="fi" id="cf-notes" placeholder="Objetivo de la prueba..."></div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Agente</label>
-          <select class="form-select" id="case-agent">
-            <option value="hh">Agente HH — Citas</option>
-            <option value="sdr-voz">SDR Voz</option>
-            <option value="eva-mx">Eva Whatson MX</option>
-            <option value="eva-cr">Eva Whatson CR</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Mensajes de prueba (uno por línea)</label>
-          <textarea class="form-textarea" id="case-messages" placeholder="Hola, quiero agendar con Manuel Briones&#10;¿Tienen disponibilidad el martes?&#10;Perfecto, a las 10am" style="min-height:100px;"></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Notas / objetivo del caso</label>
-          <input class="form-input" id="case-notes" placeholder="Probar flujo de agendamiento básico...">
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-primary btn-sm" onclick="saveCasePreset()">Guardar caso</button>
-          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('case-form').style.display='none'">Cancelar</button>
+        <div class="fg"><label class="fl">Mensajes de prueba (uno por línea)</label><textarea class="fta" id="cf-msgs" placeholder="Hola, quiero agendar con Manuel Briones&#10;¿Tienen disponibilidad el martes?&#10;Perfecto, a las 10am" style="min-height:90px"></textarea></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="saveCase()">Guardar caso</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('case-form-wrap').style.display='none'">Cancelar</button>
         </div>
       </div>
-      <div id="cases-manager-list"></div>
+      <div id="cases-mgr-list"></div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('case-modal')">Cerrar</button>
-    </div>
+    <div class="modal-ft"><button class="btn btn-ghost" onclick="closeM('m-cases')">Cerrar</button></div>
   </div>
 </div>
 
 <script>
 // ══════════════════════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════════════════════
+const SDR_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR_X-VGh7zQIEX_1tbzbpRHwwFvb0f0fB1AuW_6h8EJcpNK0fb70F_1P9BlnLKbi7c0TeMQDMox1oa0/pub?output=csv';
+const HH_TOKEN_KEY = 'huli-hh-token';
+const HH_API = 'https://aiagent.net2phone.com/api/chat';
+const VOZ_HOOK = 'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-copy-of-realizar-primera-llamada-sdr-ai?x-api-key=lDGCS-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a';
+
+const DAPTA_LINKS = {
+  'eva-mx': { url:'https://app.dapta.ai/agents-studio/text-agents/58b4d2bc-3271-48f6-b92d-1518e490abd1/settings', wid:'58b4d2bc-3271-48f6-b92d-1518e490abd1' },
+  'eva-cr': { url:'https://app.dapta.ai/agents-studio/text-agents/a180cb8d-738a-4826-a241-323a64950d57/settings', wid:'a180cb8d-738a-4826-a241-323a64950d57' },
+};
+
+// ══════════════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════════════
-const SDR_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR_X-VGh7zQIEX_1tbzbpRHwwFvb0f0fB1AuW_6h8EJcpNK0fb70F_1P9BlnLKbi7c0TeMQDMox1oa0/pub?output=csv';
+let S = loadS();
+let SDR = [];
+let curSBAgent = null;
+let curSess = null;
+let curPromptAgent = null;
+let curToolsAgent = null;
+let issueF = { status:'', priority:'', agent:'' };
 
-let STATE = loadState();
-let SDR_DATA = [];
-let currentSandboxAgent = null;
-let currentSessionId = null;
-let sdrCharts = {};
-
-function defaultState() {
+function defState(){
   return {
-    issues: [],
-    agents: [
-      { id:'hh', name:'Agente HH — Citas', type:'api_rest', canal:'whatsapp', desc:'Agente de citas vía WhatsApp', status:'online', connector:'net2phone' },
-      { id:'sdr-voz', name:'SDR Voz', type:'webhook', canal:'voz', desc:'SDR por voz MX y CR', status:'online', connector:'dapta' },
-      { id:'eva-mx', name:'Eva Whatson MX', type:'widget', canal:'whatsapp', desc:'SDR texto México', status:'online', connector:'dapta', widgetId:'58b4d2bc-3271-48f6-b92d-1518e490abd1' },
-      { id:'eva-cr', name:'Eva Whatson CR', type:'widget', canal:'whatsapp', desc:'SDR texto Costa Rica', status:'online', connector:'dapta', widgetId:'a180cb8d-738a-4826-a241-323a64950d57' },
+    issues:[],
+    agents:[
+      {id:'hh',name:'Agente HH — Citas',type:'api_rest',canal:'whatsapp',desc:'Agente de citas vía WhatsApp',status:'online'},
+      {id:'sdr-voz',name:'SDR Voz',type:'webhook',canal:'voz',desc:'SDR por voz MX y CR',status:'online'},
+      {id:'eva-mx',name:'Eva Whatson MX',type:'widget',canal:'whatsapp',desc:'SDR texto México',status:'online',wid:'58b4d2bc-3271-48f6-b92d-1518e490abd1'},
+      {id:'eva-cr',name:'Eva Whatson CR',type:'widget',canal:'whatsapp',desc:'SDR texto Costa Rica',status:'online',wid:'a180cb8d-738a-4826-a241-323a64950d57'},
     ],
-    propietarios: ['abigail','alejandro','angel','azaf','carlos','dana','guadalupe','isa','jose','karen','kevin','lau','leyva','memo','paula','riego','valeria','cruces','tadeo'],
-    sdrList: ['kevin','michell','mariana','tadeo','abigail','cruces','angel','guadalupe'],
-    runbooks: {},
-    prompts: {},
-    tools: {},
-    cases: [],
-    weeklyChecklist: null,
+    propietarios:['abigail','alejandro','angel','azaf','carlos','dana','guadalupe','isa','jose','karen','kevin','lau','leyva','memo','paula','riego','valeria','cruces','tadeo'],
+    sdrList:['kevin','michell','mariana','tadeo','abigail','cruces','angel','guadalupe'],
+    runbooks:{}, prompts:{}, tools:{}, cases:[],
+    weeklyChecklist:null,
   };
 }
 
-function loadState() {
-  try {
-    const s = localStorage.getItem('huli-ops-state');
-    if (s) return { ...defaultState(), ...JSON.parse(s) };
-  } catch(e) {}
-  return defaultState();
+function loadS(){
+  try{ const d=localStorage.getItem('huli-ops');if(d)return{...defState(),...JSON.parse(d)}; }catch(e){}
+  return defState();
 }
-
-function saveState() {
-  localStorage.setItem('huli-ops-state', JSON.stringify(STATE));
-}
+function save(){ localStorage.setItem('huli-ops',JSON.stringify(S)); }
 
 // ══════════════════════════════════════════════════════════════
-//  NAVIGATION
+//  NAV
 // ══════════════════════════════════════════════════════════════
-const PAGE_TITLES = {
-  'dashboard': 'Dashboard',
-  'agente-hh': 'Agente HH — Citas',
-  'sdr-dashboard': 'SDR Dashboard',
-  'issues': 'Issues & Mejoras',
-  'cadencia': 'Cadencia operativa',
-  'sandbox': 'Sandbox de pruebas',
-  'runbooks': 'Runbooks',
-  'prompts': 'Gestión de prompts',
-  'tools': 'Tools por agente',
-  'config': 'Configuración',
-};
+const TITLES = {issues:'Issues & Mejoras',cadencia:'Cadencia operativa','agente-hh':'Agente HH — Citas',sdr:'SDR Dashboard',sandbox:'Sandbox de pruebas',runbooks:'Runbooks',prompts:'Gestión de prompts',tools:'Tools por agente',config:'Configuración',links:'Accesos directos'};
 
-function showPage(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const page = document.getElementById('page-' + id);
-  if (page) page.classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => {
-    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) n.classList.add('active');
-  });
-  document.getElementById('topbar-title').textContent = PAGE_TITLES[id] || id;
-  if (id === 'sdr-dashboard') renderSDRDashboard();
-  if (id === 'dashboard') renderDashboard();
-  if (id === 'issues') renderIssuesTable();
-  if (id === 'config') renderConfig();
-  if (id === 'tools') { document.getElementById('tools-agent-select').value = ''; document.getElementById('tools-list').innerHTML = '<div class="empty-state card"><div class="es-icon">⚙</div><p>Selecciona un agente para ver sus tools</p></div>'; }
+function nav(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  const pg=document.getElementById('page-'+id);
+  if(pg) pg.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(i=>{if((i.getAttribute('onclick')||'').includes("'"+id+"'"))i.classList.add('active')});
+  document.getElementById('topbar-title').textContent=TITLES[id]||id;
+  if(id==='sdr') renderSDR();
+  if(id==='issues') renderIssues();
+  if(id==='config'){ renderCfgAgents();renderProps();renderSDRL(); }
 }
 
 // ══════════════════════════════════════════════════════════════
-//  SDR DATA
+//  SDR
 // ══════════════════════════════════════════════════════════════
-async function fetchSDR() {
-  return new Promise((res, rej) => {
-    Papa.parse(SDR_CSV, {
-      download: true, header: true, skipEmptyLines: true,
-      complete: r => res(r.data),
-      error: e => rej(e)
-    });
+const cv=(v)=>(v||'').toString().trim();
+const isT=(v)=>{ const s=cv(v).toLowerCase();return s==='true'||s==='1'; };
+
+async function fetchSDR(){
+  return new Promise((res,rej)=>{
+    Papa.parse(SDR_URL,{download:true,header:true,skipEmptyLines:true,complete:r=>res(r.data),error:e=>rej(e)});
   });
 }
 
-function cleanVal(v) { return (v || '').toString().trim(); }
-function isTruthy(v) { const s = cleanVal(v).toLowerCase(); return s === 'true' || s === '1' || s === 'yes'; }
+function kpiHtml(items){
+  return items.map(k=>`<div class="card"><div style="font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">${k.l}</div><div style="font-family:var(--display);font-size:28px;font-weight:700;color:${k.c};line-height:1;margin-bottom:4px">${k.v}</div><div style="font-size:11px;color:var(--txt3)">${k.s||''}</div></div>`).join('');
+}
 
-function renderSDRDashboard() {
-  if (!SDR_DATA.length) return;
-  const data = SDR_DATA;
-  const total = data.length;
-  const exitosas = data.filter(r => isTruthy(r['llamada exitosa'])).length;
-  const demos = data.filter(r => isTruthy(r['demo agendada'])).length;
-  const voz = data.filter(r => cleanVal(r.canal).toLowerCase() === 'voz').length;
+function sdrRow(r,cols){
+  return `<tr>${cols.map(c=>{
+    if(c==='__bool_exitosa') return `<td><span class="badge ${isT(r['llamada exitosa'])?'b-green':'b-gray'}">${isT(r['llamada exitosa'])?'✓ Sí':'✗ No'}</span></td>`;
+    if(c==='__bool_demo') return `<td><span class="badge ${isT(r['demo agendada'])?'b-warn':'b-gray'}">${isT(r['demo agendada'])?'✓':'—'}</span></td>`;
+    if(c==='__pais') return `<td><span class="badge ${cv(r.pais||r.país||'').toUpperCase()==='MX'?'b-blue':'b-green'}">${cv(r.pais||r.país||'—')}</span></td>`;
+    if(c==='__resumen') return `<td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px" title="${cv(r.resumen)}">${cv(r.resumen).slice(0,80)}${cv(r.resumen).length>80?'...':''}</td>`;
+    return `<td>${cv(r[c])}</td>`;
+  }).join('')}</tr>`;
+}
 
-  const kpis = [
-    { label:'Total registros', val: total, color:'var(--accent)', sub:'Todas las interacciones' },
-    { label:'Llamadas exitosas', val: exitosas, color:'var(--green)', sub: `${total ? Math.round(exitosas/total*100) : 0}% del total` },
-    { label:'Demos agendadas', val: demos, color:'var(--warn)', sub: `${total ? Math.round(demos/total*100) : 0}% del total` },
-    { label:'Interacciones voz', val: voz, color:'var(--purple)', sub:'Canal de voz' },
+function renderSDR(){
+  if(!SDR.length){ document.getElementById('sdr-loading').style.display=''; document.getElementById('sdr-content').style.display='none'; return; }
+  document.getElementById('sdr-loading').style.display='none';
+  document.getElementById('sdr-content').style.display='';
+
+  const voz=SDR.filter(r=>cv(r.canal).toLowerCase()==='voz');
+  const txt=SDR.filter(r=>cv(r.canal).toLowerCase()!=='voz');
+  const mx=SDR.filter(r=>cv(r.pais||r.país||'').toUpperCase()==='MX');
+  const cr=SDR.filter(r=>cv(r.pais||r.país||'').toUpperCase()==='CR');
+
+  const kpis=(rows)=>[
+    {l:'Total',v:rows.length,c:'var(--accent)',s:'Registros'},
+    {l:'Llamadas exitosas',v:rows.filter(r=>isT(r['llamada exitosa'])).length,c:'var(--green)',s:rows.length?Math.round(rows.filter(r=>isT(r['llamada exitosa'])).length/rows.length*100)+'%':'0%'},
+    {l:'Demos agendadas',v:rows.filter(r=>isT(r['demo agendada'])).length,c:'var(--warn)',s:rows.length?Math.round(rows.filter(r=>isT(r['demo agendada'])).length/rows.length*100)+'%':'0%'},
+    {l:'Sin resolución',v:rows.filter(r=>!isT(r['llamada exitosa'])&&!isT(r['demo agendada'])).length,c:'var(--txt2)',s:'No exitosas'},
   ];
-  document.getElementById('sdr-kpis').innerHTML = kpis.map(k => `
-    <div class="kpi">
-      <div class="kpi-label">${k.label}</div>
-      <div class="kpi-val" style="color:${k.color}">${k.val}</div>
-      <div class="kpi-sub">${k.sub}</div>
-      <div class="kpi-bar"><div class="kpi-bar-fill" style="background:${k.color};width:${total?Math.round(k.val/total*100):0}%"></div></div>
-    </div>`).join('');
 
-  renderSDRVozTable(data.filter(r => cleanVal(r.canal).toLowerCase() === 'voz').slice(0, 50));
-  renderSDRTextoTable(data.filter(r => cleanVal(r.canal).toLowerCase() !== 'voz').slice(0, 50));
-  renderSDRCountryKPIs('mx', data.filter(r => cleanVal(r.pais || r.país || '').toUpperCase() === 'MX'));
-  renderSDRCountryKPIs('cr', data.filter(r => cleanVal(r.pais || r.país || '').toUpperCase() === 'CR'));
-  renderSDRCharts(data);
+  document.getElementById('sdr-voz-kpis').innerHTML=kpiHtml(kpis(voz));
+  document.getElementById('sdr-txt-kpis').innerHTML=kpiHtml(kpis(txt));
+  document.getElementById('sdr-mx-kpis').innerHTML=kpiHtml(kpis(mx));
+  document.getElementById('sdr-cr-kpis').innerHTML=kpiHtml(kpis(cr));
+
+  const fill=(id,rows,cols)=>{ document.querySelector('#'+id+' tbody').innerHTML=rows.slice(0,60).map(r=>sdrRow(r,cols)).join('')||'<tr><td colspan="10" style="text-align:center;color:var(--txt3);padding:20px">Sin datos</td></tr>'; };
+  fill('sdr-voz-tbl',voz,['agente','__pais','fecha','__bool_exitosa','__bool_demo','__resumen']);
+  fill('sdr-txt-tbl',txt,['agente','__pais','fecha','canal','__resumen']);
+  fill('sdr-mx-tbl',mx,['agente','canal','fecha','__bool_exitosa','__bool_demo','__resumen']);
+  fill('sdr-cr-tbl',cr,['agente','canal','fecha','__bool_exitosa','__bool_demo','__resumen']);
 }
 
-function renderSDRVozTable(rows) {
-  const tbody = document.querySelector('#sdr-voz-table tbody');
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td style="font-family:'DM Mono',monospace;font-size:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cleanVal(r.ID || r.id)}</td>
-      <td>${cleanVal(r.agente)}</td>
-      <td><span class="badge ${cleanVal(r.pais||r.país||'').toUpperCase()==='MX'?'badge-blue':'badge-green'}">${cleanVal(r.pais||r.país||'—')}</span></td>
-      <td style="white-space:nowrap;">${cleanVal(r.fecha)}</td>
-      <td><span class="badge ${isTruthy(r['llamada exitosa'])?'badge-green':'badge-gray'}">${isTruthy(r['llamada exitosa'])?'✓ Sí':'✗ No'}</span></td>
-      <td><span class="badge ${isTruthy(r['demo agendada'])?'badge-warn':'badge-gray'}">${isTruthy(r['demo agendada'])?'✓ Sí':'—'}</span></td>
-      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;" title="${cleanVal(r.resumen)}">${cleanVal(r.resumen).slice(0,80)}${cleanVal(r.resumen).length>80?'...':''}</td>
-    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--txt3)">Sin datos</td></tr>';
+function sdrTab(tab,el){
+  document.querySelectorAll('#page-sdr .tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#page-sdr .tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('sp-'+tab).classList.add('active');
+  el.classList.add('active');
 }
 
-function renderSDRTextoTable(rows) {
-  const tbody = document.querySelector('#sdr-texto-table tbody');
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td style="font-family:'DM Mono',monospace;font-size:10px;">${cleanVal(r.ID||r.id)}</td>
-      <td>${cleanVal(r.agente)}</td>
-      <td><span class="badge badge-blue">${cleanVal(r.pais||r.país||'—')}</span></td>
-      <td>${cleanVal(r.fecha)}</td>
-      <td>${cleanVal(r.canal)}</td>
-      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;">${cleanVal(r.resumen).slice(0,80)}</td>
-    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--txt3)">Sin datos de texto</td></tr>';
-}
-
-function renderSDRCountryKPIs(country, rows) {
-  const total = rows.length;
-  const exitosas = rows.filter(r => isTruthy(r['llamada exitosa'])).length;
-  const demos = rows.filter(r => isTruthy(r['demo agendada'])).length;
-  const html = [
-    { label:'Registros', val: total, color:'var(--accent)' },
-    { label:'Llamadas exitosas', val: exitosas, color:'var(--green)' },
-    { label:'Demos', val: demos, color:'var(--warn)' },
-  ].map(k => `<div class="kpi"><div class="kpi-label">${k.label}</div><div class="kpi-val" style="color:${k.color}">${k.val}</div><div class="kpi-bar"><div class="kpi-bar-fill" style="background:${k.color};width:${total?Math.round(k.val/total*100):0}%"></div></div></div>`).join('');
-  const el = document.getElementById(`sdr-${country}-kpis`);
-  if (el) el.innerHTML = html;
-
-  const tbody = document.querySelector(`#sdr-${country}-table tbody`);
-  if (tbody) {
-    tbody.innerHTML = rows.slice(0,30).map(r => `<tr>
-      <td style="font-family:'DM Mono',monospace;font-size:10px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cleanVal(r.ID||r.id)}</td>
-      <td>${cleanVal(r.agente)}</td>
-      <td>${cleanVal(r.canal)}</td>
-      <td style="white-space:nowrap;">${cleanVal(r.fecha)}</td>
-      <td><span class="badge ${isTruthy(r['llamada exitosa'])?'badge-green':'badge-gray'}">${isTruthy(r['llamada exitosa'])?'✓':'✗'}</span></td>
-      <td><span class="badge ${isTruthy(r['demo agendada'])?'badge-warn':'badge-gray'}">${isTruthy(r['demo agendada'])?'✓':'—'}</span></td>
-    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--txt3)">Sin datos</td></tr>';
-  }
-}
-
-function renderSDRCharts(data) {
-  // Agrupar por agente - llamadas exitosas
-  const byAgente = {};
-  data.forEach(r => {
-    const a = cleanVal(r.agente) || 'Desconocido';
-    if (!byAgente[a]) byAgente[a] = { total:0, exitosas:0, demos:0 };
-    byAgente[a].total++;
-    if (isTruthy(r['llamada exitosa'])) byAgente[a].exitosas++;
-    if (isTruthy(r['demo agendada'])) byAgente[a].demos++;
-  });
-  const agents = Object.keys(byAgente);
-
-  if (sdrCharts['voz-exitosas']) sdrCharts['voz-exitosas'].destroy();
-  if (sdrCharts['demos']) sdrCharts['demos'].destroy();
-
-  const ctx1 = document.getElementById('ch-sdr-voz-exitosas');
-  const ctx2 = document.getElementById('ch-sdr-demos');
-  if (ctx1 && agents.length) {
-    sdrCharts['voz-exitosas'] = new Chart(ctx1, {
-      type: 'bar',
-      data: { labels: agents, datasets: [{ label:'Total', data: agents.map(a => byAgente[a].total), backgroundColor:'rgba(59,130,246,.5)' },{ label:'Exitosas', data: agents.map(a => byAgente[a].exitosas), backgroundColor:'rgba(16,185,129,.7)' }] },
-      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:'#8a9bbf', font:{ size:11 } } } }, scales:{ x:{ ticks:{ color:'#8a9bbf', font:{size:10} }, grid:{ color:'rgba(255,255,255,.04)' } }, y:{ ticks:{ color:'#8a9bbf', font:{size:10} }, grid:{ color:'rgba(255,255,255,.04)' } } } }
-    });
-  }
-  if (ctx2 && agents.length) {
-    sdrCharts['demos'] = new Chart(ctx2, {
-      type: 'bar',
-      data: { labels: agents, datasets: [{ label:'Demos agendadas', data: agents.map(a => byAgente[a].demos), backgroundColor:'rgba(245,158,11,.7)' }] },
-      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:'#8a9bbf', font:{ size:11 } } } }, scales:{ x:{ ticks:{ color:'#8a9bbf', font:{size:10} }, grid:{ color:'rgba(255,255,255,.04)' } }, y:{ ticks:{ color:'#8a9bbf', font:{size:10} }, grid:{ color:'rgba(255,255,255,.04)' } } } }
-    });
-  }
-}
-
-function switchSDRTab(tab) {
-  document.querySelectorAll('#sdr-tabs .tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('[id^="sdr-tab-"]').forEach(p => p.classList.remove('active'));
-  const panel = document.getElementById('sdr-tab-' + tab);
-  if (panel) panel.classList.add('active');
-  event.target.classList.add('active');
-}
-
-// ══════════════════════════════════════════════════════════════
-//  DASHBOARD
-// ══════════════════════════════════════════════════════════════
-function renderDashboard() {
-  const openIssues = STATE.issues.filter(i => i.status !== 'resuelto');
-  const criticalIssues = STATE.issues.filter(i => i.priority === 'crítico' && i.status !== 'resuelto');
-  const kpis = [
-    { label:'Agentes activos', val: STATE.agents.filter(a=>a.status==='online').length, color:'var(--green)', sub:'de ' + STATE.agents.length + ' totales' },
-    { label:'Issues abiertos', val: openIssues.length, color: openIssues.length > 0 ? 'var(--warn)' : 'var(--green)', sub: criticalIssues.length + ' críticos' },
-    { label:'Issues críticos', val: criticalIssues.length, color: criticalIssues.length > 0 ? 'var(--err)' : 'var(--green)', sub:'Requieren atención inmediata' },
-    { label:'Total interacciones SDR', val: SDR_DATA.length, color:'var(--accent)', sub:'Datos cargados' },
-  ];
-  document.getElementById('dashboard-kpis').innerHTML = kpis.map(k => `
-    <div class="kpi"><div class="kpi-label">${k.label}</div><div class="kpi-val" style="color:${k.color}">${k.val}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
-
-  document.getElementById('dashboard-agents-grid').innerHTML = STATE.agents.map(a => `
-    <div class="agent-card" onclick="showPage('${a.id==='hh'?'agente-hh':a.id==='sdr-voz'||a.id==='eva-mx'||a.id==='eva-cr'?'sdr-dashboard':'sandbox'}')">
-      <div class="agent-card-header">
-        <div><div class="agent-card-name">${a.name}</div><div class="agent-card-type">${a.type} · ${a.canal}</div></div>
-        <span class="badge ${a.status==='online'?'badge-green':'badge-gray'}">${a.status==='online'?'● Activo':'○ Inactivo'}</span>
-      </div>
-      <div class="agent-card-metrics">
-        <div class="mini-metric"><div class="mm-val" style="color:var(--accent)">${STATE.issues.filter(i=>i.agent===a.id&&i.status!=='resuelto').length}</div><div class="mm-label">Issues abiertos</div></div>
-        <div class="mini-metric"><div class="mm-val" style="color:var(--txt3)">${(STATE.tools[a.id]||[]).length}</div><div class="mm-label">Tools</div></div>
-      </div>
-      <div style="margin-top:10px;font-size:10px;color:var(--txt3);">${a.desc}</div>
-    </div>`).join('');
-
-  const recentIssues = openIssues.slice(0, 5);
-  document.getElementById('dashboard-issues-list').innerHTML = recentIssues.length ?
-    recentIssues.map(i => `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);">
-      <span class="priority p-${i.priority}"><span class="priority-dot"></span></span>
-      <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--txt1)">${i.title}</div><div style="font-size:10px;color:var(--txt3)">${i.agent} · ${i.tipo}</div></div>
-      <span class="badge badge-gray" style="font-size:9px;">${i.status}</span>
-    </div>`).join('') :
-    '<div class="empty-state"><div class="es-icon">✓</div><p>Sin issues abiertos</p></div>';
-
-  document.getElementById('dashboard-cadencia-list').innerHTML = `
-    <div class="cadencia-block"><div class="cadencia-time" style="color:var(--green2)">Hoy</div><div class="cadencia-content"><div class="cadencia-title">Check diario</div><div class="cadencia-desc">Revisar estado de agentes y Slack</div></div></div>
-    <div class="cadencia-block"><div class="cadencia-time" style="color:var(--warn)">Lunes</div><div class="cadencia-content"><div class="cadencia-title">Sesión semanal</div><div class="cadencia-desc">Revisión de métricas y priorización</div></div></div>
-    <div class="cadencia-block"><div class="cadencia-time" style="color:var(--accent2)">Día 1</div><div class="cadencia-content"><div class="cadencia-title">Retrospectiva mensual</div><div class="cadencia-desc">Análisis y planificación del mes</div></div></div>`;
+async function refreshSDR(){
+  try{ SDR=await fetchSDR();renderSDR(); }catch(e){ console.error(e); }
+  document.getElementById('last-upd').textContent='Act: '+new Date().toLocaleTimeString('es-MX');
 }
 
 // ══════════════════════════════════════════════════════════════
 //  ISSUES
 // ══════════════════════════════════════════════════════════════
-let issueFilters = { status:'', priority:'', agent:'' };
+const PORD={crítico:0,alto:1,normal:2,bajo:3};
 
-function renderIssuesTable() {
-  // Populate agent filter
-  const sel = document.getElementById('filter-agent');
-  sel.innerHTML = '<option value="">Todos los agentes</option>' + STATE.agents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+function renderIssues(){
+  const sel=document.getElementById('f-agent-sel');
+  if(sel) sel.innerHTML='<option value="">Todos los agentes</option>'+S.agents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
 
-  let issues = [...STATE.issues];
-  if (issueFilters.status) issues = issues.filter(i => i.status === issueFilters.status);
-  if (issueFilters.priority) issues = issues.filter(i => i.priority === issueFilters.priority);
-  if (issueFilters.agent) issues = issues.filter(i => i.agent === issueFilters.agent);
+  let list=[...S.issues];
+  if(issueF.status) list=list.filter(i=>i.status===issueF.status);
+  if(issueF.priority) list=list.filter(i=>i.priority===issueF.priority);
+  if(issueF.agent) list=list.filter(i=>i.agent===issueF.agent);
+  list.sort((a,b)=>(PORD[a.priority]||9)-(PORD[b.priority]||9));
 
-  const priority_order = { 'crítico':0, 'alto':1, 'normal':2, 'bajo':3 };
-  issues.sort((a,b) => (priority_order[a.priority]||99) - (priority_order[b.priority]||99));
-
-  const tbody = document.querySelector('#issues-table tbody');
-  tbody.innerHTML = issues.map(i => `<tr>
-    <td><span class="priority p-${i.priority}"><span class="priority-dot"></span>${i.priority}</span></td>
-    <td>${STATE.agents.find(a=>a.id===i.agent)?.name || i.agent}</td>
-    <td><span class="badge badge-gray">${i.tipo}</span></td>
-    <td style="font-weight:600;color:var(--txt1);max-width:220px;">${i.title}</td>
-    <td>${i.responsable || '—'}</td>
-    <td>
-      <select style="background:var(--bg2);border:1px solid var(--border);color:var(--txt1);font-size:11px;padding:3px 7px;border-radius:6px;cursor:pointer;" onchange="updateIssueStatus('${i.id}',this.value)">
-        <option ${i.status==='abierto'?'selected':''}>abierto</option>
-        <option ${i.status==='en progreso'?'selected':''}>en progreso</option>
-        <option ${i.status==='resuelto'?'selected':''}>resuelto</option>
-      </select>
+  const tb=document.querySelector('#issues-tbl tbody');
+  tb.innerHTML=list.map(i=>`<tr>
+    <td><span class="prio p${i.priority[0]}"><span class="pd"></span>${i.priority}</span></td>
+    <td>${S.agents.find(a=>a.id===i.agent)?.name||i.agent}</td>
+    <td><span class="badge b-gray">${i.tipo}</span></td>
+    <td style="font-weight:600;color:var(--txt1);max-width:200px">${i.title}</td>
+    <td>${i.resp||'—'}</td>
+    <td><select style="background:var(--bg2);border:1px solid var(--border);color:var(--txt1);font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:var(--sans)" onchange="upIssue('${i.id}',this.value)">
+      <option ${i.status==='abierto'?'selected':''}>abierto</option>
+      <option ${i.status==='en progreso'?'selected':''}>en progreso</option>
+      <option ${i.status==='resuelto'?'selected':''}>resuelto</option>
+    </select></td>
+    <td style="font-size:11px;color:var(--txt3);white-space:nowrap">${i.date}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="openIssueModal('${i.id}')" title="Editar">✎</button>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="delIssue('${i.id}')" title="Eliminar">✕</button>
     </td>
-    <td style="font-size:11px;color:var(--txt3);white-space:nowrap;">${i.date}</td>
-    <td>
-      <button class="btn btn-secondary btn-sm btn-icon" onclick="editIssue('${i.id}')" title="Editar">✎</button>
-      <button class="btn btn-danger btn-sm btn-icon" onclick="deleteIssue('${i.id}')" title="Eliminar">✕</button>
-    </td>
-  </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--txt3);padding:24px;">Sin issues registrados</td></tr>';
+  </tr>`).join()||'<tr><td colspan="8" style="text-align:center;color:var(--txt3);padding:24px">Sin issues registrados — usa "+ Nuevo issue" para agregar</td></tr>';
 
-  const badge = document.getElementById('issues-badge');
-  const open = STATE.issues.filter(i=>i.status!=='resuelto').length;
-  badge.textContent = open;
-  badge.style.display = open > 0 ? '' : 'none';
+  const open=S.issues.filter(i=>i.status!=='resuelto').length;
+  const b=document.getElementById('ib');
+  b.textContent=open; b.style.display=open?'':'none';
 }
 
-function filterIssues(val, type) { issueFilters[type] = val; renderIssuesTable(); }
-
-function openIssueModal(id) {
-  document.getElementById('issue-edit-id').value = '';
-  document.getElementById('issue-titulo').value = '';
-  document.getElementById('issue-desc').value = '';
-  document.getElementById('issue-responsable').value = '';
-  document.getElementById('issue-modal-title').textContent = 'Nuevo Issue';
-  if (id) {
-    const issue = STATE.issues.find(i=>i.id===id);
-    if (issue) {
-      document.getElementById('issue-modal-title').textContent = 'Editar Issue';
-      document.getElementById('issue-edit-id').value = id;
-      document.getElementById('issue-titulo').value = issue.title;
-      document.getElementById('issue-agente').value = issue.agent;
-      document.getElementById('issue-tipo').value = issue.tipo;
-      document.getElementById('issue-prioridad').value = issue.priority;
-      document.getElementById('issue-responsable').value = issue.responsable || '';
-      document.getElementById('issue-desc').value = issue.desc || '';
+function openIssueModal(id){
+  ['i-titulo','i-desc','i-resp'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('i-edit-id').value='';
+  document.getElementById('m-issue-title').textContent='Nuevo Issue';
+  if(id){
+    const iss=S.issues.find(i=>i.id===id);
+    if(iss){
+      document.getElementById('m-issue-title').textContent='Editar Issue';
+      document.getElementById('i-edit-id').value=id;
+      document.getElementById('i-titulo').value=iss.title;
+      document.getElementById('i-agente').value=iss.agent;
+      document.getElementById('i-tipo').value=iss.tipo;
+      document.getElementById('i-prio').value=iss.priority;
+      document.getElementById('i-resp').value=iss.resp||'';
+      document.getElementById('i-desc').value=iss.desc||'';
     }
   }
-  document.getElementById('issue-modal').style.display = 'flex';
+  document.getElementById('m-issue').style.display='flex';
 }
 
-function saveIssue() {
-  const title = document.getElementById('issue-titulo').value.trim();
-  if (!title) { alert('El título es requerido'); return; }
-  const editId = document.getElementById('issue-edit-id').value;
-  const issue = {
-    id: editId || 'issue_' + Date.now(),
-    title, agent: document.getElementById('issue-agente').value,
-    tipo: document.getElementById('issue-tipo').value,
-    priority: document.getElementById('issue-prioridad').value,
-    responsable: document.getElementById('issue-responsable').value,
-    desc: document.getElementById('issue-desc').value,
-    status: editId ? (STATE.issues.find(i=>i.id===editId)?.status || 'abierto') : 'abierto',
-    date: new Date().toLocaleDateString('es-MX'),
+function saveIssue(){
+  const title=document.getElementById('i-titulo').value.trim();
+  if(!title){alert('El título es requerido');return;}
+  const eid=document.getElementById('i-edit-id').value;
+  const iss={
+    id:eid||'iss_'+Date.now(),title,
+    agent:document.getElementById('i-agente').value,
+    tipo:document.getElementById('i-tipo').value,
+    priority:document.getElementById('i-prio').value,
+    resp:document.getElementById('i-resp').value,
+    desc:document.getElementById('i-desc').value,
+    status:eid?(S.issues.find(i=>i.id===eid)?.status||'abierto'):'abierto',
+    date:new Date().toLocaleDateString('es-MX'),
   };
-  if (editId) {
-    const idx = STATE.issues.findIndex(i=>i.id===editId);
-    if (idx >= 0) STATE.issues[idx] = issue;
-  } else {
-    STATE.issues.unshift(issue);
-  }
-  saveState();
-  closeModal('issue-modal');
-  renderIssuesTable();
+  if(eid){ const idx=S.issues.findIndex(i=>i.id===eid);if(idx>=0)S.issues[idx]=iss;else S.issues.unshift(iss); }
+  else S.issues.unshift(iss);
+  save(); closeM('m-issue'); renderIssues();
 }
 
-function editIssue(id) { openIssueModal(id); }
-
-function deleteIssue(id) {
-  if (!confirm('¿Eliminar este issue?')) return;
-  STATE.issues = STATE.issues.filter(i=>i.id!==id);
-  saveState(); renderIssuesTable();
-}
-
-function updateIssueStatus(id, status) {
-  const issue = STATE.issues.find(i=>i.id===id);
-  if (issue) { issue.status = status; saveState(); renderIssuesTable(); }
-}
+function delIssue(id){ if(!confirm('¿Eliminar?'))return;S.issues=S.issues.filter(i=>i.id!==id);save();renderIssues(); }
+function upIssue(id,status){ const i=S.issues.find(x=>x.id===id);if(i){i.status=status;save();renderIssues();} }
 
 // ══════════════════════════════════════════════════════════════
 //  SANDBOX
 // ══════════════════════════════════════════════════════════════
-function onSandboxAgentChange() {
-  const val = document.getElementById('sandbox-agent-select').value;
-  currentSandboxAgent = val;
-  currentSessionId = 'sess_' + Math.random().toString(36).substr(2,9);
-  document.getElementById('sandbox-session-id').textContent = currentSessionId;
-
-  ['sandbox-hh-config','sandbox-voz-config','sandbox-eva-config','sandbox-cases-panel'].forEach(id => {
-    document.getElementById(id).style.display = 'none';
-  });
-
+function onSBAgent(){
+  const v=document.getElementById('sb-agent-sel').value;
+  curSBAgent=v;
+  curSess='sess_'+Math.random().toString(36).substr(2,9);
+  document.getElementById('sb-sess').textContent=curSess;
+  ['cfg-hh','cfg-voz','cfg-eva','sb-cases'].forEach(id=>document.getElementById(id).style.display='none');
   clearChat();
 
-  if (val === 'hh') {
-    document.getElementById('sandbox-agent-name').textContent = 'Agente HH — Citas';
-    document.getElementById('sandbox-status-badge').className = 'badge badge-green';
-    document.getElementById('sandbox-status-badge').textContent = '● Activo';
-    document.getElementById('sandbox-hh-config').style.display = '';
-    const token = STATE.agents.find(a=>a.id==='hh')?.token || '';
-    if (token) document.getElementById('hh-token').value = token;
-    addSystemMsg('Agente HH listo. Modo API REST — net2phone.');
-  } else if (val === 'sdr-voz') {
-    document.getElementById('sandbox-agent-name').textContent = 'SDR Voz';
-    document.getElementById('sandbox-status-badge').className = 'badge badge-green';
-    document.getElementById('sandbox-status-badge').textContent = '● Activo';
-    document.getElementById('sandbox-voz-config').style.display = '';
-    populatePropietarioSelect('voz-propietario');
-    addSystemMsg('SDR Voz listo. Completa el formulario y presiona "Disparar llamada".');
-  } else if (val === 'eva-mx' || val === 'eva-cr') {
-    const agent = STATE.agents.find(a=>a.id===val);
-    document.getElementById('sandbox-agent-name').textContent = agent?.name || val;
-    document.getElementById('sandbox-status-badge').className = 'badge badge-green';
-    document.getElementById('sandbox-status-badge').textContent = '● Activo';
-    document.getElementById('sandbox-eva-config').style.display = '';
-    document.getElementById('eva-config-title').textContent = 'Widget — ' + (agent?.name || val);
-    loadDaptaWidget(val);
-    addSystemMsg('Widget de Dapta cargado en el panel de chat.');
+  if(v==='hh'){
+    document.getElementById('sb-agent-lbl').textContent='Agente HH — Citas';
+    document.getElementById('sb-status').className='badge b-green';
+    document.getElementById('sb-status').textContent='● Activo';
+    document.getElementById('cfg-hh').style.display='';
+    const tok=localStorage.getItem(HH_TOKEN_KEY)||'';
+    document.getElementById('hh-tok').value=tok;
+    if(tok) addSysMsg('Token cargado automáticamente ✓');
+    addSysMsg('Agente HH listo — API REST net2phone');
+  } else if(v==='sdr-voz'){
+    document.getElementById('sb-agent-lbl').textContent='SDR Voz';
+    document.getElementById('sb-status').className='badge b-green';
+    document.getElementById('sb-status').textContent='● Activo';
+    document.getElementById('cfg-voz').style.display='';
+    fillSelect('voz-prop',S.propietarios);
+    addSysMsg('SDR Voz listo — completa el formulario y dispara la llamada');
+  } else if(v==='eva-mx'||v==='eva-cr'){
+    const ag=S.agents.find(a=>a.id===v);
+    document.getElementById('sb-agent-lbl').textContent=ag?.name||v;
+    document.getElementById('sb-status').className='badge b-blue';
+    document.getElementById('sb-status').textContent='↗ Externo';
+    document.getElementById('cfg-eva').style.display='';
+    document.getElementById('eva-cfg-title').textContent=ag?.name||v;
+    document.getElementById('eva-wid').textContent=ag?.wid||DAPTA_LINKS[v]?.wid||'—';
+    document.getElementById('eva-dapta-link').href=DAPTA_LINKS[v]?.url||'#';
+    addSysMsg('Las pruebas de Eva Whatson se realizan directamente en Dapta Studio');
   }
-
-  const mode = document.getElementById('sandbox-mode-select').value;
-  if (mode === 'prearmado') {
-    document.getElementById('sandbox-cases-panel').style.display = '';
-    renderCasesForAgent(val);
-  }
-
-  document.getElementById('sandbox-mode-select').onchange = () => {
-    const m = document.getElementById('sandbox-mode-select').value;
-    document.getElementById('sandbox-cases-panel').style.display = m === 'prearmado' ? '' : 'none';
-    if (m === 'prearmado') renderCasesForAgent(currentSandboxAgent);
-  };
+  onSBMode();
+  // Load tool cases for this agent
+  renderToolCasesForAgent(v);
 }
 
-function loadDaptaWidget(agentKey) {
-  const agent = STATE.agents.find(a=>a.id===agentKey);
-  if (!agent?.widgetId) return;
-  const container = document.getElementById('eva-widget-container');
-  container.innerHTML = `<div style="padding:12px;text-align:center;">
-    <p style="font-size:11px;color:var(--txt3);margin-bottom:8px;">Widget ID: <code style="font-family:'DM Mono',monospace;color:var(--cyan)">${agent.widgetId}</code></p>
-    <p style="font-size:10px;color:var(--txt3);">Para probar el widget en el chat real, usa el script embed de Dapta en una página separada.</p>
-    <div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;text-align:left;">
-      <code style="font-size:10px;color:var(--green2);font-family:'DM Mono',monospace;word-break:break-all;">&lt;script src="https://widget-v2.dapta.ai/agent.min.js?agentId=${agent.widgetId}"&gt;&lt;/script&gt;</code>
-    </div>
-  </div>`;
-
-  // Add widget script to chat area for live testing
-  const msgs = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  div.className = 'chat-msg system';
-  div.textContent = `Widget de Eva cargado — agentId: ${agent.widgetId.slice(0,8)}...`;
-  msgs.appendChild(div);
+function onSBMode(){
+  const mode=document.getElementById('sb-mode-sel').value;
+  document.getElementById('sb-cases').style.display=mode==='caso'?'':'none';
+  if(mode==='caso') renderCasesPanel(curSBAgent);
 }
 
-async function sendMessage() {
-  const input = document.getElementById('chat-input');
-  const text = input.value.trim();
-  if (!text || !currentSandboxAgent) return;
-  input.value = '';
+function renderCasesPanel(agentId){
+  const cases=S.cases.filter(c=>c.agent===agentId);
+  const el=document.getElementById('cases-panel');
+  el.innerHTML=cases.length?cases.map(c=>`
+    <div class="tcase">
+      <div class="tcase-name">📁 ${c.name}<span class="badge b-gray" style="font-size:9px">${c.msgs.length} msgs</span></div>
+      <div class="tcase-msgs">${c.msgs.map(m=>`<button class="preset-btn" onclick="sendPreset('${m.replace(/'/g,"\\'")}')">${m.slice(0,40)}${m.length>40?'...':''}</button>`).join('')}</div>
+      ${c.notes?`<div style="font-size:10px;color:var(--txt3);margin-top:8px">📝 ${c.notes}</div>`:''}
+    </div>`).join('')
+    :'<div style="font-size:11px;color:var(--txt3);text-align:center;padding:16px">Sin casos para este agente.<br>Crea uno con "Gestionar casos".</div>';
+}
+
+function renderToolCasesForAgent(agentId){
+  const tools=S.tools[agentId]||[];
+  const toolCases=tools.filter(t=>t.cases&&t.cases.length>0);
+  if(!toolCases.length) return;
+  const presets=document.getElementById('chat-presets');
+  presets.style.display='flex';
+  presets.innerHTML='<div style="width:100%;font-size:10px;color:var(--txt3);margin-bottom:4px">Casos de tools:</div>'+
+    toolCases.flatMap(t=>t.cases.map(c=>`<button class="preset-btn" title="${t.name}" onclick="sendPreset('${c.replace(/'/g,"\\'")}')">[${t.name}] ${c.slice(0,30)}</button>`)).join('');
+}
+
+async function sendMsg(){
+  const inp=document.getElementById('chat-in');
+  const text=inp.value.trim();
+  if(!text||!curSBAgent) return;
+  inp.value='';
   addUserMsg(text);
+  if(curSBAgent==='hh') await sendHH(text);
+  else if(curSBAgent==='sdr-voz') addSysMsg('El SDR Voz se activa vía formulario → "Disparar llamada"');
+  else addSysMsg('Las pruebas de Eva se realizan en Dapta Studio → usa el botón del panel derecho');
+}
 
-  if (currentSandboxAgent === 'hh') {
-    await sendHHMessage(text);
-  } else if (currentSandboxAgent === 'eva-mx' || currentSandboxAgent === 'eva-cr') {
-    addSystemMsg('Usa el widget de Dapta embebido para interactuar con este agente.');
-  } else {
-    addAgentMsg('Este agente se activa vía formulario. Usa el panel de configuración a la derecha.');
+async function sendHH(text){
+  const tok=document.getElementById('hh-tok').value.trim();
+  if(!tok){addSysMsg('⚠ Ingresa el Bearer Token');return;}
+  const cam=document.getElementById('hh-cam').value;
+  let sv={};
+  try{sv=JSON.parse(document.getElementById('hh-sv').value||'{}');}catch(e){}
+  sv.campana_agente=cam;
+  addSysMsg('Enviando...');
+  try{
+    const r=await fetch(HH_API,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({message:text,session_id:curSess,stored_values:sv,stream:false})});
+    const d=await r.json();
+    if(d.session_id) curSess=d.session_id;
+    document.getElementById('sb-sess').textContent=curSess;
+    // Remove "Enviando..." msg
+    const msgs=document.getElementById('chat-msgs');
+    msgs.querySelectorAll('.cm.sys').forEach(m=>{if(m.textContent==='Enviando...')m.remove();});
+    if(d.type==='function') addFnMsg(`🔧 ${d.function_name}\n${JSON.stringify(d.arguments,null,2)}`);
+    else addAgentMsg(d.message||JSON.stringify(d));
+  }catch(e){
+    document.getElementById('chat-msgs').querySelectorAll('.cm.sys').forEach(m=>{if(m.textContent==='Enviando...')m.remove();});
+    addSysMsg('⚠ Error: '+e.message);
   }
 }
 
-async function sendHHMessage(text) {
-  const token = document.getElementById('hh-token').value.trim();
-  if (!token) { addSystemMsg('⚠ Ingresa el Bearer Token en la configuración'); return; }
-  const campaign = document.getElementById('hh-campaign').value;
-  let storedVals = {};
-  try { storedVals = JSON.parse(document.getElementById('hh-stored').value || '{}'); } catch(e) {}
-  storedVals.campana_agente = campaign;
-
-  addSystemMsg('Enviando al agente...');
-  try {
-    const res = await fetch('https://aiagent.net2phone.com/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + token },
-      body: JSON.stringify({ message: text, session_id: currentSessionId, stored_values: storedVals, stream: false })
-    });
-    const data = await res.json();
-    if (data.session_id) currentSessionId = data.session_id;
-    if (data.type === 'function') {
-      addFunctionMsg(`🔧 Tool: ${data.function_name}\n${JSON.stringify(data.arguments, null, 2)}`);
-    } else {
-      addAgentMsg(data.message || JSON.stringify(data));
-    }
-  } catch(e) {
-    addSystemMsg('⚠ Error: ' + e.message);
+async function dispararLlamada(){
+  const num=document.getElementById('voz-num').value.trim();
+  if(!num){addSysMsg('⚠ Ingresa un número');return;}
+  addSysMsg('📞 Disparando llamada a '+num+'...');
+  const payload={phone:num,id:'108568050698',correo:'manuel.briones@huli.io',contact_name:document.getElementById('voz-cn').value||'Manuel',especialidad:document.getElementById('voz-esp').value,propietario:document.getElementById('voz-prop').value,pais:document.getElementById('voz-pais').value};
+  try{
+    const r=await fetch(VOZ_HOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const t=await r.text();
+    const msgs=document.getElementById('chat-msgs');
+    msgs.querySelectorAll('.cm.sys').forEach(m=>{if(m.textContent.includes('Disparando'))m.remove();});
+    addAgentMsg('✓ Llamada disparada — Status: '+r.status+'\n'+(t.slice(0,200)||'OK'));
+  }catch(e){
+    document.getElementById('chat-msgs').querySelectorAll('.cm.sys').forEach(m=>{if(m.textContent.includes('Disparando'))m.remove();});
+    addSysMsg('⚠ Error: '+e.message);
   }
 }
 
-async function dispararLlamada() {
-  const numero = document.getElementById('voz-numero').value.trim();
-  const contact = document.getElementById('voz-contact').value.trim();
-  const especialidad = document.getElementById('voz-especialidad').value.trim();
-  const propietario = document.getElementById('voz-propietario').value;
-  const pais = document.getElementById('voz-pais').value;
-
-  if (!numero) { addSystemMsg('⚠ Ingresa un número de teléfono'); return; }
-
-  addSystemMsg(`📞 Disparando llamada a ${numero}...`);
-
-  const payload = {
-    phone: numero,
-    id: '108568050698',
-    correo: 'manuel.briones@huli.io',
-    contact_name: contact || 'Manuel',
-    especialidad: especialidad,
-    propietario: propietario,
-    pais: pais,
-  };
-
-  try {
-    const res = await fetch('https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-copy-of-realizar-primera-llamada-sdr-ai?x-api-key=lDGCS-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const text = await res.text();
-    addAgentMsg(`✓ Llamada disparada\nEstatus: ${res.status}\n${text.slice(0,200)}`);
-  } catch(e) {
-    addSystemMsg('⚠ Error al disparar: ' + e.message);
-  }
+function saveToken(){
+  const tok=document.getElementById('hh-tok').value.trim();
+  if(!tok){alert('Ingresa un token');return;}
+  localStorage.setItem(HH_TOKEN_KEY,tok);
+  addSysMsg('✓ Token guardado en localStorage');
 }
 
-function addUserMsg(text) {
-  const msgs = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  div.className = 'chat-msg user';
-  div.textContent = text;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
+function newSess(){
+  curSess='sess_'+Math.random().toString(36).substr(2,9);
+  document.getElementById('sb-sess').textContent=curSess;
+  addSysMsg('↺ Nueva sesión: '+curSess);
 }
 
-function addAgentMsg(text) {
-  const msgs = document.getElementById('chat-messages');
-  // Remove "sending" messages
-  msgs.querySelectorAll('.chat-msg.system').forEach(m => { if (m.textContent.includes('Enviando')) m.remove(); });
-  const div = document.createElement('div');
-  div.className = 'chat-msg agent';
-  div.textContent = text;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
+function sendPreset(msg){ document.getElementById('chat-in').value=msg; sendMsg(); }
+
+function addUserMsg(t){ add('user',t); }
+function addAgentMsg(t){ add('agent',t); }
+function addSysMsg(t){ add('sys',t); }
+function addFnMsg(t){ add('fn',t); }
+
+function add(cls,text){
+  const el=document.getElementById('chat-msgs');
+  const d=document.createElement('div');
+  d.className='cm '+cls;
+  d.style.whiteSpace='pre-wrap';
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
 }
 
-function addSystemMsg(text) {
-  const msgs = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  div.className = 'chat-msg system';
-  div.textContent = text;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
+function clearChat(){
+  document.getElementById('chat-msgs').innerHTML='<div class="cm sys">Chat limpiado</div>';
+  curSess='sess_'+Math.random().toString(36).substr(2,9);
+  const se=document.getElementById('sb-sess');
+  if(se) se.textContent=curSess;
+  document.getElementById('chat-presets').style.display='none';
+  document.getElementById('chat-presets').innerHTML='';
 }
 
-function addFunctionMsg(text) {
-  const msgs = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  div.className = 'chat-msg function';
-  div.textContent = text;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-}
-
-function handleChatKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-}
-
-function clearChat() {
-  document.getElementById('chat-messages').innerHTML = '<div class="chat-msg system">Chat limpiado — nueva sesión iniciada</div>';
-  currentSessionId = 'sess_' + Math.random().toString(36).substr(2,9);
-  document.getElementById('sandbox-session-id').textContent = currentSessionId || '';
-}
-
-function newSession() {
-  currentSessionId = 'sess_' + Math.random().toString(36).substr(2,9);
-  document.getElementById('sandbox-session-id').textContent = currentSessionId;
-  addSystemMsg('↺ Nueva sesión iniciada: ' + currentSessionId);
-}
-
-function populatePropietarioSelect(elId) {
-  const sel = document.getElementById(elId);
-  if (!sel) return;
-  sel.innerHTML = STATE.propietarios.map(p => `<option value="${p}">${p}</option>`).join('');
+function fillSelect(id,opts){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.innerHTML=opts.map(o=>`<option value="${o}">${o}</option>`).join('');
 }
 
 // ══════════════════════════════════════════════════════════════
 //  CASES
 // ══════════════════════════════════════════════════════════════
-function openCaseManager() {
-  renderCasesManager();
-  document.getElementById('case-modal').style.display = 'flex';
+function openCaseMgr(){ renderCasesMgr(); document.getElementById('m-cases').style.display='flex'; }
+function showCaseForm(){ document.getElementById('case-form-wrap').style.display=''; document.getElementById('cf-name').value='';document.getElementById('cf-msgs').value='';document.getElementById('cf-notes').value=''; }
+
+function saveCase(){
+  const name=document.getElementById('cf-name').value.trim();
+  if(!name){alert('Nombre requerido');return;}
+  const msgs=document.getElementById('cf-msgs').value.split('\n').filter(m=>m.trim());
+  S.cases.push({id:'case_'+Date.now(),name,agent:document.getElementById('cf-agent').value,msgs,notes:document.getElementById('cf-notes').value});
+  save();
+  document.getElementById('case-form-wrap').style.display='none';
+  renderCasesMgr();
+  if(curSBAgent) renderCasesPanel(curSBAgent);
 }
 
-function openNewCaseForm() {
-  document.getElementById('case-form').style.display = '';
-  document.getElementById('case-nombre').value = '';
-  document.getElementById('case-messages').value = '';
-  document.getElementById('case-notes').value = '';
-}
-
-function saveCasePreset() {
-  const name = document.getElementById('case-nombre').value.trim();
-  if (!name) { alert('El nombre es requerido'); return; }
-  const msgs = document.getElementById('case-messages').value.split('\n').filter(m=>m.trim());
-  STATE.cases.push({
-    id: 'case_' + Date.now(),
-    name, agent: document.getElementById('case-agent').value,
-    messages: msgs,
-    notes: document.getElementById('case-notes').value,
-  });
-  saveState();
-  document.getElementById('case-form').style.display = 'none';
-  renderCasesManager();
-  if (currentSandboxAgent) renderCasesForAgent(currentSandboxAgent);
-}
-
-function renderCasesManager() {
-  const list = document.getElementById('cases-manager-list');
-  const cases = STATE.cases;
-  list.innerHTML = cases.length ? cases.map(c => `
+function renderCasesMgr(){
+  const el=document.getElementById('cases-mgr-list');
+  el.innerHTML=S.cases.length?S.cases.map(c=>`
     <div class="tool-card">
-      <div class="tool-card-header">
-        <span class="tool-name">📁 ${c.name}</span>
-        <span class="badge badge-gray">${STATE.agents.find(a=>a.id===c.agent)?.name || c.agent}</span>
-        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteCase('${c.id}')">✕</button>
-      </div>
-      <div style="font-size:10px;color:var(--txt3);">${c.messages.length} mensajes · ${c.notes || 'Sin notas'}</div>
-    </div>`).join('') :
-    '<div class="empty-state"><div class="es-icon">📁</div><p>Sin casos guardados</p></div>';
+      <div class="tool-hd"><span class="tool-name">📁 ${c.name}</span><span class="badge b-gray">${S.agents.find(a=>a.id===c.agent)?.name||c.agent}</span><button class="btn btn-danger btn-sm btn-icon" onclick="delCase('${c.id}')">✕</button></div>
+      <div style="font-size:10px;color:var(--txt3)">${c.msgs.length} mensajes · ${c.notes||'Sin notas'}</div>
+    </div>`).join('')
+    :'<div class="empty"><div class="empty-icon">📁</div><p>Sin casos guardados</p></div>';
 }
 
-function deleteCase(id) {
-  STATE.cases = STATE.cases.filter(c=>c.id!==id);
-  saveState(); renderCasesManager();
-}
-
-function renderCasesForAgent(agentId) {
-  const cases = STATE.cases.filter(c => c.agent === agentId);
-  const panel = document.getElementById('cases-list');
-  panel.innerHTML = cases.length ? cases.map(c => `
-    <div style="padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;">
-      <div style="font-size:12px;font-weight:600;color:var(--txt1);margin-bottom:6px;">📁 ${c.name}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;">
-        ${c.messages.map((m,i) => `<button class="btn btn-secondary btn-sm" onclick="sendPresetMessage('${m.replace(/'/g,"\\'")}')">💬 ${m.slice(0,30)}${m.length>30?'...':''}</button>`).join('')}
-      </div>
-      ${c.notes ? `<div style="font-size:10px;color:var(--txt3);margin-top:6px;">${c.notes}</div>` : ''}
-    </div>`).join('') :
-    '<div style="font-size:11px;color:var(--txt3);text-align:center;padding:16px;">Sin casos para este agente</div>';
-}
-
-function sendPresetMessage(msg) {
-  document.getElementById('chat-input').value = msg;
-  sendMessage();
-}
+function delCase(id){ S.cases=S.cases.filter(c=>c.id!==id);save();renderCasesMgr(); }
 
 // ══════════════════════════════════════════════════════════════
 //  RUNBOOKS
 // ══════════════════════════════════════════════════════════════
-const DEFAULT_RUNBOOKS = {
-  'hh': [
-    'Verificar estado de la API net2phone en el admin panel',
-    'Revisar el token de autenticación — puede haber expirado',
-    'Verificar conectividad con Supabase (tools: AgendarHH, DataMed)',
-    'Revisar logs de errores en el canal de Slack de notificaciones',
-    'Probar un mensaje de prueba vía Sandbox con campaña CostaRica',
-    'Si persiste, escalar al equipo técnico de net2phone',
-    'Documentar el incidente en Issues con prioridad crítico',
-  ],
-  'sdr-voz': [
-    'Verificar que el webhook de Dapta esté activo',
-    'Confirmar que el número destino tenga señal y esté disponible',
-    'Revisar configuración del agente de voz en Dapta Studio',
-    'Probar con número alternativo para descartar problemas de línea',
-    'Revisar logs en la plataforma Dapta',
-    'Documentar el incidente en Issues',
-  ],
-  'eva-mx': [
-    'Verificar el agentId del widget de Dapta',
-    'Revisar que el script embed esté correctamente cargado',
-    'Probar conversación de prueba vía widget',
-    'Revisar configuración en Dapta Studio (link de settings)',
-    'Documentar incidentes en Issues',
-  ],
-  'eva-cr': [
-    'Verificar el agentId del widget de Dapta (CR)',
-    'Revisar que el script embed esté correctamente cargado',
-    'Probar conversación de prueba vía widget',
-    'Revisar configuración en Dapta Studio (link de settings)',
-    'Documentar incidentes en Issues',
-  ],
+const DEF_RB={
+  hh:['Verificar estado de la API net2phone en el admin panel','Revisar el token de autenticación — puede haber expirado','Verificar conectividad con Supabase (tools: AgendarHH, DataMed)','Revisar logs de errores en el canal de Slack','Probar mensaje de prueba en Sandbox con campaña CostaRica','Si persiste, escalar al equipo técnico de net2phone','Documentar el incidente en Issues con prioridad crítico'],
+  'sdr-voz':['Verificar que el webhook de Dapta esté activo','Confirmar que el número destino tiene señal y está disponible','Revisar configuración del agente en Dapta Studio','Probar con número alternativo para descartar problemas de línea','Revisar logs en la plataforma Dapta','Documentar el incidente en Issues'],
+  'eva-mx':['Verificar el agentId del widget Dapta MX','Revisar settings del agente en Dapta Studio','Probar conversación de prueba','Documentar incidentes en Issues'],
+  'eva-cr':['Verificar el agentId del widget Dapta CR','Revisar settings del agente en Dapta Studio','Probar conversación de prueba','Documentar incidentes en Issues'],
 };
 
-function loadRunbook(agentId) {
-  if (!agentId) return;
-  const steps = STATE.runbooks[agentId] || DEFAULT_RUNBOOKS[agentId] || [];
-  if (!STATE.runbooks[agentId]) { STATE.runbooks[agentId] = [...steps]; saveState(); }
-  renderRunbookContent(agentId, steps);
+function loadRB(id){
+  if(!id) return;
+  if(!S.runbooks[id]) S.runbooks[id]=[...(DEF_RB[id]||[])];
+  const ag=S.agents.find(a=>a.id===id)?.name||id;
+  document.getElementById('rb-content').innerHTML=`
+    <div class="card-hd"><span class="card-title">Runbook — ${ag}</span></div>
+    <p style="font-size:11px;color:var(--txt3);margin-bottom:14px">Pasos a seguir cuando el agente presenta problemas.</p>
+    <div id="rb-steps">${S.runbooks[id].map((s,i)=>`
+      <div class="rb-item">
+        <input type="checkbox" class="rb-cb" onchange="this.nextElementSibling.classList.toggle('done',this.checked)">
+        <span class="rb-text">${s}</span>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="removeRBStep(${i},'${id}')">✕</button>
+      </div>`).join('')}</div>`;
+  save();
 }
 
-function renderRunbookContent(agentId, steps) {
-  const agentName = STATE.agents.find(a=>a.id===agentId)?.name || agentId;
-  document.getElementById('runbook-content').innerHTML = `
-    <div class="card-header"><span class="card-title">Runbook — ${agentName}</span></div>
-    <p style="font-size:11px;color:var(--txt3);margin-bottom:14px;">Pasos a seguir cuando el agente presenta problemas. Marca cada paso al completarlo.</p>
-    <div id="runbook-steps">
-      ${steps.map((s,i) => `
-        <div class="checklist-item" id="rb-step-${i}">
-          <input type="checkbox" class="checklist-cb" onchange="this.nextElementSibling.classList.toggle('done',this.checked)">
-          <span class="checklist-text">${s}</span>
-          <button class="btn btn-danger btn-sm btn-icon" onclick="removeRunbookStep(${i},'${agentId}')" title="Eliminar">✕</button>
-        </div>`).join('')}
-    </div>`;
+function addRBStep(){
+  const id=document.getElementById('rb-agent-sel').value;
+  if(!id){alert('Selecciona un agente');return;}
+  const s=prompt('Nuevo paso:');
+  if(!s) return;
+  S.runbooks[id].push(s);save();loadRB(id);
 }
 
-function addRunbookStep() {
-  const agentId = document.getElementById('runbook-agent-select').value;
-  if (!agentId) { alert('Selecciona un agente primero'); return; }
-  const step = prompt('Nuevo paso del runbook:');
-  if (!step) return;
-  if (!STATE.runbooks[agentId]) STATE.runbooks[agentId] = [];
-  STATE.runbooks[agentId].push(step);
-  saveState();
-  renderRunbookContent(agentId, STATE.runbooks[agentId]);
-}
-
-function removeRunbookStep(idx, agentId) {
-  STATE.runbooks[agentId].splice(idx, 1);
-  saveState();
-  renderRunbookContent(agentId, STATE.runbooks[agentId]);
-}
-
-function saveRunbook() {
-  saveState();
-  alert('Runbook guardado ✓');
-}
+function removeRBStep(i,id){ S.runbooks[id].splice(i,1);save();loadRB(id); }
+function saveRB(){ save();addSysMsg&&alert('Runbook guardado ✓'); }
 
 // ══════════════════════════════════════════════════════════════
 //  PROMPTS
 // ══════════════════════════════════════════════════════════════
-let currentPromptAgent = null;
-
-function loadPromptVersions(agentId) {
-  currentPromptAgent = agentId;
-  if (!agentId) return;
-  const versions = (STATE.prompts[agentId] || []);
-  const current = versions[0];
-  document.getElementById('prompt-editor').value = current?.content || '';
-  document.getElementById('current-prompt-version').textContent = current ? `v${versions.length}` : 'v0';
-  renderPromptVersions(agentId);
+function loadPrompts(id){
+  curPromptAgent=id;
+  if(!id) return;
+  const vs=S.prompts[id]||[];
+  document.getElementById('pr-editor').value=vs[0]?.content||'';
+  document.getElementById('pv-tag').textContent=vs.length?'v'+vs.length:'v0';
+  renderPVList(id);
 }
 
-function renderPromptVersions(agentId) {
-  const versions = STATE.prompts[agentId] || [];
-  const list = document.getElementById('prompt-versions-list');
-  list.innerHTML = versions.length ? versions.map((v,i) => `
-    <div class="version-item ${i===0?'current':''}" onclick="loadPromptVersion('${agentId}',${i})">
-      <div class="version-meta">
-        <div class="version-name">${v.label || 'Versión ' + (versions.length - i)}</div>
-        <div class="version-date">${v.date} · ${v.author || 'Sin autor'}</div>
-      </div>
-      <span class="version-tag">v${versions.length - i}</span>
-      ${i===0?'<span class="badge badge-green" style="font-size:9px">activo</span>':''}
-    </div>`).join('') :
-    '<div class="empty-state"><div class="es-icon">✦</div><p>Sin versiones guardadas</p></div>';
+function renderPVList(id){
+  const vs=S.prompts[id]||[];
+  document.getElementById('pv-list').innerHTML=vs.length?vs.map((v,i)=>`
+    <div class="vitem ${i===0?'cur':''}" onclick="loadPV('${id}',${i})">
+      <div class="vmeta"><div class="vname">${v.label||'Versión '+(vs.length-i)}</div><div class="vdate">${v.date} · ${v.author||'—'}</div></div>
+      <span class="vtag">v${vs.length-i}</span>
+      ${i===0?'<span class="badge b-green" style="font-size:9px">activo</span>':''}
+    </div>`).join('')
+    :'<div class="empty"><div class="empty-icon">✦</div><p>Sin versiones</p></div>';
 }
 
-function loadPromptVersion(agentId, idx) {
-  const versions = STATE.prompts[agentId] || [];
-  const v = versions[idx];
-  if (v) { document.getElementById('prompt-editor').value = v.content; document.getElementById('current-prompt-version').textContent = `v${versions.length - idx}`; }
-}
+function loadPV(id,i){ const v=(S.prompts[id]||[])[i];if(v)document.getElementById('pr-editor').value=v.content; }
 
-function savePromptVersion() {
-  if (!currentPromptAgent) { alert('Selecciona un agente primero'); return; }
-  const content = document.getElementById('prompt-editor').value.trim();
-  if (!content) { alert('El prompt no puede estar vacío'); return; }
-  const label = prompt('Nombre de esta versión (ej: "Mejora flujo de agendamiento"):', 'Actualización');
-  if (!label && label !== '') return;
-  if (!STATE.prompts[currentPromptAgent]) STATE.prompts[currentPromptAgent] = [];
-  STATE.prompts[currentPromptAgent].unshift({
-    content, label: label || 'Versión sin nombre',
-    date: new Date().toLocaleDateString('es-MX'),
-    author: 'Usuario',
-  });
-  saveState();
-  renderPromptVersions(currentPromptAgent);
-  document.getElementById('current-prompt-version').textContent = `v${STATE.prompts[currentPromptAgent].length}`;
+function savePromptV(){
+  if(!curPromptAgent){alert('Selecciona un agente');return;}
+  const content=document.getElementById('pr-editor').value.trim();
+  if(!content){alert('El prompt no puede estar vacío');return;}
+  const label=prompt('Nombre de esta versión:','Actualización');
+  if(label===null) return;
+  if(!S.prompts[curPromptAgent]) S.prompts[curPromptAgent]=[];
+  S.prompts[curPromptAgent].unshift({content,label:label||'Sin nombre',date:new Date().toLocaleDateString('es-MX'),author:'Usuario'});
+  save();renderPVList(curPromptAgent);
+  document.getElementById('pv-tag').textContent='v'+S.prompts[curPromptAgent].length;
 }
 
 // ══════════════════════════════════════════════════════════════
 //  TOOLS
 // ══════════════════════════════════════════════════════════════
-const DEFAULT_TOOLS = {
-  'hh': [
-    { id:'AgendarHH', name:'AgendarHH', method:'POST', url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-agendarhh--supabase?x-api-key=ElGiW-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a', instrucciones:'Agenda una cita para HuliHealth. Requiere Nombre, idClinic, Fecha, IDevento, CO del Doctor, IdPaciente, session_id, Hora, CAM.' },
-    { id:'AgendarPCN', name:'AgendarPCN', method:'POST', url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-agendarhh--supabase?x-api-key=ElGiW-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a', instrucciones:'Agenda cita para paciente nuevo en clínica.' },
-    { id:'CLINICINF', name:'CLINICINF', method:'POST', url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-direccionhh----supabase-1?x-api-key=aKJJH-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a', instrucciones:'Obtiene información de la clínica. Devuelve dirección, teléfono y datos del doctor.' },
-    { id:'CancelarHH', name:'CancelarHH', method:'POST', url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-cancelarhh----supabase?x-api-key=TmyWf-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a', instrucciones:'Cancela una cita existente. Requiere eventID, CAM, session_id, CO del Doctor.' },
-    { id:'DataMed', name:'DataMed', method:'POST', url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-base-de-datos-agente-supabase----consultas?x-api-key=Awo7a-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a', instrucciones:'Consulta base de datos de médicos. Requiere Nombre y CAM. Devuelve CO del doctor.' },
-    { id:'DisponibilidadHH', name:'DisponibilidadHH', method:'POST', url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-disponibilidadhh----supabase-1?x-api-key=oMy41-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a', instrucciones:'Consulta disponibilidad del médico. Parámetros requeridos: Fecha (yyyy-mm-dd), CO, idClinic, campana_agente.' },
-    { id:'DisponibilidadnextHH', name:'DisponibilidadnextHH', method:'POST', url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-disponibilidadhh----supabase-1?x-api-key=oMy41-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a', instrucciones:'Consulta próxima disponibilidad del médico a partir de una fecha. Requiere idClinic, CAM, Fecha, CO del Doctor.' },
-    { id:'InfoMD', name:'InfoMD', method:'POST', url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-busqueda-por-especialidad---hh?x-api-key=VLGbA-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a', instrucciones:'Búsqueda por especialidad médica. Requiere Zona, Seguro, Especialidad, CAM.' },
-    { id:'ValidarDRHH', name:'ValidarDRHH', method:'POST', url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-verificarinfodrhh---supabase?x-api-key=SLXvl-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a', instrucciones:'Verifica información del doctor. Requiere CAM y CO del Doctor.' },
-    { id:'VcitaHH', name:'VcitaHH', method:'POST', url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-v2-verificar_citapchh---supabase?x-api-key=AKJjB-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a', instrucciones:'Verifica cita de paciente. Requiere Nombre, idPaciente, Hora, CAM, Fecha, Apellido, CO del Doctor.' },
-    { id:'VerificarHHN', name:'VerificarHHN', method:'POST', url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-v2-verificar_citapchh---supabase?x-api-key=AKJjB-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a', instrucciones:'Verifica cita de paciente (versión nueva). Campos: CO del Doctor, Hora, CAM, Fecha, ID de paciente.' },
-    { id:'getDate', name:'getDate', method:'POST', url:'https://hulicr.ucontactcloud.com/IntegraChannels/resources/webhook/getDate', instrucciones:'Obtiene la fecha actual del sistema según campana_agente. Requiere Authorization Bearer.' },
-    { id:'getDate10', name:'getDate10', method:'POST', url:'https://hulicr.ucontactcloud.com/IntegraChannels/resources/webhook/getDate', instrucciones:'Obtiene fecha +10 días. Requiere campana_agente.' },
+const DEF_TOOLS={
+  hh:[
+    {id:'AgendarHH',name:'AgendarHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-agendarhh--supabase?x-api-key=ElGiW-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarHH/edit',inst:'Agenda una cita. Requiere: Nombre, idClinic, Fecha, IDevento, CO del Doctor, IdPaciente, session_id, Hora, CAM.',cases:['Agendar cita con Manuel Briones el martes a las 10am','Agendar cita para paciente nuevo en HuliHealth CostaRica']},
+    {id:'AgendarPCN',name:'AgendarPCN',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-agendarhh--supabase?x-api-key=ElGiW-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarPCN/edit',inst:'Agenda cita para paciente nuevo en clínica.',cases:['Quiero agendar mi primera consulta']},
+    {id:'CLINICINF',name:'CLINICINF',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-direccionhh----supabase-1?x-api-key=aKJJH-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CLINICINF/edit',inst:'Obtiene información de la clínica: dirección, teléfono, datos del doctor.',cases:['¿Dónde queda la clínica del Dr. Briones?','¿Cuál es el teléfono de la clínica?']},
+    {id:'CancelarHH',name:'CancelarHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-cancelarhh----supabase?x-api-key=TmyWf-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CancelarHH/edit',inst:'Cancela una cita existente. Requiere: eventID, CAM, session_id, CO del Doctor.',cases:['Quiero cancelar mi cita de mañana','Necesito cancelar la consulta del martes']},
+    {id:'DataMed',name:'DataMed',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-base-de-datos-agente-supabase----consultas?x-api-key=Awo7a-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DataMed/edit',inst:'Consulta base de datos de médicos. Devuelve CO del doctor.',cases:['Busco al Dr. Manuel Briones','¿Hay un cardiólogo disponible?']},
+    {id:'DisponibilidadHH',name:'DisponibilidadHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-disponibilidadhh----supabase-1?x-api-key=oMy41-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadHH/edit',inst:'Consulta disponibilidad del médico. Requiere: Fecha (yyyy-mm-dd), CO, idClinic, campana_agente.',cases:['¿Tiene disponibilidad el Dr. Briones el próximo lunes?','¿Qué horarios tiene el martes?']},
+    {id:'DisponibilidadnextHH',name:'DisponibilidadnextHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-disponibilidadhh----supabase-1?x-api-key=oMy41-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadnextHH/edit',inst:'Próxima disponibilidad del médico a partir de una fecha.',cases:['¿Cuándo es la próxima cita disponible?']},
+    {id:'InfoMD',name:'InfoMD',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-busqueda-por-especialidad---hh?x-api-key=VLGbA-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/InfoMD/edit',inst:'Búsqueda de médicos por especialidad. Requiere: Zona, Seguro, Especialidad, CAM.',cases:['Busco un cardiólogo en San José','¿Tienen dermatólogos disponibles?']},
+    {id:'ValidarDRHH',name:'ValidarDRHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-verificarinfodrhh---supabase?x-api-key=SLXvl-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/ValidarDRHH/edit',inst:'Verifica información del doctor. Requiere CAM y CO del Doctor.',cases:['Verificar doctor Manuel Briones']},
+    {id:'VcitaHH',name:'VcitaHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-v2-verificar_citapchh---supabase?x-api-key=AKJjB-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VcitaHH/edit',inst:'Verifica cita existente del paciente.',cases:['¿Tengo cita mañana?','Verificar mi cita del jueves']},
+    {id:'VerificarHHN',name:'VerificarHHN',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-v2-verificar_citapchh---supabase?x-api-key=AKJjB-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VerificarHHN/edit',inst:'Verifica cita (versión nueva). Campos: CO del Doctor, Hora, CAM, Fecha, ID paciente.',cases:['Confirmar mi cita']},
+    {id:'getDate',name:'getDate',method:'POST',url:'https://hulicr.ucontactcloud.com/IntegraChannels/resources/webhook/getDate',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate/edit',inst:'Obtiene la fecha actual del sistema según campana_agente.',cases:[]},
+    {id:'getDate10',name:'getDate10',method:'POST',url:'https://hulicr.ucontactcloud.com/IntegraChannels/resources/webhook/getDate',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate10/edit',inst:'Obtiene la fecha actual +10 días.',cases:[]},
   ],
-  'sdr-voz': [
-    { id:'Agendar', name:'Agendar', method:'POST', url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-espacios-1?x-api-key=H4VNb-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a', instrucciones:'Agenda una demo/reunión. Requiere: propietario, correo, year, month (2 dígitos), day (2 dígitos), hour (2 dígitos), minute (2 dígitos), contact_name.' },
-    { id:'Espacios', name:'Espacios', method:'POST', url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/espacios?x-api-key=dPui3-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a', instrucciones:'Consulta espacios disponibles del propietario para agendar. Requiere propietario.' },
+  'sdr-voz':[
+    {id:'Agendar',name:'Agendar',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-espacios-1?x-api-key=H4VNb-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://app.dapta.ai/apis/api/H4VNb?api_id=H4VNb&api_name=Agendar%20v2&explorer=true',inst:'Agenda una demo/reunión. Requiere: propietario, correo, year, month (2 dígitos), day (2 dígitos), hour (2 dígitos), minute (2 dígitos), contact_name.',cases:['Agendar demo con médico interesado el lunes a las 10am','Agendar reunión de seguimiento']},
+    {id:'Espacios',name:'Espacios',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/espacios?x-api-key=dPui3-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://app.dapta.ai/apis/api/dPui3?api_id=dPui3&api_name=espacios-1&explorer=true',inst:'Consulta espacios disponibles del propietario.',cases:['¿Qué espacios tiene kevin disponibles esta semana?']},
   ],
 };
 
-let currentToolsAgent = null;
-
-function loadTools(agentId) {
-  currentToolsAgent = agentId;
-  if (!agentId) return;
-  if (!STATE.tools[agentId] && DEFAULT_TOOLS[agentId]) {
-    STATE.tools[agentId] = [...DEFAULT_TOOLS[agentId]];
-    saveState();
-  }
-  renderToolsList(agentId);
+function loadTools(id){
+  curToolsAgent=id;
+  if(!id){ document.getElementById('tools-list').innerHTML='<div class="empty card"><div class="empty-icon">⚙</div><p>Selecciona un agente</p></div>';return; }
+  if(!S.tools[id]&&DEF_TOOLS[id]){ S.tools[id]=[...DEF_TOOLS[id]];save(); }
+  renderTools(id);
 }
 
-function renderToolsList(agentId) {
-  const tools = STATE.tools[agentId] || [];
-  const agentName = STATE.agents.find(a=>a.id===agentId)?.name || agentId;
-  document.getElementById('tools-list').innerHTML = tools.length ?
-    `<div style="margin-bottom:10px;font-size:11px;color:var(--txt3);">${tools.length} tools para ${agentName}</div>` +
-    tools.map(t => `
+function renderTools(id){
+  const tools=S.tools[id]||[];
+  const ag=S.agents.find(a=>a.id===id)?.name||id;
+  document.getElementById('tools-list').innerHTML=tools.length?
+    `<div style="margin-bottom:10px;font-size:11px;color:var(--txt3)">${tools.length} tools para ${ag}</div>`+
+    tools.map(t=>`
       <div class="tool-card">
-        <div class="tool-card-header">
+        <div class="tool-hd">
           <span class="tool-name">${t.name}</span>
-          <span class="tool-method method-${t.method.toLowerCase()}">${t.method}</span>
-          <button class="btn btn-secondary btn-sm btn-icon" onclick="editTool('${agentId}','${t.id}')" title="Editar">✎</button>
-          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteTool('${agentId}','${t.id}')" title="Eliminar">✕</button>
+          <span class="${t.method==='GET'?'mget':'mpost'}">${t.method}</span>
+          ${t.cfgLink?`<a href="${t.cfgLink}" target="_blank" class="tool-link">Config ↗</a>`:''}
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="openToolModal('${id}','${t.id}')" title="Editar">✎</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="delTool('${id}','${t.id}')" title="Eliminar">✕</button>
         </div>
         <div class="tool-url">${t.url}</div>
-        <div style="font-size:11px;color:var(--txt3);line-height:1.5;">${t.instrucciones || 'Sin instrucciones'}</div>
-      </div>`).join('') :
-    '<div class="empty-state card"><div class="es-icon">⚙</div><p>Sin tools registradas para este agente</p></div>';
+        <div class="tool-inst">${t.inst||'Sin instrucciones'}</div>
+        ${t.cases&&t.cases.length?`<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px">${t.cases.map(c=>`<span class="badge b-purple" style="font-size:9px">📋 ${c.slice(0,30)}</span>`).join('')}</div>`:''}
+      </div>`).join('')
+    :'<div class="empty card"><div class="empty-icon">⚙</div><p>Sin tools registradas</p></div>';
 }
 
-function openToolModal(agentId, toolId) {
-  document.getElementById('tool-edit-id').value = toolId || '';
-  document.getElementById('tool-edit-agent').value = agentId || currentToolsAgent || '';
-  document.getElementById('tool-nombre').value = '';
-  document.getElementById('tool-method').value = 'POST';
-  document.getElementById('tool-url').value = '';
-  document.getElementById('tool-config-link').value = '';
-  document.getElementById('tool-instrucciones').value = '';
-  document.getElementById('tool-modal-title').textContent = toolId ? 'Editar Tool' : 'Nueva Tool';
-  if (toolId) {
-    const tool = (STATE.tools[agentId] || []).find(t=>t.id===toolId);
-    if (tool) {
-      document.getElementById('tool-nombre').value = tool.name;
-      document.getElementById('tool-method').value = tool.method;
-      document.getElementById('tool-url').value = tool.url;
-      document.getElementById('tool-config-link').value = tool.configLink || '';
-      document.getElementById('tool-instrucciones').value = tool.instrucciones || '';
+function openToolModal(agentId,toolId){
+  document.getElementById('t-edit-id').value=toolId||'';
+  document.getElementById('t-edit-agent').value=agentId||curToolsAgent||'';
+  ['t-name','t-url','t-cfglink','t-inst','t-cases'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('t-method').value='POST';
+  document.getElementById('m-tool-title').textContent=toolId?'Editar Tool':'Nueva Tool';
+  if(toolId){
+    const t=(S.tools[agentId]||[]).find(x=>x.id===toolId);
+    if(t){
+      document.getElementById('t-name').value=t.name;
+      document.getElementById('t-method').value=t.method;
+      document.getElementById('t-url').value=t.url;
+      document.getElementById('t-cfglink').value=t.cfgLink||'';
+      document.getElementById('t-inst').value=t.inst||'';
+      document.getElementById('t-cases').value=(t.cases||[]).join('\n');
     }
   }
-  document.getElementById('tool-modal').style.display = 'flex';
+  document.getElementById('m-tool').style.display='flex';
 }
 
-function saveTool() {
-  const nombre = document.getElementById('tool-nombre').value.trim();
-  if (!nombre) { alert('El nombre es requerido'); return; }
-  const agentId = document.getElementById('tool-edit-agent').value || currentToolsAgent;
-  const editId = document.getElementById('tool-edit-id').value;
-  const tool = {
-    id: editId || nombre,
-    name: nombre,
-    method: document.getElementById('tool-method').value,
-    url: document.getElementById('tool-url').value.trim(),
-    configLink: document.getElementById('tool-config-link').value.trim(),
-    instrucciones: document.getElementById('tool-instrucciones').value.trim(),
-  };
-  if (!STATE.tools[agentId]) STATE.tools[agentId] = [];
-  if (editId) {
-    const idx = STATE.tools[agentId].findIndex(t=>t.id===editId);
-    if (idx>=0) STATE.tools[agentId][idx] = tool; else STATE.tools[agentId].push(tool);
-  } else {
-    STATE.tools[agentId].push(tool);
-  }
-  saveState();
-  closeModal('tool-modal');
-  renderToolsList(agentId);
+function saveTool(){
+  const name=document.getElementById('t-name').value.trim();
+  if(!name){alert('Nombre requerido');return;}
+  const agId=document.getElementById('t-edit-agent').value||curToolsAgent;
+  const eid=document.getElementById('t-edit-id').value;
+  const t={id:eid||name,name,method:document.getElementById('t-method').value,url:document.getElementById('t-url').value.trim(),cfgLink:document.getElementById('t-cfglink').value.trim(),inst:document.getElementById('t-inst').value.trim(),cases:document.getElementById('t-cases').value.split('\n').filter(x=>x.trim())};
+  if(!S.tools[agId]) S.tools[agId]=[];
+  if(eid){ const i=S.tools[agId].findIndex(x=>x.id===eid);if(i>=0)S.tools[agId][i]=t;else S.tools[agId].push(t); }
+  else S.tools[agId].push(t);
+  save();closeM('m-tool');renderTools(agId);
 }
 
-function editTool(agentId, toolId) { openToolModal(agentId, toolId); }
-
-function deleteTool(agentId, toolId) {
-  if (!confirm('¿Eliminar esta tool?')) return;
-  STATE.tools[agentId] = (STATE.tools[agentId] || []).filter(t=>t.id!==toolId);
-  saveState(); renderToolsList(agentId);
-}
+function delTool(agId,id){ if(!confirm('¿Eliminar?'))return;S.tools[agId]=(S.tools[agId]||[]).filter(t=>t.id!==id);save();renderTools(agId); }
 
 // ══════════════════════════════════════════════════════════════
 //  CONFIG
 // ══════════════════════════════════════════════════════════════
-function renderConfig() {
-  renderConfigAgents();
-  renderPropietarios();
-  renderSDRListTags();
-}
-
-function renderConfigAgents() {
-  const el = document.getElementById('config-agents-list');
-  el.innerHTML = STATE.agents.map(a => `
+function renderCfgAgents(){
+  document.getElementById('cfg-agents-list').innerHTML=S.agents.map(a=>`
     <div class="tool-card">
-      <div class="tool-card-header">
+      <div class="tool-hd">
         <span class="tool-name">${a.name}</span>
-        <span class="badge ${a.status==='online'?'badge-green':'badge-gray'}">${a.status}</span>
-        <span class="badge badge-blue">${a.type}</span>
-        <span class="badge badge-purple">${a.canal}</span>
-        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteAgent('${a.id}')" title="Eliminar">✕</button>
+        <span class="badge b-green">${a.status}</span>
+        <span class="badge b-blue">${a.type}</span>
+        <span class="badge b-gray">${a.canal}</span>
+        ${!['hh','sdr-voz','eva-mx','eva-cr'].includes(a.id)?`<button class="btn btn-danger btn-sm btn-icon" onclick="delAgent('${a.id}')">✕</button>`:''}
       </div>
-      <div style="font-size:11px;color:var(--txt3);">${a.desc || '—'}</div>
+      <div style="font-size:11px;color:var(--txt3)">${a.desc||'—'}</div>
     </div>`).join('');
 }
 
-function openAgentModal() {
-  document.getElementById('agent-modal').style.display = 'flex';
-  document.getElementById('agent-nombre').value = '';
-  document.getElementById('agent-endpoint').value = '';
-  document.getElementById('agent-token').value = '';
-  document.getElementById('agent-widgetid').value = '';
-  document.getElementById('agent-desc').value = '';
+function openAgentModal(){ document.getElementById('m-agent').style.display='flex'; }
+function onAConn(){ const v=document.getElementById('a-conn').value;document.getElementById('a-wid-g').style.display=v==='widget'?'':'none'; }
+
+function saveAgent(){
+  const name=document.getElementById('a-name').value.trim();
+  if(!name){alert('Nombre requerido');return;}
+  S.agents.push({id:'agt_'+Date.now(),name,status:'online',type:document.getElementById('a-conn').value,canal:document.getElementById('a-canal').value,endpoint:document.getElementById('a-ep').value,token:document.getElementById('a-tok').value,wid:document.getElementById('a-wid').value,desc:document.getElementById('a-desc').value,connector:'custom'});
+  save();closeM('m-agent');renderCfgAgents();renderSBAgents();
 }
 
-function onConnectorChange() {
-  const val = document.getElementById('agent-connector').value;
-  document.getElementById('agent-widgetid-group').style.display = val === 'widget' ? '' : 'none';
-  document.getElementById('agent-token-group').style.display = val === 'api_rest' || val === 'webhook' ? '' : 'none';
-}
+function delAgent(id){ if(!confirm('¿Eliminar?'))return;S.agents=S.agents.filter(a=>a.id!==id);save();renderCfgAgents();renderSBAgents(); }
 
-function saveAgent() {
-  const name = document.getElementById('agent-nombre').value.trim();
-  if (!name) { alert('El nombre es requerido'); return; }
-  const id = 'agent_' + Date.now();
-  STATE.agents.push({
-    id, name, status: 'online',
-    type: document.getElementById('agent-connector').value,
-    canal: document.getElementById('agent-canal').value,
-    endpoint: document.getElementById('agent-endpoint').value.trim(),
-    token: document.getElementById('agent-token').value.trim(),
-    widgetId: document.getElementById('agent-widgetid').value.trim(),
-    desc: document.getElementById('agent-desc').value.trim(),
-    connector: 'custom',
-  });
-  saveState();
-  closeModal('agent-modal');
-  renderConfig();
-  renderSidebarAgents();
+function renderProps(){
+  document.getElementById('props-tags').innerHTML=S.propietarios.map(p=>`<div class="tag">${p}<span class="tag-x" onclick="delProp('${p}')">✕</span></div>`).join('');
 }
+function addProp(){ const v=document.getElementById('new-prop').value.trim().toLowerCase();if(!v)return;if(!S.propietarios.includes(v))S.propietarios.push(v);document.getElementById('new-prop').value='';save();renderProps(); }
+function delProp(p){ S.propietarios=S.propietarios.filter(x=>x!==p);save();renderProps(); }
 
-function deleteAgent(id) {
-  const builtin = ['hh','sdr-voz','eva-mx','eva-cr'];
-  if (builtin.includes(id)) { alert('Los agentes base no se pueden eliminar'); return; }
-  if (!confirm('¿Eliminar este agente?')) return;
-  STATE.agents = STATE.agents.filter(a=>a.id!==id);
-  saveState(); renderConfig(); renderSidebarAgents();
+function renderSDRL(){
+  document.getElementById('sdrl-tags').innerHTML=S.sdrList.map(s=>`<div class="tag">${s}<span class="tag-x" onclick="delSDRL('${s}')">✕</span></div>`).join('');
 }
+function addSDRL(){ const v=document.getElementById('new-sdrl').value.trim().toLowerCase();if(!v)return;if(!S.sdrList.includes(v))S.sdrList.push(v);document.getElementById('new-sdrl').value='';save();renderSDRL(); }
+function delSDRL(s){ S.sdrList=S.sdrList.filter(x=>x!==s);save();renderSDRL(); }
 
-function renderPropietarios() {
-  const el = document.getElementById('propietarios-list');
-  el.innerHTML = STATE.propietarios.map(p => `
-    <div class="tag">${p}<span class="tag-remove" onclick="removePropietario('${p}')">✕</span></div>`).join('');
-}
-
-function addPropietario() {
-  const val = document.getElementById('new-propietario').value.trim().toLowerCase();
-  if (!val) return;
-  if (!STATE.propietarios.includes(val)) STATE.propietarios.push(val);
-  document.getElementById('new-propietario').value = '';
-  saveState(); renderPropietarios();
-}
-
-function removePropietario(p) {
-  STATE.propietarios = STATE.propietarios.filter(x=>x!==p);
-  saveState(); renderPropietarios();
-}
-
-function renderSDRListTags() {
-  const el = document.getElementById('sdr-list-tags');
-  el.innerHTML = STATE.sdrList.map(s => `
-    <div class="tag">${s}<span class="tag-remove" onclick="removeSDR('${s}')">✕</span></div>`).join('');
-}
-
-function addSDR() {
-  const val = document.getElementById('new-sdr').value.trim().toLowerCase();
-  if (!val) return;
-  if (!STATE.sdrList.includes(val)) STATE.sdrList.push(val);
-  document.getElementById('new-sdr').value = '';
-  saveState(); renderSDRListTags();
-}
-
-function removeSDR(s) {
-  STATE.sdrList = STATE.sdrList.filter(x=>x!==s);
-  saveState(); renderSDRListTags();
-}
-
-function switchConfigTab(tab) {
+function cfgTab(tab,el){
   document.querySelectorAll('#page-config .tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('#page-config .tab-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('config-' + tab).classList.add('active');
-  event.target.classList.add('active');
+  document.querySelectorAll('#page-config .tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('cfg-'+tab).classList.add('active');
+  el.classList.add('active');
 }
+
+function exportData(){ const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='huli-ops-'+new Date().toISOString().slice(0,10)+'.json';a.click(); }
+function importData(e){ const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{S={...defState(),...JSON.parse(ev.target.result)};save();location.reload();}catch(err){alert('Error: '+err.message);}};r.readAsText(f); }
 
 // ══════════════════════════════════════════════════════════════
 //  CADENCIA
 // ══════════════════════════════════════════════════════════════
-const WEEKLY_TASKS = [
-  'Revisar dashboard Agente HH — tasa de autogestión',
-  'Revisar dashboard SDR — llamadas exitosas y demos',
-  'Verificar issues críticos abiertos',
-  'Muestreo de 5 conversaciones por agente',
-  'Revisar canal de Slack (errores y feedback)',
-  'Priorizar mejoras del backlog',
-  'Ejecutar pruebas en sandbox con casos pre-armados',
-  'Documentar cambios realizados en prompts o tools',
-];
+const WTASKS=['Revisar dashboard Agente HH — tasa de autogestión','Revisar dashboard SDR — llamadas exitosas y demos','Verificar issues críticos abiertos','Muestreo de 5 conversaciones por agente','Revisar canal de Slack (errores y feedback del equipo)','Priorizar mejoras del backlog','Ejecutar pruebas en Sandbox con casos pre-armados','Documentar cambios en prompts o tools'];
 
-function renderWeeklyChecklist() {
-  const el = document.getElementById('weekly-checklist');
-  const saved = STATE.weeklyChecklist || WEEKLY_TASKS.map(t => ({ text:t, done:false }));
-  el.innerHTML = saved.map((t,i) => `
-    <div class="checklist-item">
-      <input type="checkbox" class="checklist-cb" ${t.done?'checked':''} onchange="toggleWeeklyTask(${i},this.checked)">
-      <span class="checklist-text ${t.done?'done':''}">${t.text}</span>
+function renderChecklist(){
+  const tasks=S.weeklyChecklist||WTASKS.map(t=>({text:t,done:false}));
+  document.getElementById('weekly-cl').innerHTML=tasks.map((t,i)=>`
+    <div class="rb-item">
+      <input type="checkbox" class="rb-cb" ${t.done?'checked':''} onchange="toggleTask(${i},this.checked)">
+      <span class="rb-text ${t.done?'done':''}">${t.text}</span>
     </div>`).join('');
 }
 
-function toggleWeeklyTask(idx, done) {
-  if (!STATE.weeklyChecklist) STATE.weeklyChecklist = WEEKLY_TASKS.map(t=>({text:t,done:false}));
-  STATE.weeklyChecklist[idx].done = done;
-  saveState();
-  renderWeeklyChecklist();
-}
-
-function resetWeeklyChecklist() {
-  STATE.weeklyChecklist = WEEKLY_TASKS.map(t=>({text:t,done:false}));
-  saveState(); renderWeeklyChecklist();
-}
+function toggleTask(i,done){ if(!S.weeklyChecklist) S.weeklyChecklist=WTASKS.map(t=>({text:t,done:false}));S.weeklyChecklist[i].done=done;save();renderChecklist(); }
+function resetChecklist(){ S.weeklyChecklist=WTASKS.map(t=>({text:t,done:false}));save();renderChecklist(); }
 
 // ══════════════════════════════════════════════════════════════
 //  SIDEBAR AGENTS
 // ══════════════════════════════════════════════════════════════
-function renderSidebarAgents() {
-  const el = document.getElementById('sidebar-agents-list');
-  el.innerHTML = `<div class="nav-label" style="padding:0 8px;margin-bottom:4px;">Estado agentes</div>` +
-    STATE.agents.map(a => `
-      <div class="agent-pill" onclick="showPage('${a.id==='hh'?'agente-hh':a.id.startsWith('eva')||a.id==='sdr-voz'?'sdr-dashboard':'sandbox'}')">
-        <span class="agent-dot ${a.status}"></span>
-        <span class="agent-name">${a.name.split('—')[0].trim()}</span>
-        <span class="agent-type">${a.canal}</span>
-      </div>`).join('');
-}
-
-// ══════════════════════════════════════════════════════════════
-//  EXPORT / IMPORT
-// ══════════════════════════════════════════════════════════════
-function exportData() {
-  const blob = new Blob([JSON.stringify(STATE, null, 2)], { type:'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `huli-ops-backup-${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-}
-
-function importData(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    try {
-      const data = JSON.parse(ev.target.result);
-      STATE = { ...defaultState(), ...data };
-      saveState();
-      location.reload();
-    } catch(err) { alert('Error al importar: ' + err.message); }
-  };
-  reader.readAsText(file);
+function renderSBAgents(){
+  document.getElementById('sb-agents').innerHTML=
+    '<div class="sb-label" style="padding:0 6px;margin-bottom:5px">Estado agentes</div>'+
+    S.agents.map(a=>`<div class="sb-agent-row"><span class="sa-dot ${a.status==='online'?'on':'off'}"></span><span class="sa-name">${a.name.split('—')[0].trim()}</span><span class="sa-tag">${a.canal}</span></div>`).join('');
 }
 
 // ══════════════════════════════════════════════════════════════
 //  MODALS
 // ══════════════════════════════════════════════════════════════
-function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
-// ══════════════════════════════════════════════════════════════
-//  REFRESH
-// ══════════════════════════════════════════════════════════════
-async function refreshAll() {
-  document.getElementById('loader').style.display = 'flex';
-  document.getElementById('loader-msg').textContent = 'Actualizando datos SDR...';
-  try {
-    SDR_DATA = await fetchSDR();
-    document.getElementById('last-update').textContent = 'Act: ' + new Date().toLocaleTimeString('es-MX');
-  } catch(e) { console.error(e); }
-  document.getElementById('loader').style.display = 'none';
-  renderDashboard();
-}
+function closeM(id){ document.getElementById(id).style.display='none'; }
 
 // ══════════════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════════════
-(async () => {
-  document.getElementById('loader-msg').textContent = 'Cargando datos SDR...';
-  try {
-    SDR_DATA = await fetchSDR();
-  } catch(e) { console.error('Error cargando SDR:', e); }
-  document.getElementById('loader').style.display = 'none';
-  renderSidebarAgents();
-  renderDashboard();
-  renderWeeklyChecklist();
-  document.getElementById('last-update').textContent = 'Act: ' + new Date().toLocaleTimeString('es-MX');
+(async()=>{
+  document.getElementById('lmsg').textContent='Cargando datos SDR...';
+  try{ SDR=await fetchSDR(); }catch(e){ console.error('SDR fetch error:',e); }
+  document.getElementById('loader').style.display='none';
+  renderSBAgents();
+  renderIssues();
+  renderChecklist();
+  document.getElementById('last-upd').textContent='Act: '+new Date().toLocaleTimeString('es-MX');
 })();
 </script>
 </body>
