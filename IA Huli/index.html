@@ -1112,15 +1112,15 @@ async function sendMsg(){
 }
 
 async function sendHH(text){
-  const tok=document.getElementById('hh-tok').value.trim();
-  if(!tok){addSysMsg('⚠ Ingresa el Bearer Token');return;}
   const cam=document.getElementById('hh-cam').value;
   let sv={};
   try{sv=JSON.parse(document.getElementById('hh-sv').value||'{}');}catch(e){}
   sv.campana_agente=cam;
   addSysMsg('Enviando...');
+  const payload={message:text,stored_values:sv,stream:false};
+  if(curSess) payload.session_id=curSess;
   try{
-    const r=await fetch(HH_API,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({message:text,session_id:curSess,stored_values:sv,stream:false})});
+    const r=await fetch(HH_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const d=await r.json();
     if(d.session_id) curSess=d.session_id;
     document.getElementById('sb-sess').textContent=curSess;
