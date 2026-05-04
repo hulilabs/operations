@@ -300,171 +300,6 @@ async function runTool(){
   }
 }
 
-
-// ══════════════════════════════════════════════════════════════
-//  AGENT SELECTS — DYNAMIC
-// ══════════════════════════════════════════════════════════════
-function populateAgentSelects(){
-  const opts = '<option value="">Seleccionar agente...</option>' + S.agents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
-  ['sb-agent-sel','rb-agent-sel','pr-agent-sel','tl-agent-sel','f-agent-sel'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el){ const cur=el.value; el.innerHTML=opts; if(cur) el.value=cur; }
-  });
-  // Also update issue agent select and case agent selects
-  ['i-agente','cf-agent'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.innerHTML=S.agents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
-  });
-}
-
-// ══════════════════════════════════════════════════════════════
-//  DYNAMIC SANDBOX — handle custom agents
-// ══════════════════════════════════════════════════════════════
-const origOnSBAgent = onSBAgent;
-function onSBAgent(){
-  const v=document.getElementById('sb-agent-sel').value;
-  if(!v) return;
-  const agent = S.agents.find(a=>a.id===v);
-  if(!agent) return;
-  // Handle built-in agents normally
-  if(['hh','sdr-voz','eva-mx','eva-cr'].includes(v)){
-    origOnSBAgent && origOnSBAgent();
-    return;
-  }
-  // Custom agent
-  curSBAgent=v;
-  curSess=null;
-  document.getElementById('sb-sess').textContent='sin sesión';
-  ['cfg-hh','cfg-voz','cfg-eva','sb-cases'].forEach(id=>document.getElementById(id).style.display='none');
-  clearChat();
-  document.getElementById('sb-agent-lbl').textContent=agent.name;
-  document.getElementById('sb-status').className='badge b-green';
-  document.getElementById('sb-status').textContent='● Activo';
-  // Show generic config based on connector type
-  addSysMsg(`Agente: ${agent.name}`);
-  addSysMsg(`Tipo: ${agent.type} · Canal: ${agent.canal}`);
-  if(agent.endpoint) addSysMsg(`Endpoint: ${agent.endpoint}`);
-  if(agent.type==='widget'||agent.type==='iframe'){
-    addSysMsg('Este agente usa widget/iframe — abre el link de configuración para probarlo.');
-    if(agent.endpoint){ const a=document.createElement('a');a.href=agent.endpoint;a.target='_blank';a.textContent='Abrir agente ↗';a.style.cssText='color:var(--accent2);font-size:12px;padding:8px 0;display:block';document.getElementById('chat-msgs').appendChild(a); }
-  }
-  renderToolCasesForAgent(v);
-  onSBMode();
-}
-
-// ══════════════════════════════════════════════════════════════
-//  LINKS — DYNAMIC
-// ══════════════════════════════════════════════════════════════
-const DEFAULT_LINKS = [
-  {id:'l1',group:'🏥 Agente HH — Admin',label:'Panel de administración',url:'https://aiagent.net2phone.com/admin/company/hShDTWCb0KrMwIIgzS6P',desc:'net2phone Admin'},
-  {id:'l2',group:'🏥 Agente HH — Admin',label:'Dashboard del Agente',url:'https://hulilabs.github.io/operations/AgenteHH/',desc:'GitHub Pages'},
-  {id:'l3',group:'🔧 Tools — Agente HH',label:'AgendarHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarHH/edit',desc:'Flujo: V2 AgendarHH — Supabase'},
-  {id:'l4',group:'🔧 Tools — Agente HH',label:'AgendarPCN',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarPCN/edit',desc:'Flujo: V2 AgendarHH — Supabase'},
-  {id:'l5',group:'🔧 Tools — Agente HH',label:'CLINICINF',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CLINICINF/edit',desc:'Flujo: V2 DireccionHH — Supabase'},
-  {id:'l6',group:'🔧 Tools — Agente HH',label:'CancelarHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CancelarHH/edit',desc:'Flujo: V2 CancelarHH — Supabase'},
-  {id:'l7',group:'🔧 Tools — Agente HH',label:'DataMed',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DataMed/edit',desc:'Flujo: Base datos Supabase'},
-  {id:'l8',group:'🔧 Tools — Agente HH',label:'DisponibilidadHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadHH/edit',desc:'Flujo: V2 DisponibilidadHH'},
-  {id:'l9',group:'🔧 Tools — Agente HH',label:'DisponibilidadnextHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadnextHH/edit',desc:'Flujo: V2 DisponibilidadHH'},
-  {id:'l10',group:'🔧 Tools — Agente HH',label:'InfoMD',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/InfoMD/edit',desc:'Flujo: V2 Búsqueda especialidad HH'},
-  {id:'l11',group:'🔧 Tools — Agente HH',label:'ValidarDRHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/ValidarDRHH/edit',desc:'Flujo: V2 VerificarINFODRHH'},
-  {id:'l12',group:'🔧 Tools — Agente HH',label:'VcitaHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VcitaHH/edit',desc:'Flujo: V2 Verificar CitaPCHH'},
-  {id:'l13',group:'🔧 Tools — Agente HH',label:'VerificarHHN',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VerificarHHN/edit',desc:'Flujo: V2 Verificar CitaPCHH'},
-  {id:'l14',group:'🔧 Tools — Agente HH',label:'getDate',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate/edit',desc:'Webhook — getDate'},
-  {id:'l15',group:'🔧 Tools — Agente HH',label:'getDate10',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate10/edit',desc:'Webhook — getDate +10 días'},
-  {id:'l16',group:'📞 SDR Voz — Config',label:'SDR Voz México',url:'https://app.dapta.ai/agents-studio/voice-agents/02b3025c-99a5-4306-878a-b8a60f214150?segment=instructions',desc:'Dapta Studio — instrucciones'},
-  {id:'l17',group:'📞 SDR Voz — Config',label:'SDR Voz Costa Rica',url:'https://app.dapta.ai/agents-studio/voice-agents/567fbf74-871d-4cdb-aa99-f0ff39138d13?segment=instructions',desc:'Dapta Studio — instrucciones'},
-  {id:'l18',group:'💬 Eva Whatson — Config',label:'Eva Whatson MX',url:'https://app.dapta.ai/agents-studio/text-agents/58b4d2bc-3271-48f6-b92d-1518e490abd1/settings',desc:'Dapta Studio — settings'},
-  {id:'l19',group:'💬 Eva Whatson — Config',label:'Eva Whatson CR',url:'https://app.dapta.ai/agents-studio/text-agents/a180cb8d-738a-4826-a241-323a64950d57/settings',desc:'Dapta Studio — settings'},
-  {id:'l20',group:'🔧 Flujos Dapta — SDR',label:'Agendar v2',url:'https://app.dapta.ai/apis/api/H4VNb?api_id=H4VNb&api_name=Agendar%20v2&explorer=true',desc:'Flujo Dapta'},
-  {id:'l21',group:'🔧 Flujos Dapta — SDR',label:'Espacios',url:'https://app.dapta.ai/apis/api/dPui3?api_id=dPui3&api_name=espacios-1&explorer=true',desc:'Flujo Dapta'},
-  {id:'l22',group:'🔧 Flujos Dapta — SDR',label:'V2 AgendarHH — Supabase',url:'https://app.dapta.ai/apis/api/ElGiW?api_id=ElGiW&api_name=V2%20AgendarHH%20-Supabase&explorer=true',desc:'Flujo Dapta'},
-  {id:'l23',group:'🔧 Flujos Dapta — SDR',label:'V2 DireccionHH — Supabase',url:'https://app.dapta.ai/apis/api/aKJJH?api_id=aKJJH&api_name=V2%20DireccionHH%20-%20Supabase%20&explorer=true',desc:'Flujo Dapta'},
-  {id:'l24',group:'🔧 Flujos Dapta — SDR',label:'V2 CancelarHH — Supabase',url:'https://app.dapta.ai/apis/api/TmyWf?api_id=TmyWf&api_name=V2%20CancelarHH%20-%20Supabase&explorer=true',desc:'Flujo Dapta'},
-  {id:'l25',group:'🔧 Flujos Dapta — SDR',label:'V2 Base datos Supabase',url:'https://app.dapta.ai/apis/api/Awo7a?api_id=Awo7a&api_name=V2%20Base%20de%20datos%20agente%20Supabase%20-%20Consultas&explorer=true',desc:'Flujo Dapta'},
-  {id:'l26',group:'🔧 Flujos Dapta — SDR',label:'V2 DisponibilidadHH — Supabase',url:'https://app.dapta.ai/apis/api/oMy41?api_id=oMy41&api_name=V2%20DisponibilidadHH%20-%20Supabase%20&explorer=true',desc:'Flujo Dapta'},
-  {id:'l27',group:'🔧 Flujos Dapta — SDR',label:'V2 Búsqueda especialidad HH',url:'https://app.dapta.ai/apis/api/VLGbA?api_id=VLGbA&api_name=V2%20Busqueda%20por%20especialidad%20-%20HH&explorer=true',desc:'Flujo Dapta'},
-  {id:'l28',group:'🔧 Flujos Dapta — SDR',label:'V2 VerificarINFODRHH',url:'https://app.dapta.ai/apis/api/SLXvl?api_id=SLXvl&api_name=V2%20VerificarINFODRHH%20-%20Supabase&explorer=true',desc:'Flujo Dapta'},
-  {id:'l29',group:'🔧 Flujos Dapta — SDR',label:'V2 Verificar CitaPCHH',url:'https://app.dapta.ai/apis/api/AKJjB?api_id=AKJjB&api_name=Copy%20of%20V2%20Verificar_CitaPCHH%20-%20Supabase&explorer=true',desc:'Flujo Dapta'},
-];
-
-function initLinks(){
-  if(!S.links) S.links = DEFAULT_LINKS;
-  save();
-}
-
-function renderLinks(){
-  initLinks();
-  const groups = {};
-  S.links.forEach(l=>{ if(!groups[l.group]) groups[l.group]=[]; groups[l.group].push(l); });
-  const cols = Object.keys(groups);
-  // Split into 2 columns
-  const half = Math.ceil(cols.length/2);
-  const col1 = cols.slice(0,half);
-  const col2 = cols.slice(half);
-
-  const renderGroup = (g) => `
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-hd"><span class="card-title">${g}</span></div>
-      ${groups[g].map(l=>`
-        <div class="link-row">
-          <div style="flex:1">
-            <div class="link-label">${l.label}</div>
-            ${l.desc?`<div class="link-sub">${l.desc}</div>`:''}
-          </div>
-          <a href="${l.url}" target="_blank" class="link-btn">Abrir ↗</a>
-          <button class="btn btn-ghost btn-sm btn-icon" onclick="editLink('${l.id}')" title="Editar">✎</button>
-          <button class="btn btn-danger btn-sm btn-icon" onclick="delLink('${l.id}')" title="Eliminar">✕</button>
-        </div>`).join('')}
-    </div>`;
-
-  document.getElementById('links-content').innerHTML = `
-    <div class="g2">
-      <div>${col1.map(renderGroup).join('')}</div>
-      <div>${col2.map(renderGroup).join('')}</div>
-    </div>`;
-}
-
-function openLinkModal(id){
-  document.getElementById('lk-label').value='';
-  document.getElementById('lk-url').value='';
-  document.getElementById('lk-group').value='';
-  document.getElementById('lk-desc').value='';
-  document.getElementById('lk-edit-id').value='';
-  document.getElementById('m-link-title').textContent='Nuevo acceso directo';
-  if(id){
-    const l=S.links.find(x=>x.id===id);
-    if(l){
-      document.getElementById('m-link-title').textContent='Editar acceso directo';
-      document.getElementById('lk-edit-id').value=id;
-      document.getElementById('lk-label').value=l.label;
-      document.getElementById('lk-url').value=l.url;
-      document.getElementById('lk-group').value=l.group;
-      document.getElementById('lk-desc').value=l.desc||'';
-    }
-  }
-  document.getElementById('m-link').style.display='flex';
-}
-
-function saveLink(){
-  const label=document.getElementById('lk-label').value.trim();
-  const url=document.getElementById('lk-url').value.trim();
-  if(!label||!url){alert('Nombre y URL son requeridos');return;}
-  const eid=document.getElementById('lk-edit-id').value;
-  const lnk={
-    id:eid||'lk_'+Date.now(),
-    label, url,
-    group:document.getElementById('lk-group').value.trim()||'General',
-    desc:document.getElementById('lk-desc').value.trim(),
-  };
-  if(!S.links) S.links=[];
-  if(eid){ const i=S.links.findIndex(x=>x.id===eid);if(i>=0)S.links[i]=lnk;else S.links.push(lnk); }
-  else S.links.push(lnk);
-  save();closeM('m-link');renderLinks();
-}
-
-function editLink(id){ openLinkModal(id); }
-function delLink(id){ if(!confirm('¿Eliminar este acceso directo?'))return;S.links=S.links.filter(l=>l.id!==id);save();renderLinks(); }
-
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -894,6 +729,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
         <select class="fs" style="width:200px" id="sb-agent-sel" onchange="onSBAgent()">
           <option value="">Seleccionar agente...</option>
+          <option value="hh">Agente HH — Citas</option>
+          <option value="sdr-voz">SDR Voz</option>
+          <option value="eva-mx">Eva Whatson MX</option>
+          <option value="eva-cr">Eva Whatson CR</option>
         </select>
         <select class="fs" style="width:150px" id="sb-mode-sel" onchange="onSBMode()">
           <option value="libre">Modo libre</option>
@@ -1008,6 +847,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
         <select class="fs" style="width:220px" id="rb-agent-sel" onchange="loadRB(this.value)">
           <option value="">Seleccionar agente...</option>
+          <option value="hh">Agente HH — Citas</option>
+          <option value="sdr-voz">SDR Voz</option>
+          <option value="eva-mx">Eva Whatson MX</option>
+          <option value="eva-cr">Eva Whatson CR</option>
         </select>
         <button class="btn btn-ghost btn-sm" onclick="addRBStep()">+ Paso</button>
         <button class="btn btn-primary btn-sm" onclick="saveRB()">Guardar</button>
@@ -1022,6 +865,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
         <select class="fs" style="width:220px" id="pr-agent-sel" onchange="loadPrompts(this.value)">
           <option value="">Seleccionar agente...</option>
+          <option value="hh">Agente HH — Citas</option>
+          <option value="sdr-voz">SDR Voz</option>
+          <option value="eva-mx">Eva Whatson MX</option>
+          <option value="eva-cr">Eva Whatson CR</option>
         </select>
         <button class="btn btn-primary btn-sm" onclick="savePromptV()">💾 Guardar versión</button>
       </div>
@@ -1045,6 +892,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
         <select class="fs" style="width:220px" id="tl-agent-sel" onchange="loadTools(this.value)">
           <option value="">Seleccionar agente...</option>
+          <option value="hh">Agente HH — Citas</option>
+          <option value="sdr-voz">SDR Voz / Texto</option>
+          <option value="eva-mx">Eva Whatson MX</option>
+          <option value="eva-cr">Eva Whatson CR</option>
         </select>
         <button class="btn btn-primary btn-sm" onclick="openToolModal()">+ Nueva tool</button>
       </div>
@@ -1098,10 +949,1229 @@ tr:hover td{background:rgba(255,255,255,.02)}
 
     <!-- ══ LINKS ══ -->
     <div class="page" id="page-links">
-      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="openLinkModal()">+ Agregar acceso directo</button>
+      <div class="g2">
+        <!-- HH Links -->
+        <div>
+          <div class="card" style="margin-bottom:14px">
+            <div class="card-hd"><span class="card-title">🏥 Agente HH — Admin</span></div>
+            <a href="https://aiagent.net2phone.com/admin/company/hShDTWCb0KrMwIIgzS6P" target="_blank" class="link-row" style="text-decoration:none">
+              <div><div class="link-label">Panel de administración</div><div class="link-sub">net2phone Admin</div></div>
+              <span class="link-btn">Abrir ↗</span>
+            </a>
+            <a href="https://hulilabs.github.io/operations/AgenteHH/" target="_blank" class="link-row" style="text-decoration:none">
+              <div><div class="link-label">Dashboard del Agente</div><div class="link-sub">GitHub Pages</div></div>
+              <span class="link-btn">Abrir ↗</span>
+            </a>
+          </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">🔧 Tools — Agente HH</span></div>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">AgendarHH</div><div class="link-sub">Flujo: V2 AgendarHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarPCN/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">AgendarPCN</div><div class="link-sub">Flujo: V2 AgendarHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CLINICINF/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">CLINICINF</div><div class="link-sub">Flujo: V2 DireccionHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CancelarHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">CancelarHH</div><div class="link-sub">Flujo: V2 CancelarHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DataMed/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">DataMed</div><div class="link-sub">Flujo: Base de datos agente Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">DisponibilidadHH</div><div class="link-sub">Flujo: V2 DisponibilidadHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadnextHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">DisponibilidadnextHH</div><div class="link-sub">Flujo: V2 DisponibilidadHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/InfoMD/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">InfoMD</div><div class="link-sub">Flujo: V2 Búsqueda por especialidad HH</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/ValidarDRHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">ValidarDRHH</div><div class="link-sub">Flujo: V2 VerificarINFODRHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VcitaHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">VcitaHH</div><div class="link-sub">Flujo: V2 Verificar_CitaPCHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VerificarHHN/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">VerificarHHN</div><div class="link-sub">Flujo: V2 Verificar_CitaPCHH — Supabase</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">getDate</div><div class="link-sub">Webhook — getDate</div></div><span class="link-btn">↗</span></a>
+            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate10/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">getDate10</div><div class="link-sub">Webhook — getDate (+10 días)</div></div><span class="link-btn">↗</span></a>
+          </div>
+        </div>
+
+        <!-- SDR Links -->
+        <div>
+          <div class="card" style="margin-bottom:14px">
+            <div class="card-hd"><span class="card-title">📞 SDR Voz — Config</span></div>
+            <a href="https://app.dapta.ai/agents-studio/voice-agents/02b3025c-99a5-4306-878a-b8a60f214150?segment=instructions" target="_blank" class="link-row" style="text-decoration:none">
+              <div><div class="link-label">SDR Voz — México</div><div class="link-sub">Dapta Studio — instrucciones</div></div>
+              <span class="link-btn">Abrir ↗</span>
+            </a>
+            <a href="https://app.dapta.ai/agents-studio/voice-agents/567fbf74-871d-4cdb-aa99-f0ff39138d13?segment=instructions" target="_blank" class="link-row" style="text-decoration:none">
+              <div><div class="link-label">SDR Voz — Costa Rica</div><div class="link-sub">Dapta Studio — instrucciones</div></div>
+              <span class="link-btn">Abrir ↗</span>
+            </a>
+          </div>
+
+          <div class="card" style="margin-bottom:14px">
+            <div class="card-hd"><span class="card-title">💬 Eva Whatson — Config</span></div>
+            <a href="https://app.dapta.ai/agents-studio/text-agents/58b4d2bc-3271-48f6-b92d-1518e490abd1/settings" target="_blank" class="link-row" style="text-decoration:none">
+              <div><div class="link-label">Eva Whatson MX</div><div class="link-sub">Dapta Studio — settings</div></div>
+              <span class="link-btn">Abrir ↗</span>
+            </a>
+            <a href="https://app.dapta.ai/agents-studio/text-agents/a180cb8d-738a-4826-a241-323a64950d57/settings" target="_blank" class="link-row" style="text-decoration:none">
+              <div><div class="link-label">Eva Whatson CR</div><div class="link-sub">Dapta Studio — settings</div></div>
+              <span class="link-btn">Abrir ↗</span>
+            </a>
+          </div>
+
+          <div class="card">
+            <div class="card-hd"><span class="card-title">🔧 Tools SDR — Flujos Dapta</span></div>
+            <a href="https://app.dapta.ai/apis/api/H4VNb?api_id=H4VNb&api_name=Agendar%20v2&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">Agendar</div><div class="link-sub">Flujo: Agendar v2</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/dPui3?api_id=dPui3&api_name=espacios-1&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">Espacios</div><div class="link-sub">Flujo: espacios-1</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/ElGiW?api_id=ElGiW&api_name=V2%20AgendarHH%20-Supabase&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 AgendarHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/aKJJH?api_id=aKJJH&api_name=V2%20DireccionHH%20-%20Supabase%20&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 DireccionHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/TmyWf?api_id=TmyWf&api_name=V2%20CancelarHH%20-%20Supabase&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 CancelarHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/Awo7a?api_id=Awo7a&api_name=V2%20Base%20de%20datos%20agente%20Supabase%20-%20Consultas&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 Base datos Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/oMy41?api_id=oMy41&api_name=V2%20DisponibilidadHH%20-%20Supabase%20&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 DisponibilidadHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/VLGbA?api_id=VLGbA&api_name=V2%20Busqueda%20por%20especialidad%20-%20HH&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 Búsqueda por especialidad HH</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/SLXvl?api_id=SLXvl&api_name=V2%20VerificarINFODRHH%20-%20Supabase&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 VerificarINFODRHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+            <a href="https://app.dapta.ai/apis/api/AKJjB?api_id=AKJjB&api_name=Copy%20of%20V2%20Verificar_CitaPCHH%20-%20Supabase&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 Verificar CitaPCHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
+          </div>
+        </div>
       </div>
-      <div id="links-content"></div>
     </div>
 
+  </div>
+</div>
 
+<!-- ══ MODALS ══ -->
+<div class="modal-ov" id="m-issue" style="display:none" onclick="if(event.target===this)closeM('m-issue')">
+  <div class="modal-box">
+    <div class="modal-hd"><h3 id="m-issue-title">Nuevo Issue</h3><button class="modal-close" onclick="closeM('m-issue')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label class="fl">Título *</label><input class="fi" id="i-titulo" placeholder="Describe el issue o mejora..."></div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Agente</label><select class="fs" id="i-agente"><option value="hh">Agente HH</option><option value="sdr-voz">SDR Voz</option><option value="eva-mx">Eva Whatson MX</option><option value="eva-cr">Eva Whatson CR</option></select></div>
+        <div class="fg"><label class="fl">Tipo</label><select class="fs" id="i-tipo"><option value="bug">🐛 Bug</option><option value="mejora">✨ Mejora</option><option value="revision">🔍 Revisión</option></select></div>
+        <div class="fg"><label class="fl">Prioridad</label><select class="fs" id="i-prio"><option value="crítico">🔴 Crítico</option><option value="alto">🟠 Alto</option><option value="normal">🔵 Normal</option><option value="bajo">⚪ Bajo</option></select></div>
+        <div class="fg"><label class="fl">Responsable</label><input class="fi" id="i-resp" placeholder="Nombre..."></div>
+      </div>
+      <div class="fg"><label class="fl">Descripción</label><textarea class="fta" id="i-desc" placeholder="Detalla el problema..."></textarea></div>
+      <input type="hidden" id="i-edit-id">
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeM('m-issue')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveIssue()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="m-tool" style="display:none" onclick="if(event.target===this)closeM('m-tool')">
+  <div class="modal-box wide">
+    <div class="modal-hd"><h3 id="m-tool-title">Nueva Tool</h3><button class="modal-close" onclick="closeM('m-tool')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg2">
+        <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="t-name" style="font-family:var(--mono)"></div>
+        <div class="fg"><label class="fl">Método</label><select class="fs" id="t-method"><option value="POST">POST</option><option value="GET">GET</option><option value="PUT">PUT</option></select></div>
+      </div>
+      <div class="fg"><label class="fl">URL / Endpoint</label><input class="fi" id="t-url" style="font-family:var(--mono);font-size:11px"></div>
+      <div class="fg"><label class="fl">Link de configuración (admin)</label><input class="fi" id="t-cfglink" style="font-family:var(--mono);font-size:11px"></div>
+      <div class="fg"><label class="fl">Instrucciones / descripción</label><textarea class="fta" id="t-inst" placeholder="Cuándo usar esta tool, parámetros, notas..."></textarea></div>
+      <div class="fg">
+        <label class="fl">Headers (uno por línea — formato: Clave: Valor)</label>
+        <textarea class="fta" id="t-headers" placeholder="Authorization: Bearer TOKEN&#10;Content-Type: application/json" style="min-height:60px;font-family:var(--mono);font-size:11px"></textarea>
+      </div>
+      <div class="fg">
+        <label class="fl">Casos de prueba (uno por línea)</label>
+        <textarea class="fta" id="t-cases" placeholder="Ej: Buscar médico Manuel Briones&#10;Consultar disponibilidad martes&#10;Agendar cita para paciente nuevo" style="min-height:80px"></textarea>
+        <div style="font-size:10px;color:var(--txt3);margin-top:4px">Estos casos aparecerán como botones en el Sandbox al probar esta tool</div>
+      </div>
+      <input type="hidden" id="t-edit-id">
+      <input type="hidden" id="t-edit-agent">
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeM('m-tool')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveTool()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="m-agent" style="display:none" onclick="if(event.target===this)closeM('m-agent')">
+  <div class="modal-box">
+    <div class="modal-hd"><h3>Agregar agente</h3><button class="modal-close" onclick="closeM('m-agent')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="a-name" placeholder="ej: SDR Voz Colombia"></div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Tipo de conector</label><select class="fs" id="a-conn" onchange="onAConn()"><option value="api_rest">API REST</option><option value="webhook">Webhook</option><option value="widget">Widget</option><option value="iframe">iFrame</option></select></div>
+        <div class="fg"><label class="fl">Canal</label><select class="fs" id="a-canal"><option value="chat">Chat/Texto</option><option value="voz">Voz</option><option value="whatsapp">WhatsApp</option></select></div>
+      </div>
+      <div class="fg" id="a-ep-g"><label class="fl">Endpoint / URL</label><input class="fi" id="a-ep" style="font-family:var(--mono);font-size:11px"></div>
+      <div class="fg" id="a-tok-g"><label class="fl">Token / API Key</label><input class="fi" id="a-tok" type="password"></div>
+      <div class="fg" id="a-wid-g" style="display:none"><label class="fl">Agent ID (widget)</label><input class="fi" id="a-wid" style="font-family:var(--mono);font-size:11px"></div>
+      <div class="fg"><label class="fl">Descripción</label><input class="fi" id="a-desc"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeM('m-agent')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveAgent()">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="m-cases" style="display:none" onclick="if(event.target===this)closeM('m-cases')">
+  <div class="modal-box wide">
+    <div class="modal-hd"><h3>Gestionar casos pre-armados</h3><button class="modal-close" onclick="closeM('m-cases')">✕</button></div>
+    <div class="modal-body">
+      <button class="btn btn-primary btn-sm" style="margin-bottom:14px" onclick="showCaseForm()">+ Nuevo caso</button>
+      <div id="case-form-wrap" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:14px">
+        <div class="fg"><label class="fl">Nombre del caso *</label><input class="fi" id="cf-name" placeholder="ej: Médico escéptico — primer contacto"></div>
+        <div class="fg2">
+          <div class="fg"><label class="fl">Agente</label><select class="fs" id="cf-agent"><option value="hh">Agente HH</option><option value="sdr-voz">SDR Voz</option><option value="eva-mx">Eva Whatson MX</option><option value="eva-cr">Eva Whatson CR</option></select></div>
+          <div class="fg"><label class="fl">Notas / objetivo</label><input class="fi" id="cf-notes" placeholder="Objetivo de la prueba..."></div>
+        </div>
+        <div class="fg"><label class="fl">Mensajes de prueba (uno por línea)</label><textarea class="fta" id="cf-msgs" placeholder="Hola, quiero agendar con Manuel Briones&#10;¿Tienen disponibilidad el martes?&#10;Perfecto, a las 10am" style="min-height:90px"></textarea></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="saveCase()">Guardar caso</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('case-form-wrap').style.display='none'">Cancelar</button>
+        </div>
+      </div>
+      <div id="cases-mgr-list"></div>
+    </div>
+    <div class="modal-ft"><button class="btn btn-ghost" onclick="closeM('m-cases')">Cerrar</button></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════════════════════
+const SDR_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR_X-VGh7zQIEX_1tbzbpRHwwFvb0f0fB1AuW_6h8EJcpNK0fb70F_1P9BlnLKbi7c0TeMQDMox1oa0/pub?output=csv';
+const HH_TOKEN_KEY = 'huli-hh-token';
+const HH_API = 'https://api.dapta.ai/api/76b0fc9a51e86ac9/agente-ia---hulihealth?x-api-key=zMa0w-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a';
+const VOZ_HOOK = 'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-copy-of-realizar-primera-llamada-sdr-ai?x-api-key=lDGCS-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a';
+
+const DAPTA_LINKS = {
+  'eva-mx': { url:'https://app.dapta.ai/agents-studio/text-agents/58b4d2bc-3271-48f6-b92d-1518e490abd1/settings', wid:'58b4d2bc-3271-48f6-b92d-1518e490abd1' },
+  'eva-cr': { url:'https://app.dapta.ai/agents-studio/text-agents/a180cb8d-738a-4826-a241-323a64950d57/settings', wid:'a180cb8d-738a-4826-a241-323a64950d57' },
+};
+
+// ══════════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════════
+let S = loadS();
+let SDR = [];
+let curSBAgent = null;
+let curSess = null;
+let curPromptAgent = null;
+let curToolsAgent = null;
+let issueF = { status:'', priority:'', agent:'' };
+
+function defState(){
+  return {
+    issues:[],
+    agents:[
+      {id:'hh',name:'Agente HH — Citas',type:'api_rest',canal:'whatsapp',desc:'Agente de citas vía WhatsApp',status:'online'},
+      {id:'sdr-voz',name:'SDR Voz',type:'webhook',canal:'voz',desc:'SDR por voz MX y CR',status:'online'},
+      {id:'eva-mx',name:'Eva Whatson MX',type:'widget',canal:'whatsapp',desc:'SDR texto México',status:'online',wid:'58b4d2bc-3271-48f6-b92d-1518e490abd1'},
+      {id:'eva-cr',name:'Eva Whatson CR',type:'widget',canal:'whatsapp',desc:'SDR texto Costa Rica',status:'online',wid:'a180cb8d-738a-4826-a241-323a64950d57'},
+    ],
+    propietarios:['abigail','alejandro','angel','azaf','carlos','dana','guadalupe','isa','jose','karen','kevin','lau','leyva','memo','paula','riego','valeria','cruces','tadeo'],
+    sdrList:['kevin','michell','mariana','tadeo','abigail','cruces','angel','guadalupe'],
+    runbooks:{}, prompts:{}, tools:{}, cases:[],
+    weeklyChecklist:null,
+  };
+}
+
+function loadS(){
+  try{ const d=localStorage.getItem('huli-ops');if(d)return{...defState(),...JSON.parse(d)}; }catch(e){}
+  return defState();
+}
+function save(){ localStorage.setItem('huli-ops',JSON.stringify(S)); }
+
+// ══════════════════════════════════════════════════════════════
+//  NAV
+// ══════════════════════════════════════════════════════════════
+const TITLES = {issues:'Issues & Mejoras',cadencia:'Cadencia operativa','agente-hh':'Agente HH — Citas',sdr:'SDR Dashboard',sandbox:'Sandbox de pruebas',runbooks:'Runbooks',prompts:'Gestión de prompts',tools:'Tools por agente',config:'Configuración',links:'Accesos directos'};
+
+function nav(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  const pg=document.getElementById('page-'+id);
+  if(pg) pg.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(i=>{if((i.getAttribute('onclick')||'').includes("'"+id+"'"))i.classList.add('active')});
+  document.getElementById('topbar-title').textContent=TITLES[id]||id;
+  if(id==='sdr') renderSDR();
+  if(id==='issues') renderIssues();
+  if(id==='config'){ renderCfgAgents();renderProps();renderSDRL(); }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SDR
+// ══════════════════════════════════════════════════════════════
+const cv=(v)=>(v||'').toString().trim();
+const isT=(v)=>{ const s=cv(v).toLowerCase();return s==='true'||s==='1'; };
+
+async function fetchSDR(){
+  return new Promise((res,rej)=>{
+    Papa.parse(SDR_URL,{download:true,header:true,skipEmptyLines:true,complete:r=>res(r.data),error:e=>rej(e)});
+  });
+}
+
+function kpiHtml(items){
+  return items.map(k=>`<div class="card"><div style="font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">${k.l}</div><div style="font-family:var(--display);font-size:28px;font-weight:700;color:${k.c};line-height:1;margin-bottom:4px">${k.v}</div><div style="font-size:11px;color:var(--txt3)">${k.s||''}</div></div>`).join('');
+}
+
+function sdrRow(r,cols){
+  return `<tr>${cols.map(c=>{
+    if(c==='__bool_exitosa') return `<td><span class="badge ${isT(r['llamada exitosa'])?'b-green':'b-gray'}">${isT(r['llamada exitosa'])?'✓ Sí':'✗ No'}</span></td>`;
+    if(c==='__bool_demo') return `<td><span class="badge ${isT(r['demo agendada'])?'b-warn':'b-gray'}">${isT(r['demo agendada'])?'✓':'—'}</span></td>`;
+    if(c==='__pais') return `<td><span class="badge ${cv(r.pais||r.país||'').toUpperCase()==='MX'?'b-blue':'b-green'}">${cv(r.pais||r.país||'—')}</span></td>`;
+    if(c==='__resumen') return `<td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px" title="${cv(r.resumen)}">${cv(r.resumen).slice(0,80)}${cv(r.resumen).length>80?'...':''}</td>`;
+    return `<td>${cv(r[c])}</td>`;
+  }).join('')}</tr>`;
+}
+
+function renderSDR(){
+  if(!SDR.length){ document.getElementById('sdr-loading').style.display=''; document.getElementById('sdr-content').style.display='none'; return; }
+  document.getElementById('sdr-loading').style.display='none';
+  document.getElementById('sdr-content').style.display='';
+
+  const voz=SDR.filter(r=>cv(r.canal).toLowerCase()==='voz');
+  const txt=SDR.filter(r=>cv(r.canal).toLowerCase()!=='voz');
+  const mx=SDR.filter(r=>cv(r.pais||r.país||'').toUpperCase()==='MX');
+  const cr=SDR.filter(r=>cv(r.pais||r.país||'').toUpperCase()==='CR');
+
+  const kpis=(rows)=>[
+    {l:'Total',v:rows.length,c:'var(--accent)',s:'Registros'},
+    {l:'Llamadas exitosas',v:rows.filter(r=>isT(r['llamada exitosa'])).length,c:'var(--green)',s:rows.length?Math.round(rows.filter(r=>isT(r['llamada exitosa'])).length/rows.length*100)+'%':'0%'},
+    {l:'Demos agendadas',v:rows.filter(r=>isT(r['demo agendada'])).length,c:'var(--warn)',s:rows.length?Math.round(rows.filter(r=>isT(r['demo agendada'])).length/rows.length*100)+'%':'0%'},
+    {l:'Sin resolución',v:rows.filter(r=>!isT(r['llamada exitosa'])&&!isT(r['demo agendada'])).length,c:'var(--txt2)',s:'No exitosas'},
+  ];
+
+  document.getElementById('sdr-voz-kpis').innerHTML=kpiHtml(kpis(voz));
+  document.getElementById('sdr-txt-kpis').innerHTML=kpiHtml(kpis(txt));
+  document.getElementById('sdr-mx-kpis').innerHTML=kpiHtml(kpis(mx));
+  document.getElementById('sdr-cr-kpis').innerHTML=kpiHtml(kpis(cr));
+
+  const fill=(id,rows,cols)=>{ document.querySelector('#'+id+' tbody').innerHTML=rows.slice(0,60).map(r=>sdrRow(r,cols)).join('')||'<tr><td colspan="10" style="text-align:center;color:var(--txt3);padding:20px">Sin datos</td></tr>'; };
+  fill('sdr-voz-tbl',voz,['agente','__pais','fecha','__bool_exitosa','__bool_demo','__resumen']);
+  fill('sdr-txt-tbl',txt,['agente','__pais','fecha','canal','__resumen']);
+  fill('sdr-mx-tbl',mx,['agente','canal','fecha','__bool_exitosa','__bool_demo','__resumen']);
+  fill('sdr-cr-tbl',cr,['agente','canal','fecha','__bool_exitosa','__bool_demo','__resumen']);
+}
+
+function sdrTab(tab,el){
+  document.querySelectorAll('#page-sdr .tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#page-sdr .tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('sp-'+tab).classList.add('active');
+  el.classList.add('active');
+}
+
+async function refreshSDR(){
+  try{ SDR=await fetchSDR();renderSDR(); }catch(e){ console.error(e); }
+  document.getElementById('last-upd').textContent='Act: '+new Date().toLocaleTimeString('es-MX');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ISSUES
+// ══════════════════════════════════════════════════════════════
+const PORD={crítico:0,alto:1,normal:2,bajo:3};
+
+function renderIssues(){
+  const sel=document.getElementById('f-agent-sel');
+  if(sel) sel.innerHTML='<option value="">Todos los agentes</option>'+S.agents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+
+  let list=[...S.issues];
+  if(issueF.status) list=list.filter(i=>i.status===issueF.status);
+  if(issueF.priority) list=list.filter(i=>i.priority===issueF.priority);
+  if(issueF.agent) list=list.filter(i=>i.agent===issueF.agent);
+  list.sort((a,b)=>(PORD[a.priority]||9)-(PORD[b.priority]||9));
+
+  const tb=document.querySelector('#issues-tbl tbody');
+  tb.innerHTML=list.map(i=>`<tr>
+    <td><span class="prio p${i.priority[0]}"><span class="pd"></span>${i.priority}</span></td>
+    <td>${S.agents.find(a=>a.id===i.agent)?.name||i.agent}</td>
+    <td><span class="badge b-gray">${i.tipo}</span></td>
+    <td style="font-weight:600;color:var(--txt1);max-width:200px">${i.title}</td>
+    <td>${i.resp||'—'}</td>
+    <td><select style="background:var(--bg2);border:1px solid var(--border);color:var(--txt1);font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:var(--sans)" onchange="upIssue('${i.id}',this.value)">
+      <option ${i.status==='abierto'?'selected':''}>abierto</option>
+      <option ${i.status==='en progreso'?'selected':''}>en progreso</option>
+      <option ${i.status==='resuelto'?'selected':''}>resuelto</option>
+    </select></td>
+    <td style="font-size:11px;color:var(--txt3);white-space:nowrap">${i.date}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="openIssueModal('${i.id}')" title="Editar">✎</button>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="delIssue('${i.id}')" title="Eliminar">✕</button>
+    </td>
+  </tr>`).join()||'<tr><td colspan="8" style="text-align:center;color:var(--txt3);padding:24px">Sin issues registrados — usa "+ Nuevo issue" para agregar</td></tr>';
+
+  const open=S.issues.filter(i=>i.status!=='resuelto').length;
+  const b=document.getElementById('ib');
+  b.textContent=open; b.style.display=open?'':'none';
+}
+
+function openIssueModal(id){
+  ['i-titulo','i-desc','i-resp'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('i-edit-id').value='';
+  document.getElementById('m-issue-title').textContent='Nuevo Issue';
+  if(id){
+    const iss=S.issues.find(i=>i.id===id);
+    if(iss){
+      document.getElementById('m-issue-title').textContent='Editar Issue';
+      document.getElementById('i-edit-id').value=id;
+      document.getElementById('i-titulo').value=iss.title;
+      document.getElementById('i-agente').value=iss.agent;
+      document.getElementById('i-tipo').value=iss.tipo;
+      document.getElementById('i-prio').value=iss.priority;
+      document.getElementById('i-resp').value=iss.resp||'';
+      document.getElementById('i-desc').value=iss.desc||'';
+    }
+  }
+  document.getElementById('m-issue').style.display='flex';
+}
+
+function saveIssue(){
+  const title=document.getElementById('i-titulo').value.trim();
+  if(!title){alert('El título es requerido');return;}
+  const eid=document.getElementById('i-edit-id').value;
+  const iss={
+    id:eid||'iss_'+Date.now(),title,
+    agent:document.getElementById('i-agente').value,
+    tipo:document.getElementById('i-tipo').value,
+    priority:document.getElementById('i-prio').value,
+    resp:document.getElementById('i-resp').value,
+    desc:document.getElementById('i-desc').value,
+    status:eid?(S.issues.find(i=>i.id===eid)?.status||'abierto'):'abierto',
+    date:new Date().toLocaleDateString('es-MX'),
+  };
+  if(eid){ const idx=S.issues.findIndex(i=>i.id===eid);if(idx>=0)S.issues[idx]=iss;else S.issues.unshift(iss); }
+  else S.issues.unshift(iss);
+  save(); closeM('m-issue'); renderIssues();
+}
+
+function delIssue(id){ if(!confirm('¿Eliminar?'))return;S.issues=S.issues.filter(i=>i.id!==id);save();renderIssues(); }
+function upIssue(id,status){ const i=S.issues.find(x=>x.id===id);if(i){i.status=status;save();renderIssues();} }
+
+// ══════════════════════════════════════════════════════════════
+//  SANDBOX
+// ══════════════════════════════════════════════════════════════
+function onSBAgent(){
+  const v=document.getElementById('sb-agent-sel').value;
+  curSBAgent=v;
+  curSess=null;
+  document.getElementById('sb-sess').textContent='sin sesión';
+  ['cfg-hh','cfg-voz','cfg-eva','sb-cases'].forEach(id=>document.getElementById(id).style.display='none');
+  clearChat();
+
+  if(v==='hh'){
+    document.getElementById('sb-agent-lbl').textContent='Agente HH — Citas';
+    document.getElementById('sb-status').className='badge b-green';
+    document.getElementById('sb-status').textContent='● Activo';
+    document.getElementById('cfg-hh').style.display='';
+    const tok=localStorage.getItem(HH_TOKEN_KEY)||'';
+    document.getElementById('hh-tok').value=tok;
+    if(tok) addSysMsg('Token cargado automáticamente ✓');
+    addSysMsg('Agente HH listo — API REST net2phone');
+  } else if(v==='sdr-voz'){
+    document.getElementById('sb-agent-lbl').textContent='SDR Voz';
+    document.getElementById('sb-status').className='badge b-green';
+    document.getElementById('sb-status').textContent='● Activo';
+    document.getElementById('cfg-voz').style.display='';
+    fillSelect('voz-prop',S.propietarios);
+    addSysMsg('SDR Voz listo — completa el formulario y dispara la llamada');
+  } else if(v==='eva-mx'||v==='eva-cr'){
+    const ag=S.agents.find(a=>a.id===v);
+    document.getElementById('sb-agent-lbl').textContent=ag?.name||v;
+    document.getElementById('sb-status').className='badge b-blue';
+    document.getElementById('sb-status').textContent='↗ Externo';
+    document.getElementById('cfg-eva').style.display='';
+    document.getElementById('eva-cfg-title').textContent=ag?.name||v;
+    document.getElementById('eva-wid').textContent=ag?.wid||DAPTA_LINKS[v]?.wid||'—';
+    document.getElementById('eva-dapta-link').href=DAPTA_LINKS[v]?.url||'#';
+    addSysMsg('Las pruebas de Eva Whatson se realizan directamente en Dapta Studio');
+  }
+  onSBMode();
+  // Load tool cases for this agent
+  renderToolCasesForAgent(v);
+}
+
+function onSBMode(){
+  const mode=document.getElementById('sb-mode-sel').value;
+  document.getElementById('sb-cases').style.display=mode==='caso'?'':'none';
+  if(mode==='caso') renderCasesPanel(curSBAgent);
+}
+
+function renderCasesPanel(agentId){
+  const cases=S.cases.filter(c=>c.agent===agentId);
+  const el=document.getElementById('cases-panel');
+  el.innerHTML=cases.length?cases.map(c=>`
+    <div class="tcase">
+      <div class="tcase-name">📁 ${c.name}<span class="badge b-gray" style="font-size:9px">${c.msgs.length} msgs</span></div>
+      <div class="tcase-msgs">${c.msgs.map(m=>`<button class="preset-btn" onclick="sendPreset('${m.replace(/'/g,"\\'")}')">${m.slice(0,40)}${m.length>40?'...':''}</button>`).join('')}</div>
+      ${c.notes?`<div style="font-size:10px;color:var(--txt3);margin-top:8px">📝 ${c.notes}</div>`:''}
+    </div>`).join('')
+    :'<div style="font-size:11px;color:var(--txt3);text-align:center;padding:16px">Sin casos para este agente.<br>Crea uno con "Gestionar casos".</div>';
+}
+
+function renderToolCasesForAgent(agentId){
+  const tools=S.tools[agentId]||[];
+  const toolCases=tools.filter(t=>t.cases&&t.cases.length>0);
+  const wrap=document.getElementById('chat-presets-wrap');
+  const presets=document.getElementById('chat-presets');
+  if(!toolCases.length){ if(wrap) wrap.style.display='none'; return; }
+  if(wrap) wrap.style.display='';
+  presets.style.display='none';
+  const icon=document.getElementById('presets-toggle-icon');
+  if(icon) icon.textContent='▾ mostrar';
+  presets.innerHTML=toolCases.flatMap(t=>t.cases.map(c=>`<button class="preset-btn" title="${t.name}" onclick="sendPreset('${c.replace(/'/g,"\'")}')">[${t.name}] ${c.slice(0,30)}</button>`)).join('');
+}
+
+function togglePresets(){
+  const presets=document.getElementById('chat-presets');
+  const icon=document.getElementById('presets-toggle-icon');
+  const open=presets.style.display==='none';
+  presets.style.display=open?'flex':'none';
+  if(open){ presets.style.flexWrap='wrap'; presets.style.gap='6px'; }
+  icon.textContent=open?'▴ ocultar':'▾ mostrar';
+}
+
+async function sendMsg(){
+  const inp=document.getElementById('chat-in');
+  const text=inp.value.trim();
+  if(!text||!curSBAgent) return;
+  inp.value='';
+  addUserMsg(text);
+  if(curSBAgent==='hh') await sendHH(text);
+  else if(curSBAgent==='sdr-voz') addSysMsg('El SDR Voz se activa vía formulario → "Disparar llamada"');
+  else addSysMsg('Las pruebas de Eva se realizan en Dapta Studio → usa el botón del panel derecho');
+}
+
+async function sendHH(text){
+  const cam=document.getElementById('hh-cam').value;
+  let sv={};
+  try{sv=JSON.parse(document.getElementById('hh-sv').value||'{}');}catch(e){}
+  sv.campana_agente=cam;
+  addSysMsg('Enviando...');
+  const payload={message:text,stored_values:cam,stream:false};
+  if(curSess) payload.session_id=curSess;
+  try{
+    const r=await fetch(HH_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(d.session_id) curSess=d.session_id;
+    document.getElementById('sb-sess').textContent=curSess;
+    // Remove "Enviando..." msg
+    const msgs=document.getElementById('chat-msgs');
+    msgs.querySelectorAll('.cm.sys').forEach(m=>{if(m.textContent==='Enviando...')m.remove();});
+    if(d.type==='function') addFnMsg(`🔧 ${d.function_name}\n${JSON.stringify(d.arguments,null,2)}`);
+    else addAgentMsg(d.message||JSON.stringify(d));
+  }catch(e){
+    document.getElementById('chat-msgs').querySelectorAll('.cm.sys').forEach(m=>{if(m.textContent==='Enviando...')m.remove();});
+    addSysMsg('⚠ Error: '+e.message);
+  }
+}
+
+async function dispararLlamada(){
+  const num=document.getElementById('voz-num').value.trim();
+  if(!num){addSysMsg('⚠ Ingresa un número');return;}
+  addSysMsg('📞 Disparando llamada a '+num+'...');
+  const payload={'Número':num,'ID':'108568050698','Correo':'manuel.briones@huli.io','Contact_name':document.getElementById('voz-cn').value||'Manuel','Especialidad':document.getElementById('voz-esp').value,'propietario':document.getElementById('voz-prop').value,'País':document.getElementById('voz-pais').value};
+  try{
+    const r=await fetch(VOZ_HOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const t=await r.text();
+    const msgs=document.getElementById('chat-msgs');
+    msgs.querySelectorAll('.cm.sys').forEach(m=>{if(m.textContent.includes('Disparando'))m.remove();});
+    addAgentMsg('✓ Llamada disparada — Status: '+r.status+'\n'+(t.slice(0,200)||'OK'));
+  }catch(e){
+    document.getElementById('chat-msgs').querySelectorAll('.cm.sys').forEach(m=>{if(m.textContent.includes('Disparando'))m.remove();});
+    addSysMsg('⚠ Error: '+e.message);
+  }
+}
+
+function saveToken(){
+  const tok=document.getElementById('hh-tok').value.trim();
+  if(!tok){alert('Ingresa un token');return;}
+  localStorage.setItem(HH_TOKEN_KEY,tok);
+  addSysMsg('✓ Token guardado en localStorage');
+}
+
+function newSess(){
+  curSess='sess_'+Math.random().toString(36).substr(2,9);
+  document.getElementById('sb-sess').textContent=curSess;
+  addSysMsg('↺ Nueva sesión: '+curSess);
+}
+
+function sendPreset(msg){ document.getElementById('chat-in').value=msg; sendMsg(); }
+
+function addUserMsg(t){ add('user',t); }
+function addAgentMsg(t){ add('agent',t); }
+function addSysMsg(t){ add('sys',t); }
+function addFnMsg(t){ add('fn',t); }
+
+function add(cls,text){
+  const el=document.getElementById('chat-msgs');
+  const d=document.createElement('div');
+  d.className='cm '+cls;
+  d.style.whiteSpace='pre-wrap';
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+
+function clearChat(){
+  document.getElementById('chat-msgs').innerHTML='<div class="cm sys">Chat limpiado — nueva conversación</div>';
+  curSess=null;
+  const se=document.getElementById('sb-sess');
+  if(se) se.textContent='sin sesión';
+  document.getElementById('chat-presets').style.display='none';
+  document.getElementById('chat-presets').innerHTML='';
+}
+
+function fillSelect(id,opts){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.innerHTML=opts.map(o=>`<option value="${o}">${o}</option>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CASES
+// ══════════════════════════════════════════════════════════════
+function openCaseMgr(){ renderCasesMgr(); document.getElementById('m-cases').style.display='flex'; }
+function showCaseForm(){ document.getElementById('case-form-wrap').style.display=''; document.getElementById('cf-name').value='';document.getElementById('cf-msgs').value='';document.getElementById('cf-notes').value=''; }
+
+function saveCase(){
+  const name=document.getElementById('cf-name').value.trim();
+  if(!name){alert('Nombre requerido');return;}
+  const msgs=document.getElementById('cf-msgs').value.split('\n').filter(m=>m.trim());
+  S.cases.push({id:'case_'+Date.now(),name,agent:document.getElementById('cf-agent').value,msgs,notes:document.getElementById('cf-notes').value});
+  save();
+  document.getElementById('case-form-wrap').style.display='none';
+  renderCasesMgr();
+  if(curSBAgent) renderCasesPanel(curSBAgent);
+}
+
+function renderCasesMgr(){
+  const el=document.getElementById('cases-mgr-list');
+  el.innerHTML=S.cases.length?S.cases.map(c=>`
+    <div class="tool-card">
+      <div class="tool-hd"><span class="tool-name">📁 ${c.name}</span><span class="badge b-gray">${S.agents.find(a=>a.id===c.agent)?.name||c.agent}</span><button class="btn btn-danger btn-sm btn-icon" onclick="delCase('${c.id}')">✕</button></div>
+      <div style="font-size:10px;color:var(--txt3)">${c.msgs.length} mensajes · ${c.notes||'Sin notas'}</div>
+    </div>`).join('')
+    :'<div class="empty"><div class="empty-icon">📁</div><p>Sin casos guardados</p></div>';
+}
+
+function delCase(id){ S.cases=S.cases.filter(c=>c.id!==id);save();renderCasesMgr(); }
+
+// ══════════════════════════════════════════════════════════════
+//  RUNBOOKS
+// ══════════════════════════════════════════════════════════════
+const DEF_RB={
+  hh:['Verificar estado de la API net2phone en el admin panel','Revisar el token de autenticación — puede haber expirado','Verificar conectividad con Supabase (tools: AgendarHH, DataMed)','Revisar logs de errores en el canal de Slack','Probar mensaje de prueba en Sandbox con campaña CostaRica','Si persiste, escalar al equipo técnico de net2phone','Documentar el incidente en Issues con prioridad crítico'],
+  'sdr-voz':['Verificar que el webhook de Dapta esté activo','Confirmar que el número destino tiene señal y está disponible','Revisar configuración del agente en Dapta Studio','Probar con número alternativo para descartar problemas de línea','Revisar logs en la plataforma Dapta','Documentar el incidente en Issues'],
+  'eva-mx':['Verificar el agentId del widget Dapta MX','Revisar settings del agente en Dapta Studio','Probar conversación de prueba','Documentar incidentes en Issues'],
+  'eva-cr':['Verificar el agentId del widget Dapta CR','Revisar settings del agente en Dapta Studio','Probar conversación de prueba','Documentar incidentes en Issues'],
+};
+
+function loadRB(id){
+  if(!id) return;
+  if(!S.runbooks[id]) S.runbooks[id]=[...(DEF_RB[id]||[])];
+  const ag=S.agents.find(a=>a.id===id)?.name||id;
+  document.getElementById('rb-content').innerHTML=`
+    <div class="card-hd"><span class="card-title">Runbook — ${ag}</span></div>
+    <p style="font-size:11px;color:var(--txt3);margin-bottom:14px">Pasos a seguir cuando el agente presenta problemas.</p>
+    <div id="rb-steps">${S.runbooks[id].map((s,i)=>`
+      <div class="rb-item">
+        <input type="checkbox" class="rb-cb" onchange="this.nextElementSibling.classList.toggle('done',this.checked)">
+        <span class="rb-text">${s}</span>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="removeRBStep(${i},'${id}')">✕</button>
+      </div>`).join('')}</div>`;
+  save();
+}
+
+function addRBStep(){
+  const id=document.getElementById('rb-agent-sel').value;
+  if(!id){alert('Selecciona un agente');return;}
+  const s=prompt('Nuevo paso:');
+  if(!s) return;
+  S.runbooks[id].push(s);save();loadRB(id);
+}
+
+function removeRBStep(i,id){ S.runbooks[id].splice(i,1);save();loadRB(id); }
+function saveRB(){ save();addSysMsg&&alert('Runbook guardado ✓'); }
+
+// ══════════════════════════════════════════════════════════════
+//  PROMPTS
+// ══════════════════════════════════════════════════════════════
+function loadPrompts(id){
+  curPromptAgent=id;
+  if(!id) return;
+  const vs=S.prompts[id]||[];
+  document.getElementById('pr-editor').value=vs[0]?.content||'';
+  document.getElementById('pv-tag').textContent=vs.length?'v'+vs.length:'v0';
+  renderPVList(id);
+}
+
+function renderPVList(id){
+  const vs=S.prompts[id]||[];
+  document.getElementById('pv-list').innerHTML=vs.length?vs.map((v,i)=>`
+    <div class="vitem ${i===0?'cur':''}" onclick="loadPV('${id}',${i})">
+      <div class="vmeta"><div class="vname">${v.label||'Versión '+(vs.length-i)}</div><div class="vdate">${v.date} · ${v.author||'—'}</div></div>
+      <span class="vtag">v${vs.length-i}</span>
+      ${i===0?'<span class="badge b-green" style="font-size:9px">activo</span>':''}
+    </div>`).join('')
+    :'<div class="empty"><div class="empty-icon">✦</div><p>Sin versiones</p></div>';
+}
+
+function loadPV(id,i){ const v=(S.prompts[id]||[])[i];if(v)document.getElementById('pr-editor').value=v.content; }
+
+function savePromptV(){
+  if(!curPromptAgent){alert('Selecciona un agente');return;}
+  const content=document.getElementById('pr-editor').value.trim();
+  if(!content){alert('El prompt no puede estar vacío');return;}
+  const label=prompt('Nombre de esta versión:','Actualización');
+  if(label===null) return;
+  if(!S.prompts[curPromptAgent]) S.prompts[curPromptAgent]=[];
+  S.prompts[curPromptAgent].unshift({content,label:label||'Sin nombre',date:new Date().toLocaleDateString('es-MX'),author:'Usuario'});
+  save();renderPVList(curPromptAgent);
+  document.getElementById('pv-tag').textContent='v'+S.prompts[curPromptAgent].length;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TOOLS
+// ══════════════════════════════════════════════════════════════
+const DEF_TOOLS={
+  hh:[
+    {id:'AgendarHH',name:'AgendarHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-agendarhh--supabase?x-api-key=ElGiW-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarHH/edit',inst:'Agenda una cita. Requiere: Nombre, idClinic, Fecha, IDevento, CO del Doctor, IdPaciente, session_id, Hora, CAM.',cases:['Agendar cita con Manuel Briones el martes a las 10am','Agendar cita para paciente nuevo en HuliHealth CostaRica']},
+    {id:'AgendarPCN',name:'AgendarPCN',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-agendarhh--supabase?x-api-key=ElGiW-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarPCN/edit',inst:'Agenda cita para paciente nuevo en clínica.',cases:['Quiero agendar mi primera consulta']},
+    {id:'CLINICINF',name:'CLINICINF',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-direccionhh----supabase-1?x-api-key=aKJJH-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CLINICINF/edit',inst:'Obtiene información de la clínica: dirección, teléfono, datos del doctor.',cases:['¿Dónde queda la clínica del Dr. Briones?','¿Cuál es el teléfono de la clínica?']},
+    {id:'CancelarHH',name:'CancelarHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-cancelarhh----supabase?x-api-key=TmyWf-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CancelarHH/edit',inst:'Cancela una cita existente. Requiere: eventID, CAM, session_id, CO del Doctor.',cases:['Quiero cancelar mi cita de mañana','Necesito cancelar la consulta del martes']},
+    {id:'DataMed',name:'DataMed',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-base-de-datos-agente-supabase----consultas?x-api-key=Awo7a-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DataMed/edit',inst:'Consulta base de datos de médicos. Devuelve CO del doctor.',cases:['Busco al Dr. Manuel Briones','¿Hay un cardiólogo disponible?']},
+    {id:'DisponibilidadHH',name:'DisponibilidadHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-disponibilidadhh----supabase-1?x-api-key=oMy41-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadHH/edit',inst:'Consulta disponibilidad del médico. Requiere: Fecha (yyyy-mm-dd), CO, idClinic, campana_agente.',cases:['¿Tiene disponibilidad el Dr. Briones el próximo lunes?','¿Qué horarios tiene el martes?']},
+    {id:'DisponibilidadnextHH',name:'DisponibilidadnextHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-disponibilidadhh----supabase-1?x-api-key=oMy41-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadnextHH/edit',inst:'Próxima disponibilidad del médico a partir de una fecha.',cases:['¿Cuándo es la próxima cita disponible?']},
+    {id:'InfoMD',name:'InfoMD',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-busqueda-por-especialidad---hh?x-api-key=VLGbA-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/InfoMD/edit',inst:'Búsqueda de médicos por especialidad. Requiere: Zona, Seguro, Especialidad, CAM.',cases:['Busco un cardiólogo en San José','¿Tienen dermatólogos disponibles?']},
+    {id:'ValidarDRHH',name:'ValidarDRHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-verificarinfodrhh---supabase?x-api-key=SLXvl-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/ValidarDRHH/edit',inst:'Verifica información del doctor. Requiere CAM y CO del Doctor.',cases:['Verificar doctor Manuel Briones']},
+    {id:'VcitaHH',name:'VcitaHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-v2-verificar_citapchh---supabase?x-api-key=AKJjB-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VcitaHH/edit',inst:'Verifica cita existente del paciente.',cases:['¿Tengo cita mañana?','Verificar mi cita del jueves']},
+    {id:'VerificarHHN',name:'VerificarHHN',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-v2-verificar_citapchh---supabase?x-api-key=AKJjB-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VerificarHHN/edit',inst:'Verifica cita (versión nueva). Campos: CO del Doctor, Hora, CAM, Fecha, ID paciente.',cases:['Confirmar mi cita']},
+    {id:'getDate',name:'getDate',method:'POST',url:'https://hulicr.ucontactcloud.com/IntegraChannels/resources/webhook/getDate',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate/edit',inst:'Obtiene la fecha actual del sistema según campana_agente.',headers:{'Authorization':'Bearer dUNBcmd1ZWxsby1zZW5kTWVzc2FnZTpkMTg0MTFkMi02N2MzLTQxNWMtYmM0My04OWRmMDVmYjBkM2E=','Content-Type':'application/json'},cases:[]},
+    {id:'getDate10',name:'getDate10',method:'POST',url:'https://hulicr.ucontactcloud.com/IntegraChannels/resources/webhook/getDate',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate10/edit',inst:'Obtiene la fecha actual +10 días.',headers:{'Authorization':'Bearer dUNBcmd1ZWxsby1zZW5kTWVzc2FnZTpkMTg0MTFkMi02N2MzLTQxNWMtYmM0My04OWRmMDVmYjBkM2E=','Content-Type':'application/json'},cases:[]},
+  ],
+  'sdr-voz':[
+    {id:'Agendar',name:'Agendar',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-espacios-1?x-api-key=H4VNb-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://app.dapta.ai/apis/api/H4VNb?api_id=H4VNb&api_name=Agendar%20v2&explorer=true',inst:'Agenda una demo/reunión. Requiere: propietario, correo, year, month (2 dígitos), day (2 dígitos), hour (2 dígitos), minute (2 dígitos), contact_name.',cases:['Agendar demo con médico interesado el lunes a las 10am','Agendar reunión de seguimiento']},
+    {id:'Espacios',name:'Espacios',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/espacios?x-api-key=dPui3-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://app.dapta.ai/apis/api/dPui3?api_id=dPui3&api_name=espacios-1&explorer=true',inst:'Consulta espacios disponibles del propietario.',cases:['¿Qué espacios tiene kevin disponibles esta semana?']},
+  ],
+};
+
+function loadTools(id){
+  curToolsAgent=id;
+  if(!id){ document.getElementById('tools-list').innerHTML='<div class="empty card"><div class="empty-icon">⚙</div><p>Selecciona un agente</p></div>';return; }
+  if(!S.tools[id]&&DEF_TOOLS[id]){ S.tools[id]=[...DEF_TOOLS[id]];save(); }
+  renderTools(id);
+}
+
+function renderTools(id){
+  const tools=S.tools[id]||[];
+  const ag=S.agents.find(a=>a.id===id)?.name||id;
+  document.getElementById('tools-list').innerHTML=tools.length?
+    `<div style="margin-bottom:10px;font-size:11px;color:var(--txt3)">${tools.length} tools para ${ag}</div>`+
+    tools.map(t=>`
+      <div class="tool-card">
+        <div class="tool-hd">
+          <span class="tool-name">${t.name}</span>
+          <span class="${t.method==='GET'?'mget':'mpost'}">${t.method}</span>
+          ${t.cfgLink?`<a href="${t.cfgLink}" target="_blank" class="tool-link">Config ↗</a>`:''}
+          <button class="btn btn-primary btn-sm" onclick="openToolExec('${id}','${t.id}')">▶ Ejecutar</button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="openToolModal('${id}','${t.id}')" title="Editar">✎</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="delTool('${id}','${t.id}')" title="Eliminar">✕</button>
+        </div>
+        <div class="tool-url">${t.url}</div>
+        ${t.headers&&Object.keys(t.headers).length?`<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:4px">${Object.entries(t.headers).map(([k,v])=>`<span class="badge b-cyan" style="font-size:9px;font-family:var(--mono)">${k}: ${v.slice(0,20)}${v.length>20?'...':''}</span>`).join('')}</div>`:''}
+        <div class="tool-inst">${t.inst||'Sin instrucciones'}</div>
+        ${t.cases&&t.cases.length?`<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px">${t.cases.map(c=>`<span class="badge b-purple" style="font-size:9px">📋 ${c.slice(0,30)}</span>`).join('')}</div>`:''}
+      </div>`).join('')
+    :'<div class="empty card"><div class="empty-icon">⚙</div><p>Sin tools registradas</p></div>';
+}
+
+function openToolModal(agentId,toolId){
+  document.getElementById('t-edit-id').value=toolId||'';
+  document.getElementById('t-edit-agent').value=agentId||curToolsAgent||'';
+  ['t-name','t-url','t-cfglink','t-inst','t-cases'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('t-method').value='POST';
+  document.getElementById('m-tool-title').textContent=toolId?'Editar Tool':'Nueva Tool';
+  if(toolId){
+    const t=(S.tools[agentId]||[]).find(x=>x.id===toolId);
+    if(t){
+      document.getElementById('t-name').value=t.name;
+      document.getElementById('t-method').value=t.method;
+      document.getElementById('t-url').value=t.url;
+      document.getElementById('t-cfglink').value=t.cfgLink||'';
+      document.getElementById('t-inst').value=t.inst||'';
+      document.getElementById('t-headers').value=Object.entries(t.headers||{}).map(([k,v])=>k+': '+v).join('\n');
+      document.getElementById('t-cases').value=(t.cases||[]).join('\n');
+    }
+  }
+  document.getElementById('m-tool').style.display='flex';
+}
+
+function saveTool(){
+  const name=document.getElementById('t-name').value.trim();
+  if(!name){alert('Nombre requerido');return;}
+  const agId=document.getElementById('t-edit-agent').value||curToolsAgent;
+  const eid=document.getElementById('t-edit-id').value;
+  const headersRaw=document.getElementById('t-headers').value.trim();
+  const headers={};
+  headersRaw.split('\n').forEach(line=>{const idx=line.indexOf(':');if(idx>0){const k=line.slice(0,idx).trim();const v=line.slice(idx+1).trim();if(k)headers[k]=v;}});
+  const t={id:eid||name,name,method:document.getElementById('t-method').value,url:document.getElementById('t-url').value.trim(),cfgLink:document.getElementById('t-cfglink').value.trim(),inst:document.getElementById('t-inst').value.trim(),headers,cases:document.getElementById('t-cases').value.split('\n').filter(x=>x.trim())};
+  if(!S.tools[agId]) S.tools[agId]=[];
+  if(eid){ const i=S.tools[agId].findIndex(x=>x.id===eid);if(i>=0)S.tools[agId][i]=t;else S.tools[agId].push(t); }
+  else S.tools[agId].push(t);
+  save();closeM('m-tool');renderTools(agId);
+}
+
+function delTool(agId,id){ if(!confirm('¿Eliminar?'))return;S.tools[agId]=(S.tools[agId]||[]).filter(t=>t.id!==id);save();renderTools(agId); }
+
+// ══════════════════════════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════════════════════════
+function renderCfgAgents(){
+  document.getElementById('cfg-agents-list').innerHTML=S.agents.map(a=>`
+    <div class="tool-card">
+      <div class="tool-hd">
+        <span class="tool-name">${a.name}</span>
+        <span class="badge b-green">${a.status}</span>
+        <span class="badge b-blue">${a.type}</span>
+        <span class="badge b-gray">${a.canal}</span>
+        ${!['hh','sdr-voz','eva-mx','eva-cr'].includes(a.id)?`<button class="btn btn-danger btn-sm btn-icon" onclick="delAgent('${a.id}')">✕</button>`:''}
+      </div>
+      <div style="font-size:11px;color:var(--txt3)">${a.desc||'—'}</div>
+    </div>`).join('');
+}
+
+function openAgentModal(){ document.getElementById('m-agent').style.display='flex'; }
+function onAConn(){ const v=document.getElementById('a-conn').value;document.getElementById('a-wid-g').style.display=v==='widget'?'':'none'; }
+
+function saveAgent(){
+  const name=document.getElementById('a-name').value.trim();
+  if(!name){alert('Nombre requerido');return;}
+  S.agents.push({id:'agt_'+Date.now(),name,status:'online',type:document.getElementById('a-conn').value,canal:document.getElementById('a-canal').value,endpoint:document.getElementById('a-ep').value,token:document.getElementById('a-tok').value,wid:document.getElementById('a-wid').value,desc:document.getElementById('a-desc').value,connector:'custom'});
+  save();closeM('m-agent');renderCfgAgents();renderSBAgents();
+}
+
+function delAgent(id){ if(!confirm('¿Eliminar?'))return;S.agents=S.agents.filter(a=>a.id!==id);save();renderCfgAgents();renderSBAgents(); }
+
+function renderProps(){
+  document.getElementById('props-tags').innerHTML=S.propietarios.map(p=>`<div class="tag">${p}<span class="tag-x" onclick="delProp('${p}')">✕</span></div>`).join('');
+}
+function addProp(){ const v=document.getElementById('new-prop').value.trim().toLowerCase();if(!v)return;if(!S.propietarios.includes(v))S.propietarios.push(v);document.getElementById('new-prop').value='';save();renderProps(); }
+function delProp(p){ S.propietarios=S.propietarios.filter(x=>x!==p);save();renderProps(); }
+
+function renderSDRL(){
+  document.getElementById('sdrl-tags').innerHTML=S.sdrList.map(s=>`<div class="tag">${s}<span class="tag-x" onclick="delSDRL('${s}')">✕</span></div>`).join('');
+}
+function addSDRL(){ const v=document.getElementById('new-sdrl').value.trim().toLowerCase();if(!v)return;if(!S.sdrList.includes(v))S.sdrList.push(v);document.getElementById('new-sdrl').value='';save();renderSDRL(); }
+function delSDRL(s){ S.sdrList=S.sdrList.filter(x=>x!==s);save();renderSDRL(); }
+
+function cfgTab(tab,el){
+  document.querySelectorAll('#page-config .tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#page-config .tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('cfg-'+tab).classList.add('active');
+  el.classList.add('active');
+}
+
+function exportData(){ const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='huli-ops-'+new Date().toISOString().slice(0,10)+'.json';a.click(); }
+function importData(e){ const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{S={...defState(),...JSON.parse(ev.target.result)};save();location.reload();}catch(err){alert('Error: '+err.message);}};r.readAsText(f); }
+
+// ══════════════════════════════════════════════════════════════
+//  CADENCIA
+// ══════════════════════════════════════════════════════════════
+const WTASKS=['Revisar dashboard Agente HH — tasa de autogestión','Revisar dashboard SDR — llamadas exitosas y demos','Verificar issues críticos abiertos','Muestreo de 5 conversaciones por agente','Revisar canal de Slack (errores y feedback del equipo)','Priorizar mejoras del backlog','Ejecutar pruebas en Sandbox con casos pre-armados','Documentar cambios en prompts o tools'];
+
+function renderChecklist(){
+  const tasks=S.weeklyChecklist||WTASKS.map(t=>({text:t,done:false}));
+  document.getElementById('weekly-cl').innerHTML=tasks.map((t,i)=>`
+    <div class="rb-item">
+      <input type="checkbox" class="rb-cb" ${t.done?'checked':''} onchange="toggleTask(${i},this.checked)">
+      <span class="rb-text ${t.done?'done':''}">${t.text}</span>
+    </div>`).join('');
+}
+
+function toggleTask(i,done){ if(!S.weeklyChecklist) S.weeklyChecklist=WTASKS.map(t=>({text:t,done:false}));S.weeklyChecklist[i].done=done;save();renderChecklist(); }
+function resetChecklist(){ S.weeklyChecklist=WTASKS.map(t=>({text:t,done:false}));save();renderChecklist(); }
+
+// ══════════════════════════════════════════════════════════════
+//  SIDEBAR AGENTS
+// ══════════════════════════════════════════════════════════════
+function renderSBAgents(){
+  document.getElementById('sb-agents').innerHTML=
+    '<div class="sb-label" style="padding:0 6px;margin-bottom:5px">Estado agentes</div>'+
+    S.agents.map(a=>`<div class="sb-agent-row"><span class="sa-dot ${a.status==='online'?'on':'off'}"></span><span class="sa-name">${a.name.split('—')[0].trim()}</span><span class="sa-tag">${a.canal}</span></div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MODALS
+// ══════════════════════════════════════════════════════════════
+function closeM(id){ document.getElementById(id).style.display='none'; }
+
+// ══════════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════════
+(async()=>{
+  document.getElementById('lmsg').textContent='Cargando datos SDR...';
+  try{ SDR=await fetchSDR(); }catch(e){ console.error('SDR fetch error:',e); }
+  document.getElementById('loader').style.display='none';
+  renderSBAgents();
+  renderIssues();
+  renderChecklist();
+  document.getElementById('last-upd').textContent='Act: '+new Date().toLocaleTimeString('es-MX');
+})();
+
+// ══════════════════════════════════════════════════════════════
+//  TOOL DEFAULT PARAMS
+// ══════════════════════════════════════════════════════════════
+const TEX_DEFAULT_PARAMS = {
+  // Agente HH
+  'AgendarHH': [
+    {k:'Nombre', v:'Manuel Briones'},
+    {k:'idClinic', v:''},
+    {k:'Paciente_Nuevo', v:'No'},
+    {k:'Fecha', v:''},
+    {k:'IDevento', v:''},
+    {k:'CO del Doctor', v:''},
+    {k:'IdPaciente', v:''},
+    {k:'session_id', v:''},
+    {k:'Hora', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+  ],
+  'AgendarPCN': [
+    {k:'Nombre', v:'Manuel'},
+    {k:'Apellido', v:'Briones'},
+    {k:'Correo', v:'manuel.briones@huli.io'},
+    {k:'idClinic', v:''},
+    {k:'Genero', v:''},
+    {k:'Paciente_Nuevo', v:'Si'},
+    {k:'Fecha', v:''},
+    {k:'Fnacimiento', v:''},
+    {k:'CO del Doctor', v:''},
+    {k:'IdPaciente', v:''},
+    {k:'tipoID', v:''},
+    {k:'provincia', v:''},
+    {k:'Hora', v:''},
+    {k:'Telefono', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'IDevento', v:''},
+  ],
+  'CLINICINF': [
+    {k:'idClinic', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'CO del Doctor', v:''},
+  ],
+  'CancelarHH': [
+    {k:'eventID', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'session_id', v:''},
+    {k:'CO del Doctor', v:''},
+  ],
+  'DataMed': [
+    {k:'Nombre', v:'Manuel Briones'},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+  ],
+  'DisponibilidadHH': [
+    {k:'idClinic', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'Fecha', v:'2026-05-05'},
+    {k:'CO del Doctor', v:''},
+  ],
+  'DisponibilidadnextHH': [
+    {k:'idClinic', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'Fecha', v:'2026-05-05'},
+    {k:'CO del Doctor', v:''},
+  ],
+  'InfoMD': [
+    {k:'Zona', v:''},
+    {k:'Seguro', v:''},
+    {k:'Especialidad', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+  ],
+  'ValidarDRHH': [
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'CO del Doctor', v:''},
+  ],
+  'VcitaHH': [
+    {k:'Nombre', v:'Manuel'},
+    {k:'idPaciente', v:''},
+    {k:'Hora', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'Fecha', v:''},
+    {k:'Apellido', v:'Briones'},
+    {k:'CO del Doctor', v:''},
+  ],
+  'VerificarHHN': [
+    {k:'CO del Doctor', v:''},
+    {k:'Hora', v:''},
+    {k:'CAM', v:'HuliHealth_CostaRica'},
+    {k:'Fecha', v:''},
+    {k:'ID de paciente', v:''},
+  ],
+  'getDate': [
+    {k:'campana_agente', v:'HuliHealth_CostaRica'},
+  ],
+  'getDate10': [
+    {k:'campana_agente', v:'HuliHealth_CostaRica'},
+  ],
+  // SDR
+  'Agendar': [
+    {k:'propietario', v:'kevin'},
+    {k:'correo', v:'manuel.briones@huli.io'},
+    {k:'year', v:'2026'},
+    {k:'month', v:'05'},
+    {k:'day', v:'05'},
+    {k:'hour', v:'10'},
+    {k:'minute', v:'00'},
+    {k:'contact_name', v:'Manuel'},
+  ],
+  'Espacios': [
+    {k:'propietario', v:'kevin'},
+  ],
+};
+
+// ══════════════════════════════════════════════════════════════
+//  TOOL EXECUTOR
+// ══════════════════════════════════════════════════════════════
+let curTexTool = null;
+let curTexAgent = null;
+let curTexMode = 'form';
+
+function openToolExec(agentId, toolId){
+  const t=(S.tools[agentId]||[]).find(x=>x.id===toolId);
+  if(!t) return;
+  curTexTool=t;
+  curTexAgent=agentId;
+  document.getElementById('tex-title').textContent='▶ ' + t.name;
+  document.getElementById('tex-url').textContent=t.url;
+  document.getElementById('tex-body').value='{}';
+  document.getElementById('tex-response').textContent='Ejecuta la tool para ver la respuesta...';
+  document.getElementById('tex-status').className='badge b-gray';
+  document.getElementById('tex-status').textContent='—';
+  // Reset to form mode
+  setTexMode('form');
+  // Preload default params for this tool
+  document.getElementById('tex-params').innerHTML='';
+  const defParams = TEX_DEFAULT_PARAMS[t.id] || [];
+  if(defParams.length){ defParams.forEach(p => addTexParam(p.k, p.v)); }
+  else { addTexParam(); }
+  renderTexCases(agentId, toolId);
+  document.getElementById('m-tool-exec').style.display='flex';
+}
+
+function setTexMode(mode){
+  curTexMode = mode;
+  const isForm = mode === 'form';
+  document.getElementById('tex-form-mode').style.display = isForm ? '' : 'none';
+  document.getElementById('tex-json-mode').style.display = isForm ? 'none' : '';
+  document.getElementById('tex-mode-form').classList.toggle('active', isForm);
+  document.getElementById('tex-mode-json').classList.toggle('active', !isForm);
+  // Sync between modes
+  if(!isForm){
+    // form → json
+    const body = getTexParamsAsObj();
+    document.getElementById('tex-body').value = JSON.stringify(body, null, 2);
+  } else {
+    // json → form
+    try{
+      const obj = JSON.parse(document.getElementById('tex-body').value || '{}');
+      document.getElementById('tex-params').innerHTML='';
+      const entries = Object.entries(obj);
+      if(entries.length === 0){ addTexParam(); return; }
+      entries.forEach(([k,v]) => addTexParam(k, v));
+    }catch(e){ addTexParam(); }
+  }
+}
+
+function addTexParam(key='', val=''){
+  const container = document.getElementById('tex-params');
+  const row = document.createElement('div');
+  row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:6px;align-items:center';
+  row.innerHTML = `
+    <input class="fi" placeholder="Parámetro" value="${key}" style="font-family:var(--mono);font-size:11px">
+    <input class="fi" placeholder="Valor" value="${val}" style="font-size:12px">
+    <button class="btn btn-danger btn-sm btn-icon" onclick="this.parentElement.remove()" title="Eliminar">✕</button>`;
+  container.appendChild(row);
+}
+
+function getTexParamsAsObj(){
+  const rows = document.getElementById('tex-params').querySelectorAll('div');
+  const obj = {};
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const k = inputs[0]?.value.trim();
+    const v = inputs[1]?.value.trim();
+    if(k) obj[k] = v;
+  });
+  return obj;
+}
+
+function renderTexCases(agentId, toolId){
+  const key = agentId+'__'+toolId;
+  const cases = S.toolCases && S.toolCases[key] ? S.toolCases[key] : [];
+  const el = document.getElementById('tex-cases');
+  el.innerHTML = cases.length ? cases.map((c,i) => `
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;cursor:pointer" onclick="loadTexCase(${i},'${agentId}','${toolId}')">
+      <div style="flex:1">
+        <div style="font-size:11px;font-weight:600;color:var(--txt1)">${c.name}</div>
+        <div style="font-size:10px;color:var(--txt3);font-family:var(--mono)">${Object.keys(c.params||{}).slice(0,3).join(', ')}${Object.keys(c.params||{}).length>3?'...':''}</div>
+      </div>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="event.stopPropagation();delTexCase('${agentId}','${toolId}',${i})">✕</button>
+    </div>`).join('')
+    : '<div style="font-size:11px;color:var(--txt3);text-align:center;padding:12px">Sin casos guardados aún</div>';
+}
+
+function loadTexCase(idx, agentId, toolId){
+  const key = agentId+'__'+toolId;
+  const c = S.toolCases[key][idx];
+  if(!c) return;
+  if(curTexMode === 'form'){
+    document.getElementById('tex-params').innerHTML='';
+    const entries = Object.entries(c.params||{});
+    if(entries.length === 0){ addTexParam(); return; }
+    entries.forEach(([k,v]) => addTexParam(k, v));
+  } else {
+    document.getElementById('tex-body').value = JSON.stringify(c.params||{}, null, 2);
+  }
+}
+
+function delTexCase(agentId, toolId, idx){
+  const key = agentId+'__'+toolId;
+  if(!S.toolCases||!S.toolCases[key]) return;
+  S.toolCases[key].splice(idx,1);
+  save();
+  renderTexCases(agentId, toolId);
+}
+
+function saveTexCase(){
+  let params;
+  if(curTexMode === 'form'){
+    params = getTexParamsAsObj();
+  } else {
+    try{ params = JSON.parse(document.getElementById('tex-body').value||'{}'); }
+    catch(e){ alert('JSON inválido');return; }
+  }
+  if(!Object.keys(params).length){alert('Agrega al menos un parámetro');return;}
+  const name = prompt('Nombre para este caso:','Caso de prueba');
+  if(!name) return;
+  if(!S.toolCases) S.toolCases={};
+  const key = curTexAgent+'__'+curTexTool.id;
+  if(!S.toolCases[key]) S.toolCases[key]=[];
+  S.toolCases[key].push({name, params});
+  save();
+  renderTexCases(curTexAgent, curTexTool.id);
+}
+
+function formatTexJSON(){
+  try{
+    const parsed = JSON.parse(document.getElementById('tex-body').value);
+    document.getElementById('tex-body').value = JSON.stringify(parsed, null, 2);
+  }catch(e){ alert('JSON inválido: '+e.message); }
+}
+
+function copyTexResponse(){
+  const text = document.getElementById('tex-response').textContent;
+  navigator.clipboard.writeText(text).then(()=>alert('Copiado ✓'));
+}
+
+async function runTool(){
+  if(!curTexTool) return;
+  let body;
+  if(curTexMode === 'form'){
+    body = getTexParamsAsObj();
+  } else {
+    try{ body = JSON.parse(document.getElementById('tex-body').value||'{}'); }
+    catch(e){ alert('JSON inválido: '+e.message); return; }
+  }
+
+  const btn=document.getElementById('tex-run-btn');
+  btn.textContent='⏳ Ejecutando...';
+  btn.disabled=true;
+  document.getElementById('tex-response').textContent='Ejecutando...';
+  document.getElementById('tex-status').className='badge b-gray';
+  document.getElementById('tex-status').textContent='...';
+
+  try{
+    const reqHeaders = {'Content-Type':'application/json', ...(curTexTool.headers||{})};
+    const r = await fetch(curTexTool.url, {
+      method: curTexTool.method||'POST',
+      headers: reqHeaders,
+      body: JSON.stringify(body)
+    });
+    const text = await r.text();
+    let display;
+    try{ display = JSON.stringify(JSON.parse(text), null, 2); }
+    catch(e){ display = text; }
+    document.getElementById('tex-response').textContent = display;
+    document.getElementById('tex-status').className = r.ok ? 'badge b-green' : 'badge b-err';
+    document.getElementById('tex-status').textContent = r.status + ' ' + (r.ok ? 'OK' : 'Error');
+  }catch(e){
+    document.getElementById('tex-response').textContent = '⚠ Error: '+e.message;
+    document.getElementById('tex-status').className='badge b-err';
+    document.getElementById('tex-status').textContent='Error';
+  }finally{
+    btn.textContent='▶ Ejecutar';
+    btn.disabled=false;
+  }
+}
+
+</script>
+
+<!-- Tool Executor Modal -->
+<div class="modal-ov" id="m-tool-exec" style="display:none" onclick="if(event.target===this)closeM('m-tool-exec')">
+  <div class="modal-box wide" style="width:780px;max-height:92vh">
+    <div class="modal-hd">
+      <div style="flex:1">
+        <h3 id="tex-title">Ejecutar Tool</h3>
+        <div id="tex-url" style="font-family:var(--mono);font-size:10px;color:var(--txt3);margin-top:3px;word-break:break-all;max-width:600px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px;display:flex;gap:2px">
+          <button id="tex-mode-form" class="tab active" style="padding:5px 12px;font-size:11px" onclick="setTexMode('form')">≡ Formulario</button>
+          <button id="tex-mode-json" class="tab" style="padding:5px 12px;font-size:11px" onclick="setTexMode('json')">{ } JSON</button>
+        </div>
+        <button class="modal-close" onclick="closeM('m-tool-exec')">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;overflow:hidden">
+      <!-- Left -->
+      <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto">
+        <!-- Form mode -->
+        <div id="tex-form-mode">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <label class="fl" style="margin:0">Parámetros</label>
+            <button class="btn btn-ghost btn-sm" onclick="addTexParam()">+ Agregar campo</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:2px;margin-bottom:6px;padding:0 4px">
+            <span style="font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px">Param</span>
+            <span style="font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px">Valor</span>
+            <span></span>
+          </div>
+          <div id="tex-params" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+        <!-- JSON mode -->
+        <div id="tex-json-mode" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label class="fl" style="margin:0">Body JSON</label>
+            <button class="btn btn-ghost btn-sm" onclick="formatTexJSON()">{ } Formatear</button>
+          </div>
+          <textarea class="fta" id="tex-body" style="min-height:220px;font-family:var(--mono);font-size:12px;line-height:1.6" placeholder='{
+  "param": "valor"
+}'></textarea>
+        </div>
+        <!-- Saved cases -->
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label class="fl" style="margin:0">Casos guardados</label>
+            <button class="btn btn-ghost btn-sm" onclick="saveTexCase()">💾 Guardar caso</button>
+          </div>
+          <div id="tex-cases" style="display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto"></div>
+        </div>
+      </div>
+      <!-- Right: response -->
+      <div style="display:flex;flex-direction:column;gap:8px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <label class="fl" style="margin:0">Respuesta</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span id="tex-status" class="badge b-gray">—</span>
+            <button class="btn btn-ghost btn-sm" onclick="copyTexResponse()">📋 Copiar</button>
+          </div>
+        </div>
+        <div id="tex-response" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:11px;color:var(--green2);line-height:1.7;overflow-y:auto;white-space:pre-wrap;word-break:break-all;min-height:300px;max-height:420px">Ejecuta la tool para ver la respuesta...</div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeM('m-tool-exec')">Cerrar</button>
+      <button class="btn btn-primary" id="tex-run-btn" onclick="runTool()">▶ Ejecutar</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
