@@ -1117,8 +1117,7 @@ async function sendHH(text){
   try{sv=JSON.parse(document.getElementById('hh-sv').value||'{}');}catch(e){}
   sv.campana_agente=cam;
   addSysMsg('Enviando...');
-  const payload={message:text,stored_values:sv,stream:false};
-  if(curSess) payload.session_id=curSess;
+  const payload={message:text,stored_values:JSON.stringify(sv),stream:false,session_id:curSess||''};
   try{
     const r=await fetch(HH_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const d=await r.json();
