@@ -277,10 +277,9 @@ async function runTool(){
   document.getElementById('tex-status').textContent='...';
 
   try{
-    const reqHeaders = {'Content-Type':'application/json', ...(curTexTool.headers||{})};
     const r = await fetch(curTexTool.url, {
       method: curTexTool.method||'POST',
-      headers: reqHeaders,
+      headers: {'Content-Type':'application/json'},
       body: JSON.stringify(body)
     });
     const text = await r.text();
@@ -299,6 +298,142 @@ async function runTool(){
     btn.disabled=false;
   }
 }
+
+
+// ══════════════════════════════════════════════════════════════
+//  POPULATE AGENT SELECTS DYNAMICALLY
+// ══════════════════════════════════════════════════════════════
+function populateAgentSelects(){
+  const agentOpts = S.agents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+  ['sb-agent-sel','rb-agent-sel','pr-agent-sel','tl-agent-sel'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ const cur=el.value; el.innerHTML='<option value="">Seleccionar agente...</option>'+agentOpts; if(cur) el.value=cur; }
+  });
+  const fasel=document.getElementById('f-agent-sel');
+  if(fasel) fasel.innerHTML='<option value="">Todos los agentes</option>'+agentOpts;
+  ['i-agente','cf-agent'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML=agentOpts;
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  HANDLE CUSTOM AGENTS IN SANDBOX
+// ══════════════════════════════════════════════════════════════
+function handleCustomAgent(v, agent){
+  curSBAgent=v;
+  curSess=null;
+  document.getElementById('sb-sess').textContent='sin sesión';
+  ['cfg-hh','cfg-voz','cfg-eva','sb-cases'].forEach(id=>document.getElementById(id).style.display='none');
+  clearChat();
+  document.getElementById('sb-agent-lbl').textContent=agent.name;
+  document.getElementById('sb-status').className='badge b-green';
+  document.getElementById('sb-status').textContent='● Activo';
+  addSysMsg('Agente: '+agent.name);
+  addSysMsg('Tipo: '+agent.type+' · Canal: '+agent.canal);
+  if(agent.endpoint) addSysMsg('Endpoint: '+agent.endpoint);
+  if(agent.type==='widget'||agent.type==='iframe'){
+    addSysMsg('Este agente usa widget/iframe — abre el link de configuración para probarlo.');
+    if(agent.endpoint){
+      const a=document.createElement('a');
+      a.href=agent.endpoint; a.target='_blank';
+      a.textContent='Abrir agente ↗';
+      a.style.cssText='color:var(--accent2);font-size:12px;padding:8px 0;display:block';
+      document.getElementById('chat-msgs').appendChild(a);
+    }
+  }
+  renderToolCasesForAgent(v);
+  onSBMode();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  LINKS — DYNAMIC
+// ══════════════════════════════════════════════════════════════
+const DEFAULT_LINKS = [
+  {id:'l1',group:'🏥 Agente HH — Admin',label:'Panel de administración',url:'https://aiagent.net2phone.com/admin/company/hShDTWCb0KrMwIIgzS6P',desc:'net2phone Admin'},
+  {id:'l2',group:'🏥 Agente HH — Admin',label:'Dashboard del Agente',url:'https://hulilabs.github.io/operations/AgenteHH/',desc:'GitHub Pages'},
+  {id:'l3',group:'🔧 Tools — Agente HH',label:'AgendarHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarHH/edit',desc:'Flujo: V2 AgendarHH — Supabase'},
+  {id:'l4',group:'🔧 Tools — Agente HH',label:'AgendarPCN',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarPCN/edit',desc:'Flujo: V2 AgendarHH — Supabase'},
+  {id:'l5',group:'🔧 Tools — Agente HH',label:'CLINICINF',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CLINICINF/edit',desc:'Flujo: V2 DireccionHH — Supabase'},
+  {id:'l6',group:'🔧 Tools — Agente HH',label:'CancelarHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CancelarHH/edit',desc:'Flujo: V2 CancelarHH — Supabase'},
+  {id:'l7',group:'🔧 Tools — Agente HH',label:'DataMed',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DataMed/edit',desc:'Flujo: Base datos Supabase'},
+  {id:'l8',group:'🔧 Tools — Agente HH',label:'DisponibilidadHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadHH/edit',desc:'Flujo: V2 DisponibilidadHH'},
+  {id:'l9',group:'🔧 Tools — Agente HH',label:'DisponibilidadnextHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadnextHH/edit',desc:'Flujo: V2 DisponibilidadHH'},
+  {id:'l10',group:'🔧 Tools — Agente HH',label:'InfoMD',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/InfoMD/edit',desc:'Flujo: V2 Búsqueda especialidad HH'},
+  {id:'l11',group:'🔧 Tools — Agente HH',label:'ValidarDRHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/ValidarDRHH/edit',desc:'Flujo: V2 VerificarINFODRHH'},
+  {id:'l12',group:'🔧 Tools — Agente HH',label:'VcitaHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VcitaHH/edit',desc:'Flujo: V2 Verificar CitaPCHH'},
+  {id:'l13',group:'🔧 Tools — Agente HH',label:'VerificarHHN',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VerificarHHN/edit',desc:'Flujo: V2 Verificar CitaPCHH'},
+  {id:'l14',group:'🔧 Tools — Agente HH',label:'getDate',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate/edit',desc:'Webhook — getDate'},
+  {id:'l15',group:'🔧 Tools — Agente HH',label:'getDate10',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate10/edit',desc:'Webhook — getDate +10 días'},
+  {id:'l16',group:'📞 SDR Voz — Config',label:'SDR Voz México',url:'https://app.dapta.ai/agents-studio/voice-agents/02b3025c-99a5-4306-878a-b8a60f214150?segment=instructions',desc:'Dapta Studio'},
+  {id:'l17',group:'📞 SDR Voz — Config',label:'SDR Voz Costa Rica',url:'https://app.dapta.ai/agents-studio/voice-agents/567fbf74-871d-4cdb-aa99-f0ff39138d13?segment=instructions',desc:'Dapta Studio'},
+  {id:'l18',group:'💬 Eva Whatson — Config',label:'Eva Whatson MX',url:'https://app.dapta.ai/agents-studio/text-agents/58b4d2bc-3271-48f6-b92d-1518e490abd1/settings',desc:'Dapta Studio'},
+  {id:'l19',group:'💬 Eva Whatson — Config',label:'Eva Whatson CR',url:'https://app.dapta.ai/agents-studio/text-agents/a180cb8d-738a-4826-a241-323a64950d57/settings',desc:'Dapta Studio'},
+  {id:'l20',group:'🔧 Flujos Dapta — SDR',label:'Agendar v2',url:'https://app.dapta.ai/apis/api/H4VNb?api_id=H4VNb&api_name=Agendar%20v2&explorer=true',desc:'Flujo Dapta'},
+  {id:'l21',group:'🔧 Flujos Dapta — SDR',label:'Espacios',url:'https://app.dapta.ai/apis/api/dPui3?api_id=dPui3&api_name=espacios-1&explorer=true',desc:'Flujo Dapta'},
+  {id:'l22',group:'🔧 Flujos Dapta — SDR',label:'V2 AgendarHH — Supabase',url:'https://app.dapta.ai/apis/api/ElGiW?api_id=ElGiW&api_name=V2%20AgendarHH%20-Supabase&explorer=true',desc:'Flujo Dapta'},
+  {id:'l23',group:'🔧 Flujos Dapta — SDR',label:'V2 DireccionHH — Supabase',url:'https://app.dapta.ai/apis/api/aKJJH?api_id=aKJJH&api_name=V2%20DireccionHH%20-%20Supabase%20&explorer=true',desc:'Flujo Dapta'},
+  {id:'l24',group:'🔧 Flujos Dapta — SDR',label:'V2 CancelarHH — Supabase',url:'https://app.dapta.ai/apis/api/TmyWf?api_id=TmyWf&api_name=V2%20CancelarHH%20-%20Supabase&explorer=true',desc:'Flujo Dapta'},
+  {id:'l25',group:'🔧 Flujos Dapta — SDR',label:'V2 Base datos Supabase',url:'https://app.dapta.ai/apis/api/Awo7a?api_id=Awo7a&api_name=V2%20Base%20de%20datos%20agente%20Supabase%20-%20Consultas&explorer=true',desc:'Flujo Dapta'},
+  {id:'l26',group:'🔧 Flujos Dapta — SDR',label:'V2 DisponibilidadHH',url:'https://app.dapta.ai/apis/api/oMy41?api_id=oMy41&api_name=V2%20DisponibilidadHH%20-%20Supabase%20&explorer=true',desc:'Flujo Dapta'},
+  {id:'l27',group:'🔧 Flujos Dapta — SDR',label:'V2 Búsqueda especialidad HH',url:'https://app.dapta.ai/apis/api/VLGbA?api_id=VLGbA&api_name=V2%20Busqueda%20por%20especialidad%20-%20HH&explorer=true',desc:'Flujo Dapta'},
+  {id:'l28',group:'🔧 Flujos Dapta — SDR',label:'V2 VerificarINFODRHH',url:'https://app.dapta.ai/apis/api/SLXvl?api_id=SLXvl&api_name=V2%20VerificarINFODRHH%20-%20Supabase&explorer=true',desc:'Flujo Dapta'},
+  {id:'l29',group:'🔧 Flujos Dapta — SDR',label:'V2 Verificar CitaPCHH',url:'https://app.dapta.ai/apis/api/AKJjB?api_id=AKJjB&api_name=Copy%20of%20V2%20Verificar_CitaPCHH%20-%20Supabase&explorer=true',desc:'Flujo Dapta'},
+];
+
+function initLinks(){ if(!S.links){ S.links=DEFAULT_LINKS; save(); } }
+
+function renderLinks(){
+  initLinks();
+  const groups={};
+  S.links.forEach(l=>{ if(!groups[l.group]) groups[l.group]=[]; groups[l.group].push(l); });
+  const cols=Object.keys(groups);
+  const half=Math.ceil(cols.length/2);
+  const renderGroup=g=>`
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-hd"><span class="card-title">${g}</span></div>
+      ${groups[g].map(l=>`
+        <div class="link-row">
+          <div style="flex:1"><div class="link-label">${l.label}</div>${l.desc?`<div class="link-sub">${l.desc}</div>`:''}</div>
+          <a href="${l.url}" target="_blank" class="link-btn">Abrir ↗</a>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="openLinkModal('${l.id}')" title="Editar">✎</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="delLink('${l.id}')" title="Eliminar">✕</button>
+        </div>`).join('')}
+    </div>`;
+  document.getElementById('links-content').innerHTML=`<div class="g2"><div>${cols.slice(0,half).map(renderGroup).join('')}</div><div>${cols.slice(half).map(renderGroup).join('')}</div></div>`;
+}
+
+function openLinkModal(id){
+  ['lk-label','lk-url','lk-group','lk-desc'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('lk-edit-id').value='';
+  document.getElementById('m-link-title').textContent='Nuevo acceso directo';
+  if(id){
+    const l=S.links.find(x=>x.id===id);
+    if(l){
+      document.getElementById('m-link-title').textContent='Editar acceso directo';
+      document.getElementById('lk-edit-id').value=id;
+      document.getElementById('lk-label').value=l.label;
+      document.getElementById('lk-url').value=l.url;
+      document.getElementById('lk-group').value=l.group;
+      document.getElementById('lk-desc').value=l.desc||'';
+    }
+  }
+  document.getElementById('m-link').style.display='flex';
+}
+
+function saveLink(){
+  const label=document.getElementById('lk-label').value.trim();
+  const url=document.getElementById('lk-url').value.trim();
+  if(!label||!url){alert('Nombre y URL son requeridos');return;}
+  const eid=document.getElementById('lk-edit-id').value;
+  const lnk={id:eid||'lk_'+Date.now(),label,url,group:document.getElementById('lk-group').value.trim()||'General',desc:document.getElementById('lk-desc').value.trim()};
+  if(!S.links) S.links=[];
+  if(eid){const i=S.links.findIndex(x=>x.id===eid);if(i>=0)S.links[i]=lnk;else S.links.push(lnk);}
+  else S.links.push(lnk);
+  save();closeM('m-link');renderLinks();
+}
+function editLink(id){openLinkModal(id);}
+function delLink(id){if(!confirm('¿Eliminar?'))return;S.links=S.links.filter(l=>l.id!==id);save();renderLinks();}
 
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -729,10 +864,6 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
         <select class="fs" style="width:200px" id="sb-agent-sel" onchange="onSBAgent()">
           <option value="">Seleccionar agente...</option>
-          <option value="hh">Agente HH — Citas</option>
-          <option value="sdr-voz">SDR Voz</option>
-          <option value="eva-mx">Eva Whatson MX</option>
-          <option value="eva-cr">Eva Whatson CR</option>
         </select>
         <select class="fs" style="width:150px" id="sb-mode-sel" onchange="onSBMode()">
           <option value="libre">Modo libre</option>
@@ -751,13 +882,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
           <div class="chat-msgs" id="chat-msgs">
             <div class="cm sys">Selecciona un agente para comenzar</div>
           </div>
-          <div id="chat-presets-wrap" style="display:none;border-top:1px solid var(--border)">
-            <div onclick="togglePresets()" style="display:flex;align-items:center;justify-content:space-between;padding:7px 16px;cursor:pointer;user-select:none">
-              <span style="font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.7px">Casos de tools</span>
-              <span id="presets-toggle-icon" style="font-size:11px;color:var(--txt3)">▾ mostrar</span>
-            </div>
-            <div class="chat-presets" id="chat-presets" style="display:none;padding:0 16px 10px"></div>
-          </div>
+          <div class="chat-presets" id="chat-presets" style="display:none"></div>
           <div class="chat-input-area">
             <textarea class="chat-input" id="chat-in" placeholder="Escribe un mensaje..." rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
             <button class="btn btn-primary btn-icon" onclick="sendMsg()">↑</button>
@@ -847,10 +972,6 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
         <select class="fs" style="width:220px" id="rb-agent-sel" onchange="loadRB(this.value)">
           <option value="">Seleccionar agente...</option>
-          <option value="hh">Agente HH — Citas</option>
-          <option value="sdr-voz">SDR Voz</option>
-          <option value="eva-mx">Eva Whatson MX</option>
-          <option value="eva-cr">Eva Whatson CR</option>
         </select>
         <button class="btn btn-ghost btn-sm" onclick="addRBStep()">+ Paso</button>
         <button class="btn btn-primary btn-sm" onclick="saveRB()">Guardar</button>
@@ -892,10 +1013,6 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
         <select class="fs" style="width:220px" id="tl-agent-sel" onchange="loadTools(this.value)">
           <option value="">Seleccionar agente...</option>
-          <option value="hh">Agente HH — Citas</option>
-          <option value="sdr-voz">SDR Voz / Texto</option>
-          <option value="eva-mx">Eva Whatson MX</option>
-          <option value="eva-cr">Eva Whatson CR</option>
         </select>
         <button class="btn btn-primary btn-sm" onclick="openToolModal()">+ Nueva tool</button>
       </div>
@@ -949,79 +1066,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
 
     <!-- ══ LINKS ══ -->
     <div class="page" id="page-links">
-      <div class="g2">
-        <!-- HH Links -->
-        <div>
-          <div class="card" style="margin-bottom:14px">
-            <div class="card-hd"><span class="card-title">🏥 Agente HH — Admin</span></div>
-            <a href="https://aiagent.net2phone.com/admin/company/hShDTWCb0KrMwIIgzS6P" target="_blank" class="link-row" style="text-decoration:none">
-              <div><div class="link-label">Panel de administración</div><div class="link-sub">net2phone Admin</div></div>
-              <span class="link-btn">Abrir ↗</span>
-            </a>
-            <a href="https://hulilabs.github.io/operations/AgenteHH/" target="_blank" class="link-row" style="text-decoration:none">
-              <div><div class="link-label">Dashboard del Agente</div><div class="link-sub">GitHub Pages</div></div>
-              <span class="link-btn">Abrir ↗</span>
-            </a>
-          </div>
-          <div class="card">
-            <div class="card-hd"><span class="card-title">🔧 Tools — Agente HH</span></div>
-            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">AgendarHH</div><div class="link-sub">Flujo: V2 AgendarHH — Supabase</div></div><span class="link-btn">↗</span></a>
-            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarPCN/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">AgendarPCN</div><div class="link-sub">Flujo: V2 AgendarHH — Supabase</div></div><span class="link-btn">↗</span></a>
-            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CLINICINF/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">CLINICINF</div><div class="link-sub">Flujo: V2 DireccionHH — Supabase</div></div><span class="link-btn">↗</span></a>
-            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CancelarHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">CancelarHH</div><div class="link-sub">Flujo: V2 CancelarHH — Supabase</div></div><span class="link-btn">↗</span></a>
-            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DataMed/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">DataMed</div><div class="link-sub">Flujo: Base de datos agente Supabase</div></div><span class="link-btn">↗</span></a>
-            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">DisponibilidadHH</div><div class="link-sub">Flujo: V2 DisponibilidadHH — Supabase</div></div><span class="link-btn">↗</span></a>
-            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadnextHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">DisponibilidadnextHH</div><div class="link-sub">Flujo: V2 DisponibilidadHH — Supabase</div></div><span class="link-btn">↗</span></a>
-            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/InfoMD/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">InfoMD</div><div class="link-sub">Flujo: V2 Búsqueda por especialidad HH</div></div><span class="link-btn">↗</span></a>
-            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/ValidarDRHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">ValidarDRHH</div><div class="link-sub">Flujo: V2 VerificarINFODRHH — Supabase</div></div><span class="link-btn">↗</span></a>
-            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VcitaHH/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">VcitaHH</div><div class="link-sub">Flujo: V2 Verificar_CitaPCHH — Supabase</div></div><span class="link-btn">↗</span></a>
-            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VerificarHHN/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">VerificarHHN</div><div class="link-sub">Flujo: V2 Verificar_CitaPCHH — Supabase</div></div><span class="link-btn">↗</span></a>
-            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">getDate</div><div class="link-sub">Webhook — getDate</div></div><span class="link-btn">↗</span></a>
-            <a href="https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate10/edit" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">getDate10</div><div class="link-sub">Webhook — getDate (+10 días)</div></div><span class="link-btn">↗</span></a>
-          </div>
-        </div>
-
-        <!-- SDR Links -->
-        <div>
-          <div class="card" style="margin-bottom:14px">
-            <div class="card-hd"><span class="card-title">📞 SDR Voz — Config</span></div>
-            <a href="https://app.dapta.ai/agents-studio/voice-agents/02b3025c-99a5-4306-878a-b8a60f214150?segment=instructions" target="_blank" class="link-row" style="text-decoration:none">
-              <div><div class="link-label">SDR Voz — México</div><div class="link-sub">Dapta Studio — instrucciones</div></div>
-              <span class="link-btn">Abrir ↗</span>
-            </a>
-            <a href="https://app.dapta.ai/agents-studio/voice-agents/567fbf74-871d-4cdb-aa99-f0ff39138d13?segment=instructions" target="_blank" class="link-row" style="text-decoration:none">
-              <div><div class="link-label">SDR Voz — Costa Rica</div><div class="link-sub">Dapta Studio — instrucciones</div></div>
-              <span class="link-btn">Abrir ↗</span>
-            </a>
-          </div>
-
-          <div class="card" style="margin-bottom:14px">
-            <div class="card-hd"><span class="card-title">💬 Eva Whatson — Config</span></div>
-            <a href="https://app.dapta.ai/agents-studio/text-agents/58b4d2bc-3271-48f6-b92d-1518e490abd1/settings" target="_blank" class="link-row" style="text-decoration:none">
-              <div><div class="link-label">Eva Whatson MX</div><div class="link-sub">Dapta Studio — settings</div></div>
-              <span class="link-btn">Abrir ↗</span>
-            </a>
-            <a href="https://app.dapta.ai/agents-studio/text-agents/a180cb8d-738a-4826-a241-323a64950d57/settings" target="_blank" class="link-row" style="text-decoration:none">
-              <div><div class="link-label">Eva Whatson CR</div><div class="link-sub">Dapta Studio — settings</div></div>
-              <span class="link-btn">Abrir ↗</span>
-            </a>
-          </div>
-
-          <div class="card">
-            <div class="card-hd"><span class="card-title">🔧 Tools SDR — Flujos Dapta</span></div>
-            <a href="https://app.dapta.ai/apis/api/H4VNb?api_id=H4VNb&api_name=Agendar%20v2&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">Agendar</div><div class="link-sub">Flujo: Agendar v2</div></div><span class="link-btn">↗</span></a>
-            <a href="https://app.dapta.ai/apis/api/dPui3?api_id=dPui3&api_name=espacios-1&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">Espacios</div><div class="link-sub">Flujo: espacios-1</div></div><span class="link-btn">↗</span></a>
-            <a href="https://app.dapta.ai/apis/api/ElGiW?api_id=ElGiW&api_name=V2%20AgendarHH%20-Supabase&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 AgendarHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
-            <a href="https://app.dapta.ai/apis/api/aKJJH?api_id=aKJJH&api_name=V2%20DireccionHH%20-%20Supabase%20&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 DireccionHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
-            <a href="https://app.dapta.ai/apis/api/TmyWf?api_id=TmyWf&api_name=V2%20CancelarHH%20-%20Supabase&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 CancelarHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
-            <a href="https://app.dapta.ai/apis/api/Awo7a?api_id=Awo7a&api_name=V2%20Base%20de%20datos%20agente%20Supabase%20-%20Consultas&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 Base datos Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
-            <a href="https://app.dapta.ai/apis/api/oMy41?api_id=oMy41&api_name=V2%20DisponibilidadHH%20-%20Supabase%20&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 DisponibilidadHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
-            <a href="https://app.dapta.ai/apis/api/VLGbA?api_id=VLGbA&api_name=V2%20Busqueda%20por%20especialidad%20-%20HH&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 Búsqueda por especialidad HH</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
-            <a href="https://app.dapta.ai/apis/api/SLXvl?api_id=SLXvl&api_name=V2%20VerificarINFODRHH%20-%20Supabase&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 VerificarINFODRHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
-            <a href="https://app.dapta.ai/apis/api/AKJjB?api_id=AKJjB&api_name=Copy%20of%20V2%20Verificar_CitaPCHH%20-%20Supabase&explorer=true" target="_blank" class="link-row" style="text-decoration:none"><div><div class="link-label">V2 Verificar CitaPCHH — Supabase</div><div class="link-sub">Flujo Dapta</div></div><span class="link-btn">↗</span></a>
-          </div>
-        </div>
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
+        <button class="btn btn-primary" onclick="openLinkModal()">+ Agregar acceso directo</button>
       </div>
+      <div id="links-content"></div>
     </div>
 
   </div>
@@ -1060,10 +1108,6 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <div class="fg"><label class="fl">URL / Endpoint</label><input class="fi" id="t-url" style="font-family:var(--mono);font-size:11px"></div>
       <div class="fg"><label class="fl">Link de configuración (admin)</label><input class="fi" id="t-cfglink" style="font-family:var(--mono);font-size:11px"></div>
       <div class="fg"><label class="fl">Instrucciones / descripción</label><textarea class="fta" id="t-inst" placeholder="Cuándo usar esta tool, parámetros, notas..."></textarea></div>
-      <div class="fg">
-        <label class="fl">Headers (uno por línea — formato: Clave: Valor)</label>
-        <textarea class="fta" id="t-headers" placeholder="Authorization: Bearer TOKEN&#10;Content-Type: application/json" style="min-height:60px;font-family:var(--mono);font-size:11px"></textarea>
-      </div>
       <div class="fg">
         <label class="fl">Casos de prueba (uno por línea)</label>
         <textarea class="fta" id="t-cases" placeholder="Ej: Buscar médico Manuel Briones&#10;Consultar disponibilidad martes&#10;Agendar cita para paciente nuevo" style="min-height:80px"></textarea>
@@ -1185,6 +1229,7 @@ function nav(id){
   if(id==='sdr') renderSDR();
   if(id==='issues') renderIssues();
   if(id==='config'){ renderCfgAgents();renderProps();renderSDRL(); }
+  if(id==='links') renderLinks();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1340,6 +1385,11 @@ function upIssue(id,status){ const i=S.issues.find(x=>x.id===id);if(i){i.status=
 // ══════════════════════════════════════════════════════════════
 function onSBAgent(){
   const v=document.getElementById('sb-agent-sel').value;
+  if(!v) return;
+  if(!['hh','sdr-voz','eva-mx','eva-cr'].includes(v)){
+    const agent=S.agents.find(a=>a.id===v);
+    if(agent){ handleCustomAgent(v,agent); return; }
+  }
   curSBAgent=v;
   curSess=null;
   document.getElementById('sb-sess').textContent='sin sesión';
@@ -1399,23 +1449,11 @@ function renderCasesPanel(agentId){
 function renderToolCasesForAgent(agentId){
   const tools=S.tools[agentId]||[];
   const toolCases=tools.filter(t=>t.cases&&t.cases.length>0);
-  const wrap=document.getElementById('chat-presets-wrap');
+  if(!toolCases.length) return;
   const presets=document.getElementById('chat-presets');
-  if(!toolCases.length){ if(wrap) wrap.style.display='none'; return; }
-  if(wrap) wrap.style.display='';
-  presets.style.display='none';
-  const icon=document.getElementById('presets-toggle-icon');
-  if(icon) icon.textContent='▾ mostrar';
-  presets.innerHTML=toolCases.flatMap(t=>t.cases.map(c=>`<button class="preset-btn" title="${t.name}" onclick="sendPreset('${c.replace(/'/g,"\'")}')">[${t.name}] ${c.slice(0,30)}</button>`)).join('');
-}
-
-function togglePresets(){
-  const presets=document.getElementById('chat-presets');
-  const icon=document.getElementById('presets-toggle-icon');
-  const open=presets.style.display==='none';
-  presets.style.display=open?'flex':'none';
-  if(open){ presets.style.flexWrap='wrap'; presets.style.gap='6px'; }
-  icon.textContent=open?'▴ ocultar':'▾ mostrar';
+  presets.style.display='flex';
+  presets.innerHTML='<div style="width:100%;font-size:10px;color:var(--txt3);margin-bottom:4px">Casos de tools:</div>'+
+    toolCases.flatMap(t=>t.cases.map(c=>`<button class="preset-btn" title="${t.name}" onclick="sendPreset('${c.replace(/'/g,"\\'")}')">[${t.name}] ${c.slice(0,30)}</button>`)).join('');
 }
 
 async function sendMsg(){
@@ -1634,8 +1672,8 @@ const DEF_TOOLS={
     {id:'ValidarDRHH',name:'ValidarDRHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-verificarinfodrhh---supabase?x-api-key=SLXvl-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/ValidarDRHH/edit',inst:'Verifica información del doctor. Requiere CAM y CO del Doctor.',cases:['Verificar doctor Manuel Briones']},
     {id:'VcitaHH',name:'VcitaHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-v2-verificar_citapchh---supabase?x-api-key=AKJjB-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VcitaHH/edit',inst:'Verifica cita existente del paciente.',cases:['¿Tengo cita mañana?','Verificar mi cita del jueves']},
     {id:'VerificarHHN',name:'VerificarHHN',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-v2-verificar_citapchh---supabase?x-api-key=AKJjB-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VerificarHHN/edit',inst:'Verifica cita (versión nueva). Campos: CO del Doctor, Hora, CAM, Fecha, ID paciente.',cases:['Confirmar mi cita']},
-    {id:'getDate',name:'getDate',method:'POST',url:'https://hulicr.ucontactcloud.com/IntegraChannels/resources/webhook/getDate',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate/edit',inst:'Obtiene la fecha actual del sistema según campana_agente.',headers:{'Authorization':'Bearer dUNBcmd1ZWxsby1zZW5kTWVzc2FnZTpkMTg0MTFkMi02N2MzLTQxNWMtYmM0My04OWRmMDVmYjBkM2E=','Content-Type':'application/json'},cases:[]},
-    {id:'getDate10',name:'getDate10',method:'POST',url:'https://hulicr.ucontactcloud.com/IntegraChannels/resources/webhook/getDate',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate10/edit',inst:'Obtiene la fecha actual +10 días.',headers:{'Authorization':'Bearer dUNBcmd1ZWxsby1zZW5kTWVzc2FnZTpkMTg0MTFkMi02N2MzLTQxNWMtYmM0My04OWRmMDVmYjBkM2E=','Content-Type':'application/json'},cases:[]},
+    {id:'getDate',name:'getDate',method:'POST',url:'https://hulicr.ucontactcloud.com/IntegraChannels/resources/webhook/getDate',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate/edit',inst:'Obtiene la fecha actual del sistema según campana_agente.',cases:[]},
+    {id:'getDate10',name:'getDate10',method:'POST',url:'https://hulicr.ucontactcloud.com/IntegraChannels/resources/webhook/getDate',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate10/edit',inst:'Obtiene la fecha actual +10 días.',cases:[]},
   ],
   'sdr-voz':[
     {id:'Agendar',name:'Agendar',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-espacios-1?x-api-key=H4VNb-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://app.dapta.ai/apis/api/H4VNb?api_id=H4VNb&api_name=Agendar%20v2&explorer=true',inst:'Agenda una demo/reunión. Requiere: propietario, correo, year, month (2 dígitos), day (2 dígitos), hour (2 dígitos), minute (2 dígitos), contact_name.',cases:['Agendar demo con médico interesado el lunes a las 10am','Agendar reunión de seguimiento']},
@@ -1666,7 +1704,6 @@ function renderTools(id){
           <button class="btn btn-danger btn-sm btn-icon" onclick="delTool('${id}','${t.id}')" title="Eliminar">✕</button>
         </div>
         <div class="tool-url">${t.url}</div>
-        ${t.headers&&Object.keys(t.headers).length?`<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:4px">${Object.entries(t.headers).map(([k,v])=>`<span class="badge b-cyan" style="font-size:9px;font-family:var(--mono)">${k}: ${v.slice(0,20)}${v.length>20?'...':''}</span>`).join('')}</div>`:''}
         <div class="tool-inst">${t.inst||'Sin instrucciones'}</div>
         ${t.cases&&t.cases.length?`<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px">${t.cases.map(c=>`<span class="badge b-purple" style="font-size:9px">📋 ${c.slice(0,30)}</span>`).join('')}</div>`:''}
       </div>`).join('')
@@ -1687,7 +1724,6 @@ function openToolModal(agentId,toolId){
       document.getElementById('t-url').value=t.url;
       document.getElementById('t-cfglink').value=t.cfgLink||'';
       document.getElementById('t-inst').value=t.inst||'';
-      document.getElementById('t-headers').value=Object.entries(t.headers||{}).map(([k,v])=>k+': '+v).join('\n');
       document.getElementById('t-cases').value=(t.cases||[]).join('\n');
     }
   }
@@ -1699,10 +1735,7 @@ function saveTool(){
   if(!name){alert('Nombre requerido');return;}
   const agId=document.getElementById('t-edit-agent').value||curToolsAgent;
   const eid=document.getElementById('t-edit-id').value;
-  const headersRaw=document.getElementById('t-headers').value.trim();
-  const headers={};
-  headersRaw.split('\n').forEach(line=>{const idx=line.indexOf(':');if(idx>0){const k=line.slice(0,idx).trim();const v=line.slice(idx+1).trim();if(k)headers[k]=v;}});
-  const t={id:eid||name,name,method:document.getElementById('t-method').value,url:document.getElementById('t-url').value.trim(),cfgLink:document.getElementById('t-cfglink').value.trim(),inst:document.getElementById('t-inst').value.trim(),headers,cases:document.getElementById('t-cases').value.split('\n').filter(x=>x.trim())};
+  const t={id:eid||name,name,method:document.getElementById('t-method').value,url:document.getElementById('t-url').value.trim(),cfgLink:document.getElementById('t-cfglink').value.trim(),inst:document.getElementById('t-inst').value.trim(),cases:document.getElementById('t-cases').value.split('\n').filter(x=>x.trim())};
   if(!S.tools[agId]) S.tools[agId]=[];
   if(eid){ const i=S.tools[agId].findIndex(x=>x.id===eid);if(i>=0)S.tools[agId][i]=t;else S.tools[agId].push(t); }
   else S.tools[agId].push(t);
@@ -1735,7 +1768,7 @@ function saveAgent(){
   const name=document.getElementById('a-name').value.trim();
   if(!name){alert('Nombre requerido');return;}
   S.agents.push({id:'agt_'+Date.now(),name,status:'online',type:document.getElementById('a-conn').value,canal:document.getElementById('a-canal').value,endpoint:document.getElementById('a-ep').value,token:document.getElementById('a-tok').value,wid:document.getElementById('a-wid').value,desc:document.getElementById('a-desc').value,connector:'custom'});
-  save();closeM('m-agent');renderCfgAgents();renderSBAgents();
+  save();closeM('m-agent');renderCfgAgents();renderSBAgents();populateAgentSelects();
 }
 
 function delAgent(id){ if(!confirm('¿Eliminar?'))return;S.agents=S.agents.filter(a=>a.id!==id);save();renderCfgAgents();renderSBAgents(); }
@@ -1801,6 +1834,7 @@ function closeM(id){ document.getElementById(id).style.display='none'; }
   try{ SDR=await fetchSDR(); }catch(e){ console.error('SDR fetch error:',e); }
   document.getElementById('loader').style.display='none';
   renderSBAgents();
+  populateAgentSelects();
   renderIssues();
   renderChecklist();
   document.getElementById('last-upd').textContent='Act: '+new Date().toLocaleTimeString('es-MX');
@@ -2078,10 +2112,9 @@ async function runTool(){
   document.getElementById('tex-status').textContent='...';
 
   try{
-    const reqHeaders = {'Content-Type':'application/json', ...(curTexTool.headers||{})};
     const r = await fetch(curTexTool.url, {
       method: curTexTool.method||'POST',
-      headers: reqHeaders,
+      headers: {'Content-Type':'application/json'},
       body: JSON.stringify(body)
     });
     const text = await r.text();
@@ -2100,6 +2133,142 @@ async function runTool(){
     btn.disabled=false;
   }
 }
+
+
+// ══════════════════════════════════════════════════════════════
+//  POPULATE AGENT SELECTS DYNAMICALLY
+// ══════════════════════════════════════════════════════════════
+function populateAgentSelects(){
+  const agentOpts = S.agents.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+  ['sb-agent-sel','rb-agent-sel','pr-agent-sel','tl-agent-sel'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ const cur=el.value; el.innerHTML='<option value="">Seleccionar agente...</option>'+agentOpts; if(cur) el.value=cur; }
+  });
+  const fasel=document.getElementById('f-agent-sel');
+  if(fasel) fasel.innerHTML='<option value="">Todos los agentes</option>'+agentOpts;
+  ['i-agente','cf-agent'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML=agentOpts;
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  HANDLE CUSTOM AGENTS IN SANDBOX
+// ══════════════════════════════════════════════════════════════
+function handleCustomAgent(v, agent){
+  curSBAgent=v;
+  curSess=null;
+  document.getElementById('sb-sess').textContent='sin sesión';
+  ['cfg-hh','cfg-voz','cfg-eva','sb-cases'].forEach(id=>document.getElementById(id).style.display='none');
+  clearChat();
+  document.getElementById('sb-agent-lbl').textContent=agent.name;
+  document.getElementById('sb-status').className='badge b-green';
+  document.getElementById('sb-status').textContent='● Activo';
+  addSysMsg('Agente: '+agent.name);
+  addSysMsg('Tipo: '+agent.type+' · Canal: '+agent.canal);
+  if(agent.endpoint) addSysMsg('Endpoint: '+agent.endpoint);
+  if(agent.type==='widget'||agent.type==='iframe'){
+    addSysMsg('Este agente usa widget/iframe — abre el link de configuración para probarlo.');
+    if(agent.endpoint){
+      const a=document.createElement('a');
+      a.href=agent.endpoint; a.target='_blank';
+      a.textContent='Abrir agente ↗';
+      a.style.cssText='color:var(--accent2);font-size:12px;padding:8px 0;display:block';
+      document.getElementById('chat-msgs').appendChild(a);
+    }
+  }
+  renderToolCasesForAgent(v);
+  onSBMode();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  LINKS — DYNAMIC
+// ══════════════════════════════════════════════════════════════
+const DEFAULT_LINKS = [
+  {id:'l1',group:'🏥 Agente HH — Admin',label:'Panel de administración',url:'https://aiagent.net2phone.com/admin/company/hShDTWCb0KrMwIIgzS6P',desc:'net2phone Admin'},
+  {id:'l2',group:'🏥 Agente HH — Admin',label:'Dashboard del Agente',url:'https://hulilabs.github.io/operations/AgenteHH/',desc:'GitHub Pages'},
+  {id:'l3',group:'🔧 Tools — Agente HH',label:'AgendarHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarHH/edit',desc:'Flujo: V2 AgendarHH — Supabase'},
+  {id:'l4',group:'🔧 Tools — Agente HH',label:'AgendarPCN',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/AgendarPCN/edit',desc:'Flujo: V2 AgendarHH — Supabase'},
+  {id:'l5',group:'🔧 Tools — Agente HH',label:'CLINICINF',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CLINICINF/edit',desc:'Flujo: V2 DireccionHH — Supabase'},
+  {id:'l6',group:'🔧 Tools — Agente HH',label:'CancelarHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/CancelarHH/edit',desc:'Flujo: V2 CancelarHH — Supabase'},
+  {id:'l7',group:'🔧 Tools — Agente HH',label:'DataMed',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DataMed/edit',desc:'Flujo: Base datos Supabase'},
+  {id:'l8',group:'🔧 Tools — Agente HH',label:'DisponibilidadHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadHH/edit',desc:'Flujo: V2 DisponibilidadHH'},
+  {id:'l9',group:'🔧 Tools — Agente HH',label:'DisponibilidadnextHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/DisponibilidadnextHH/edit',desc:'Flujo: V2 DisponibilidadHH'},
+  {id:'l10',group:'🔧 Tools — Agente HH',label:'InfoMD',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/InfoMD/edit',desc:'Flujo: V2 Búsqueda especialidad HH'},
+  {id:'l11',group:'🔧 Tools — Agente HH',label:'ValidarDRHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/ValidarDRHH/edit',desc:'Flujo: V2 VerificarINFODRHH'},
+  {id:'l12',group:'🔧 Tools — Agente HH',label:'VcitaHH',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VcitaHH/edit',desc:'Flujo: V2 Verificar CitaPCHH'},
+  {id:'l13',group:'🔧 Tools — Agente HH',label:'VerificarHHN',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VerificarHHN/edit',desc:'Flujo: V2 Verificar CitaPCHH'},
+  {id:'l14',group:'🔧 Tools — Agente HH',label:'getDate',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate/edit',desc:'Webhook — getDate'},
+  {id:'l15',group:'🔧 Tools — Agente HH',label:'getDate10',url:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate10/edit',desc:'Webhook — getDate +10 días'},
+  {id:'l16',group:'📞 SDR Voz — Config',label:'SDR Voz México',url:'https://app.dapta.ai/agents-studio/voice-agents/02b3025c-99a5-4306-878a-b8a60f214150?segment=instructions',desc:'Dapta Studio'},
+  {id:'l17',group:'📞 SDR Voz — Config',label:'SDR Voz Costa Rica',url:'https://app.dapta.ai/agents-studio/voice-agents/567fbf74-871d-4cdb-aa99-f0ff39138d13?segment=instructions',desc:'Dapta Studio'},
+  {id:'l18',group:'💬 Eva Whatson — Config',label:'Eva Whatson MX',url:'https://app.dapta.ai/agents-studio/text-agents/58b4d2bc-3271-48f6-b92d-1518e490abd1/settings',desc:'Dapta Studio'},
+  {id:'l19',group:'💬 Eva Whatson — Config',label:'Eva Whatson CR',url:'https://app.dapta.ai/agents-studio/text-agents/a180cb8d-738a-4826-a241-323a64950d57/settings',desc:'Dapta Studio'},
+  {id:'l20',group:'🔧 Flujos Dapta — SDR',label:'Agendar v2',url:'https://app.dapta.ai/apis/api/H4VNb?api_id=H4VNb&api_name=Agendar%20v2&explorer=true',desc:'Flujo Dapta'},
+  {id:'l21',group:'🔧 Flujos Dapta — SDR',label:'Espacios',url:'https://app.dapta.ai/apis/api/dPui3?api_id=dPui3&api_name=espacios-1&explorer=true',desc:'Flujo Dapta'},
+  {id:'l22',group:'🔧 Flujos Dapta — SDR',label:'V2 AgendarHH — Supabase',url:'https://app.dapta.ai/apis/api/ElGiW?api_id=ElGiW&api_name=V2%20AgendarHH%20-Supabase&explorer=true',desc:'Flujo Dapta'},
+  {id:'l23',group:'🔧 Flujos Dapta — SDR',label:'V2 DireccionHH — Supabase',url:'https://app.dapta.ai/apis/api/aKJJH?api_id=aKJJH&api_name=V2%20DireccionHH%20-%20Supabase%20&explorer=true',desc:'Flujo Dapta'},
+  {id:'l24',group:'🔧 Flujos Dapta — SDR',label:'V2 CancelarHH — Supabase',url:'https://app.dapta.ai/apis/api/TmyWf?api_id=TmyWf&api_name=V2%20CancelarHH%20-%20Supabase&explorer=true',desc:'Flujo Dapta'},
+  {id:'l25',group:'🔧 Flujos Dapta — SDR',label:'V2 Base datos Supabase',url:'https://app.dapta.ai/apis/api/Awo7a?api_id=Awo7a&api_name=V2%20Base%20de%20datos%20agente%20Supabase%20-%20Consultas&explorer=true',desc:'Flujo Dapta'},
+  {id:'l26',group:'🔧 Flujos Dapta — SDR',label:'V2 DisponibilidadHH',url:'https://app.dapta.ai/apis/api/oMy41?api_id=oMy41&api_name=V2%20DisponibilidadHH%20-%20Supabase%20&explorer=true',desc:'Flujo Dapta'},
+  {id:'l27',group:'🔧 Flujos Dapta — SDR',label:'V2 Búsqueda especialidad HH',url:'https://app.dapta.ai/apis/api/VLGbA?api_id=VLGbA&api_name=V2%20Busqueda%20por%20especialidad%20-%20HH&explorer=true',desc:'Flujo Dapta'},
+  {id:'l28',group:'🔧 Flujos Dapta — SDR',label:'V2 VerificarINFODRHH',url:'https://app.dapta.ai/apis/api/SLXvl?api_id=SLXvl&api_name=V2%20VerificarINFODRHH%20-%20Supabase&explorer=true',desc:'Flujo Dapta'},
+  {id:'l29',group:'🔧 Flujos Dapta — SDR',label:'V2 Verificar CitaPCHH',url:'https://app.dapta.ai/apis/api/AKJjB?api_id=AKJjB&api_name=Copy%20of%20V2%20Verificar_CitaPCHH%20-%20Supabase&explorer=true',desc:'Flujo Dapta'},
+];
+
+function initLinks(){ if(!S.links){ S.links=DEFAULT_LINKS; save(); } }
+
+function renderLinks(){
+  initLinks();
+  const groups={};
+  S.links.forEach(l=>{ if(!groups[l.group]) groups[l.group]=[]; groups[l.group].push(l); });
+  const cols=Object.keys(groups);
+  const half=Math.ceil(cols.length/2);
+  const renderGroup=g=>`
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-hd"><span class="card-title">${g}</span></div>
+      ${groups[g].map(l=>`
+        <div class="link-row">
+          <div style="flex:1"><div class="link-label">${l.label}</div>${l.desc?`<div class="link-sub">${l.desc}</div>`:''}</div>
+          <a href="${l.url}" target="_blank" class="link-btn">Abrir ↗</a>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="openLinkModal('${l.id}')" title="Editar">✎</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="delLink('${l.id}')" title="Eliminar">✕</button>
+        </div>`).join('')}
+    </div>`;
+  document.getElementById('links-content').innerHTML=`<div class="g2"><div>${cols.slice(0,half).map(renderGroup).join('')}</div><div>${cols.slice(half).map(renderGroup).join('')}</div></div>`;
+}
+
+function openLinkModal(id){
+  ['lk-label','lk-url','lk-group','lk-desc'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('lk-edit-id').value='';
+  document.getElementById('m-link-title').textContent='Nuevo acceso directo';
+  if(id){
+    const l=S.links.find(x=>x.id===id);
+    if(l){
+      document.getElementById('m-link-title').textContent='Editar acceso directo';
+      document.getElementById('lk-edit-id').value=id;
+      document.getElementById('lk-label').value=l.label;
+      document.getElementById('lk-url').value=l.url;
+      document.getElementById('lk-group').value=l.group;
+      document.getElementById('lk-desc').value=l.desc||'';
+    }
+  }
+  document.getElementById('m-link').style.display='flex';
+}
+
+function saveLink(){
+  const label=document.getElementById('lk-label').value.trim();
+  const url=document.getElementById('lk-url').value.trim();
+  if(!label||!url){alert('Nombre y URL son requeridos');return;}
+  const eid=document.getElementById('lk-edit-id').value;
+  const lnk={id:eid||'lk_'+Date.now(),label,url,group:document.getElementById('lk-group').value.trim()||'General',desc:document.getElementById('lk-desc').value.trim()};
+  if(!S.links) S.links=[];
+  if(eid){const i=S.links.findIndex(x=>x.id===eid);if(i>=0)S.links[i]=lnk;else S.links.push(lnk);}
+  else S.links.push(lnk);
+  save();closeM('m-link');renderLinks();
+}
+function editLink(id){openLinkModal(id);}
+function delLink(id){if(!confirm('¿Eliminar?'))return;S.links=S.links.filter(l=>l.id!==id);save();renderLinks();}
 
 </script>
 
@@ -2169,6 +2338,27 @@ async function runTool(){
     <div class="modal-ft">
       <button class="btn btn-ghost" onclick="closeM('m-tool-exec')">Cerrar</button>
       <button class="btn btn-primary" id="tex-run-btn" onclick="runTool()">▶ Ejecutar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Link Modal -->
+<div class="modal-ov" id="m-link" style="display:none" onclick="if(event.target===this)closeM('m-link')">
+  <div class="modal-box">
+    <div class="modal-hd"><h3 id="m-link-title">Nuevo acceso directo</h3><button class="modal-close" onclick="closeM('m-link')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="lk-label" placeholder="ej: Panel de administración"></div>
+      <div class="fg"><label class="fl">URL *</label><input class="fi" id="lk-url" placeholder="https://..." style="font-family:var(--mono);font-size:11px"></div>
+      <div class="fg2">
+        <div class="fg"><label class="fl">Grupo / Categoría</label><input class="fi" id="lk-group" placeholder="ej: Agente HH"></div>
+        <div class="fg"><label class="fl">Descripción</label><input class="fi" id="lk-desc" placeholder="ej: net2phone Admin"></div>
+      </div>
+      <input type="hidden" id="lk-edit-id">
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeM('m-link')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveLink()">Guardar</button>
     </div>
   </div>
 </div>
