@@ -277,9 +277,10 @@ async function runTool(){
   document.getElementById('tex-status').textContent='...';
 
   try{
+    const reqHeaders = {'Content-Type':'application/json', ...(curTexTool.headers||{})};
     const r = await fetch(curTexTool.url, {
       method: curTexTool.method||'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: reqHeaders,
       body: JSON.stringify(body)
     });
     const text = await r.text();
@@ -1054,6 +1055,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <div class="fg"><label class="fl">Link de configuración (admin)</label><input class="fi" id="t-cfglink" style="font-family:var(--mono);font-size:11px"></div>
       <div class="fg"><label class="fl">Instrucciones / descripción</label><textarea class="fta" id="t-inst" placeholder="Cuándo usar esta tool, parámetros, notas..."></textarea></div>
       <div class="fg">
+        <label class="fl">Headers (uno por línea — formato: Clave: Valor)</label>
+        <textarea class="fta" id="t-headers" placeholder="Authorization: Bearer TOKEN&#10;Content-Type: application/json" style="min-height:60px;font-family:var(--mono);font-size:11px"></textarea>
+      </div>
+      <div class="fg">
         <label class="fl">Casos de prueba (uno por línea)</label>
         <textarea class="fta" id="t-cases" placeholder="Ej: Buscar médico Manuel Briones&#10;Consultar disponibilidad martes&#10;Agendar cita para paciente nuevo" style="min-height:80px"></textarea>
         <div style="font-size:10px;color:var(--txt3);margin-top:4px">Estos casos aparecerán como botones en el Sandbox al probar esta tool</div>
@@ -1611,8 +1616,8 @@ const DEF_TOOLS={
     {id:'ValidarDRHH',name:'ValidarDRHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-verificarinfodrhh---supabase?x-api-key=SLXvl-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/ValidarDRHH/edit',inst:'Verifica información del doctor. Requiere CAM y CO del Doctor.',cases:['Verificar doctor Manuel Briones']},
     {id:'VcitaHH',name:'VcitaHH',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-v2-verificar_citapchh---supabase?x-api-key=AKJjB-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VcitaHH/edit',inst:'Verifica cita existente del paciente.',cases:['¿Tengo cita mañana?','Verificar mi cita del jueves']},
     {id:'VerificarHHN',name:'VerificarHHN',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-v2-verificar_citapchh---supabase?x-api-key=AKJjB-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/VerificarHHN/edit',inst:'Verifica cita (versión nueva). Campos: CO del Doctor, Hora, CAM, Fecha, ID paciente.',cases:['Confirmar mi cita']},
-    {id:'getDate',name:'getDate',method:'POST',url:'https://hulicr.ucontactcloud.com/IntegraChannels/resources/webhook/getDate',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate/edit',inst:'Obtiene la fecha actual del sistema según campana_agente.',cases:[]},
-    {id:'getDate10',name:'getDate10',method:'POST',url:'https://hulicr.ucontactcloud.com/IntegraChannels/resources/webhook/getDate',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate10/edit',inst:'Obtiene la fecha actual +10 días.',cases:[]},
+    {id:'getDate',name:'getDate',method:'POST',url:'https://hulicr.ucontactcloud.com/IntegraChannels/resources/webhook/getDate',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate/edit',inst:'Obtiene la fecha actual del sistema según campana_agente.',headers:{'Authorization':'Bearer dUNBcmd1ZWxsby1zZW5kTWVzc2FnZTpkMTg0MTFkMi02N2MzLTQxNWMtYmM0My04OWRmMDVmYjBkM2E=','Content-Type':'application/json'},cases:[]},
+    {id:'getDate10',name:'getDate10',method:'POST',url:'https://hulicr.ucontactcloud.com/IntegraChannels/resources/webhook/getDate',cfgLink:'https://aiagent.net2phone.com/hShDTWCb0KrMwIIgzS6P/bots/i3I2m5edSNbpjPSBNmaa/functions/getDate10/edit',inst:'Obtiene la fecha actual +10 días.',headers:{'Authorization':'Bearer dUNBcmd1ZWxsby1zZW5kTWVzc2FnZTpkMTg0MTFkMi02N2MzLTQxNWMtYmM0My04OWRmMDVmYjBkM2E=','Content-Type':'application/json'},cases:[]},
   ],
   'sdr-voz':[
     {id:'Agendar',name:'Agendar',method:'POST',url:'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-espacios-1?x-api-key=H4VNb-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',cfgLink:'https://app.dapta.ai/apis/api/H4VNb?api_id=H4VNb&api_name=Agendar%20v2&explorer=true',inst:'Agenda una demo/reunión. Requiere: propietario, correo, year, month (2 dígitos), day (2 dígitos), hour (2 dígitos), minute (2 dígitos), contact_name.',cases:['Agendar demo con médico interesado el lunes a las 10am','Agendar reunión de seguimiento']},
@@ -1643,6 +1648,7 @@ function renderTools(id){
           <button class="btn btn-danger btn-sm btn-icon" onclick="delTool('${id}','${t.id}')" title="Eliminar">✕</button>
         </div>
         <div class="tool-url">${t.url}</div>
+        ${t.headers&&Object.keys(t.headers).length?`<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:4px">${Object.entries(t.headers).map(([k,v])=>`<span class="badge b-cyan" style="font-size:9px;font-family:var(--mono)">${k}: ${v.slice(0,20)}${v.length>20?'...':''}</span>`).join('')}</div>`:''}
         <div class="tool-inst">${t.inst||'Sin instrucciones'}</div>
         ${t.cases&&t.cases.length?`<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px">${t.cases.map(c=>`<span class="badge b-purple" style="font-size:9px">📋 ${c.slice(0,30)}</span>`).join('')}</div>`:''}
       </div>`).join('')
@@ -1663,6 +1669,7 @@ function openToolModal(agentId,toolId){
       document.getElementById('t-url').value=t.url;
       document.getElementById('t-cfglink').value=t.cfgLink||'';
       document.getElementById('t-inst').value=t.inst||'';
+      document.getElementById('t-headers').value=Object.entries(t.headers||{}).map(([k,v])=>k+': '+v).join('\n');
       document.getElementById('t-cases').value=(t.cases||[]).join('\n');
     }
   }
@@ -1674,7 +1681,10 @@ function saveTool(){
   if(!name){alert('Nombre requerido');return;}
   const agId=document.getElementById('t-edit-agent').value||curToolsAgent;
   const eid=document.getElementById('t-edit-id').value;
-  const t={id:eid||name,name,method:document.getElementById('t-method').value,url:document.getElementById('t-url').value.trim(),cfgLink:document.getElementById('t-cfglink').value.trim(),inst:document.getElementById('t-inst').value.trim(),cases:document.getElementById('t-cases').value.split('\n').filter(x=>x.trim())};
+  const headersRaw=document.getElementById('t-headers').value.trim();
+  const headers={};
+  headersRaw.split('\n').forEach(line=>{const idx=line.indexOf(':');if(idx>0){const k=line.slice(0,idx).trim();const v=line.slice(idx+1).trim();if(k)headers[k]=v;}});
+  const t={id:eid||name,name,method:document.getElementById('t-method').value,url:document.getElementById('t-url').value.trim(),cfgLink:document.getElementById('t-cfglink').value.trim(),inst:document.getElementById('t-inst').value.trim(),headers,cases:document.getElementById('t-cases').value.split('\n').filter(x=>x.trim())};
   if(!S.tools[agId]) S.tools[agId]=[];
   if(eid){ const i=S.tools[agId].findIndex(x=>x.id===eid);if(i>=0)S.tools[agId][i]=t;else S.tools[agId].push(t); }
   else S.tools[agId].push(t);
@@ -2050,9 +2060,10 @@ async function runTool(){
   document.getElementById('tex-status').textContent='...';
 
   try{
+    const reqHeaders = {'Content-Type':'application/json', ...(curTexTool.headers||{})};
     const r = await fetch(curTexTool.url, {
       method: curTexTool.method||'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: reqHeaders,
       body: JSON.stringify(body)
     });
     const text = await r.text();
