@@ -1035,8 +1035,8 @@ function upIssue(id,status){ const i=S.issues.find(x=>x.id===id);if(i){i.status=
 function onSBAgent(){
   const v=document.getElementById('sb-agent-sel').value;
   curSBAgent=v;
-  curSess='sess_'+Math.random().toString(36).substr(2,9);
-  document.getElementById('sb-sess').textContent=curSess;
+  curSess=null;
+  document.getElementById('sb-sess').textContent='sin sesión';
   ['cfg-hh','cfg-voz','cfg-eva','sb-cases'].forEach(id=>document.getElementById(id).style.display='none');
   clearChat();
 
@@ -1183,10 +1183,10 @@ function add(cls,text){
 }
 
 function clearChat(){
-  document.getElementById('chat-msgs').innerHTML='<div class="cm sys">Chat limpiado</div>';
-  curSess='sess_'+Math.random().toString(36).substr(2,9);
+  document.getElementById('chat-msgs').innerHTML='<div class="cm sys">Chat limpiado — nueva conversación</div>';
+  curSess=null;
   const se=document.getElementById('sb-sess');
-  if(se) se.textContent=curSess;
+  if(se) se.textContent='sin sesión';
   document.getElementById('chat-presets').style.display='none';
   document.getElementById('chat-presets').innerHTML='';
 }
