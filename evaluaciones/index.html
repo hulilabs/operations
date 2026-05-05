@@ -553,6 +553,137 @@
     font-weight: 500;
     margin-left: 4px;
   }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26,24,20,0.5);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 24px;
+  }
+  .modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .modal-title {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: var(--ink3);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+  }
+  .modal-close:hover { color: var(--ink); }
+  .modal-field { margin-bottom: 10px; }
+  .modal-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink3);
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .modal-value {
+    font-size: 12px;
+    color: var(--ink2);
+    font-weight: 300;
+    line-height: 1.5;
+  }
+  .modal-value b { color: var(--ink); font-weight: 500; }
+  .modal-section {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink3);
+    font-weight: 500;
+    padding: 12px 0 6px;
+    border-top: 1px solid var(--border);
+    margin-top: 12px;
+  }
+
+  /* ── TECH CONFIG BLOCK ── */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .tech-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+  }
+  .tech-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink3);
+    font-weight: 500;
+    margin-bottom: 5px;
+  }
+  .tools-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+  }
+  .tool-chip {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--ink2);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .tool-chip-remove {
+    cursor: pointer;
+    color: var(--ink3);
+    font-size: 11px;
+    line-height: 1;
+  }
+  .tool-chip-remove:hover { color: var(--accent); }
+  .tool-add-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .tool-add-row input {
+    flex: 1;
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+  .tool-add-row button {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
 </style>
 </head>
 <body>
@@ -585,6 +716,10 @@
       <div class="nav-section" style="margin-top:8px">Historial</div>
       <div class="nav-item" onclick="showView('history')">
         <div class="nav-dot"></div> Registro <span id="count-badge" style="display:none" class="count-badge">0</span>
+      </div>
+      <div class="nav-section" style="margin-top:8px">Configuración</div>
+      <div class="nav-item" onclick="showView('agentes')">
+        <div class="nav-dot"></div> Mis agentes
       </div>
     </div>
     <div class="sidebar-footer">
@@ -722,7 +857,80 @@
 
         <div class="divider"></div>
 
-        <div class="card-title">Acción planificada</div>
+        <div class="card-title">Configuración técnica al momento de la falla</div>
+        <div class="card-desc">Ancla el estado exacto del agente — modelo, prompt y tools activas cuando ocurrió</div>
+
+        <div class="tech-grid" style="margin-bottom:14px">
+          <div class="tech-item">
+            <div class="tech-label">Modelo IA</div>
+            <select id="f-modelo" style="margin-top:4px">
+              <option value="">Seleccionar...</option>
+              <option>claude-sonnet-4-5</option>
+              <option>claude-opus-4</option>
+              <option>claude-haiku-4-5</option>
+              <option>gpt-4o</option>
+              <option>gpt-4o-mini</option>
+              <option>gemini-1.5-pro</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="tech-item">
+            <div class="tech-label">Versión del prompt</div>
+            <input type="text" id="f-prompt-ver" placeholder="Ej: v1.3, main-2025-04" style="margin-top:4px">
+          </div>
+          <div class="tech-item">
+            <div class="tech-label">Plataforma / orquestador</div>
+            <select id="f-plataforma" style="margin-top:4px">
+              <option value="">Seleccionar...</option>
+              <option>Dapta Studio</option>
+              <option>n8n</option>
+              <option>Make</option>
+              <option>Zapier</option>
+              <option>API directa</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="tech-item">
+            <div class="tech-label">Canal de entrada</div>
+            <select id="f-canal" style="margin-top:4px">
+              <option value="">Seleccionar...</option>
+              <option>WhatsApp (net2phone)</option>
+              <option>Voz (net2phone MX)</option>
+              <option>Voz (net2phone CR)</option>
+              <option>Widget web</option>
+              <option>API REST</option>
+              <option>Webhook</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Flujo activo (nombre o descripción del flujo en Dapta/n8n)</label>
+          <input type="text" id="f-flujo" placeholder="Ej: flujo-calificacion-mx-v2, nodo principal SDR">
+        </div>
+
+        <div class="form-row">
+          <label>Tools activas al momento de la falla</label>
+          <div class="tools-list" id="f-tools-list"></div>
+          <div class="tool-add-row">
+            <input type="text" id="f-tool-input" placeholder="Ej: get_availability, create_contact, send_whatsapp" onkeydown="if(event.key==='Enter'){addTool();event.preventDefault();}">
+            <button class="btn" onclick="addTool()">+ Agregar</button>
+          </div>
+          <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:5px" id="f-tools-presets">
+            <span style="font-size:10px;color:var(--ink3);align-self:center">Rápidos:</span>
+            <div class="tool-chip" style="cursor:pointer" onclick="addToolPreset('get_availability')">get_availability</div>
+            <div class="tool-chip" style="cursor:pointer" onclick="addToolPreset('create_contact')">create_contact</div>
+            <div class="tool-chip" style="cursor:pointer" onclick="addToolPreset('send_whatsapp')">send_whatsapp</div>
+            <div class="tool-chip" style="cursor:pointer" onclick="addToolPreset('schedule_call')">schedule_call</div>
+            <div class="tool-chip" style="cursor:pointer" onclick="addToolPreset('qualify_lead')">qualify_lead</div>
+            <div class="tool-chip" style="cursor:pointer" onclick="addToolPreset('transfer_call')">transfer_call</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Notas de configuración (temperatura, max_tokens, system prompt especial, etc.)</label>
+          <textarea id="f-config-notas" placeholder="Ej: temperature=0.3, system prompt tiene instrucción especial de horario MX..."></textarea>
+        </div>
         <div class="chip-group" id="f-accion" style="margin-bottom:14px">
           <div class="chip" onclick="toggleChip(this,'selected-ink')">Cambio de prompt</div>
           <div class="chip" onclick="toggleChip(this,'selected-ink')">Cambio de tool</div>
@@ -868,6 +1076,40 @@ Lo mediré con <span style="color:var(--accent)">___</span>.
           </div>
         </div>
 
+        <div class="tech-grid" style="margin-bottom:14px">
+          <div class="tech-item">
+            <div class="tech-label">Modelo IA</div>
+            <select id="s-modelo" style="margin-top:4px">
+              <option value="">Seleccionar...</option>
+              <option>claude-sonnet-4-5</option>
+              <option>claude-opus-4</option>
+              <option>claude-haiku-4-5</option>
+              <option>gpt-4o</option>
+              <option>gpt-4o-mini</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="tech-item">
+            <div class="tech-label">Versión prompt</div>
+            <input type="text" id="s-prompt-ver" placeholder="Ej: v1.4-confirmacion" style="margin-top:4px">
+          </div>
+          <div class="tech-item">
+            <div class="tech-label">Plataforma</div>
+            <select id="s-plataforma" style="margin-top:4px">
+              <option value="">Seleccionar...</option>
+              <option>Dapta Studio</option>
+              <option>n8n</option>
+              <option>Make</option>
+              <option>API directa</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="tech-item">
+            <div class="tech-label">Flujo evaluado</div>
+            <input type="text" id="s-flujo" placeholder="Ej: flujo-calificacion-v2" style="margin-top:4px">
+          </div>
+        </div>
+
         <div class="form-row">
           <label>Cambio evaluado (qué iteraste)</label>
           <input type="text" id="s-cambio" placeholder="Ej: Agregué confirmación explícita en paso 4 del prompt">
@@ -995,7 +1237,138 @@ Lo mediré con <span style="color:var(--accent)">___</span>.
       <div id="history-list"></div>
     </div>
 
+    <!-- VIEW: AGENTES CONFIG -->
+    <div class="view" id="view-agentes">
+      <div class="view-header">
+        <h2>Mis agentes</h2>
+        <p>Estado técnico actual de cada agente. Úsalo como referencia al registrar fallas.</p>
+      </div>
+
+      <div id="agentes-list"></div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="card-title">Agregar / editar agente</div>
+        <div class="card-desc">Define el estado técnico actual — actualízalo cada vez que hagas un cambio en producción</div>
+
+        <input type="hidden" id="ag-edit-id">
+        <div class="form-grid" style="margin-bottom:14px">
+          <div class="form-row">
+            <label>Nombre del agente</label>
+            <select id="ag-nombre">
+              <option value="">Seleccionar...</option>
+              <option>Agente HH — Citas (WhatsApp)</option>
+              <option>SDR Voz MX</option>
+              <option>SDR Voz CR</option>
+              <option>Eva Whatson MX</option>
+              <option>Eva Whatson CR</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Estado</label>
+            <div class="chip-group" id="ag-estado">
+              <div class="chip" onclick="singleChip(this,'ag-estado','selected-teal')">✓ Activo</div>
+              <div class="chip" onclick="singleChip(this,'ag-estado','selected-amber')">⚠ En revisión</div>
+              <div class="chip" onclick="singleChip(this,'ag-estado','selected-coral')">✗ Pausado</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tech-grid" style="margin-bottom:14px">
+          <div class="tech-item">
+            <div class="tech-label">Modelo IA actual</div>
+            <select id="ag-modelo" style="margin-top:4px">
+              <option value="">Seleccionar...</option>
+              <option>claude-sonnet-4-5</option>
+              <option>claude-opus-4</option>
+              <option>claude-haiku-4-5</option>
+              <option>gpt-4o</option>
+              <option>gpt-4o-mini</option>
+              <option>gemini-1.5-pro</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="tech-item">
+            <div class="tech-label">Versión prompt actual</div>
+            <input type="text" id="ag-prompt-ver" placeholder="Ej: v2.1" style="margin-top:4px">
+          </div>
+          <div class="tech-item">
+            <div class="tech-label">Plataforma / orquestador</div>
+            <select id="ag-plataforma" style="margin-top:4px">
+              <option value="">Seleccionar...</option>
+              <option>Dapta Studio</option>
+              <option>n8n</option>
+              <option>Make</option>
+              <option>Zapier</option>
+              <option>API directa</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="tech-item">
+            <div class="tech-label">Canal de entrada</div>
+            <select id="ag-canal" style="margin-top:4px">
+              <option value="">Seleccionar...</option>
+              <option>WhatsApp (net2phone)</option>
+              <option>Voz (net2phone MX)</option>
+              <option>Voz (net2phone CR)</option>
+              <option>Widget web</option>
+              <option>API REST</option>
+              <option>Webhook</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Flujo principal (nombre en Dapta/n8n)</label>
+          <input type="text" id="ag-flujo" placeholder="Ej: flujo-sdr-calificacion-mx-v2">
+        </div>
+
+        <div class="form-row">
+          <label>Tools activas</label>
+          <div class="tools-list" id="ag-tools-list"></div>
+          <div class="tool-add-row">
+            <input type="text" id="ag-tool-input" placeholder="Nombre de la tool" onkeydown="if(event.key==='Enter'){addAgTool();event.preventDefault();}">
+            <button class="btn" onclick="addAgTool()">+ Agregar</button>
+          </div>
+          <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:5px">
+            <span style="font-size:10px;color:var(--ink3);align-self:center">Rápidos:</span>
+            <div class="tool-chip" style="cursor:pointer" onclick="addAgToolPreset('get_availability')">get_availability</div>
+            <div class="tool-chip" style="cursor:pointer" onclick="addAgToolPreset('create_contact')">create_contact</div>
+            <div class="tool-chip" style="cursor:pointer" onclick="addAgToolPreset('send_whatsapp')">send_whatsapp</div>
+            <div class="tool-chip" style="cursor:pointer" onclick="addAgToolPreset('schedule_call')">schedule_call</div>
+            <div class="tool-chip" style="cursor:pointer" onclick="addAgToolPreset('qualify_lead')">qualify_lead</div>
+            <div class="tool-chip" style="cursor:pointer" onclick="addAgToolPreset('transfer_call')">transfer_call</div>
+            <div class="tool-chip" style="cursor:pointer" onclick="addAgToolPreset('get_crm_contact')">get_crm_contact</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Webhook URL (si aplica)</label>
+          <input type="text" id="ag-webhook" placeholder="https://...">
+        </div>
+
+        <div class="form-row">
+          <label>Notas técnicas / particularidades</label>
+          <textarea id="ag-notas" placeholder="Ej: temperature=0.2, max_tokens=800, tiene instrucción especial para horario de CR (UTC-6)..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <label>Última actualización en producción</label>
+          <input type="date" id="ag-ultima-update">
+        </div>
+
+        <div class="btn-group no-print">
+          <button class="btn btn-primary" onclick="saveAgente()">Guardar agente</button>
+          <button class="btn" onclick="clearAgente()">Limpiar</button>
+        </div>
+      </div>
+    </div>
+
   </main>
+</div>
+
+<!-- MODAL DETALLE -->
+<div class="modal-overlay" id="modal-overlay" style="display:none" onclick="closeModal(event)">
+  <div class="modal" id="modal-content"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1003,6 +1376,602 @@ Lo mediré con <span style="color:var(--accent)">___</span>.
 <script>
 // ─── STATE ───────────────────────────────────────────────
 let records = JSON.parse(localStorage.getItem('huliops-records') || '[]');
+let agentes = JSON.parse(localStorage.getItem('huliops-agentes') || '[]');
+let fTools = []; // tools for falla form
+let agTools = []; // tools for agente config form
+
+function saveRecords() {
+  localStorage.setItem('huliops-records', JSON.stringify(records));
+  updateCountBadge();
+}
+function saveAgentes() {
+  localStorage.setItem('huliops-agentes', JSON.stringify(agentes));
+}
+function updateCountBadge() {
+  const badge = document.getElementById('count-badge');
+  if (records.length > 0) {
+    badge.style.display = 'inline-flex';
+    badge.textContent = records.length;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (id === 'history') renderHistory();
+  if (id === 'agentes') renderAgentes();
+}
+
+// ─── TREE ─────────────────────────────────────────────────
+const treeData = {
+  q: '¿El agente respondió algo — aunque fuera incorrecto?',
+  yes: {
+    q: '¿La respuesta muestra que entendió el contexto de la conversación?',
+    yes: {
+      q: '¿El agente tenía acceso a la información que necesitaba para responder bien?',
+      yes: { result: 'comportamiento' },
+      no: { result: 'conocimiento' }
+    },
+    no: { result: 'comportamiento2' }
+  },
+  no: {
+    q: '¿El agente recibió el mensaje? (visible en logs o sandbox)',
+    yes: { result: 'flujo-interno' },
+    no: { result: 'flujo-externo' }
+  }
+};
+
+const results = {
+  'comportamiento': {
+    title: '🔴 Falla de Comportamiento',
+    cls: 'result-coral',
+    desc: 'El agente entendió el contexto y tenía la información, pero actuó de forma incorrecta. El problema está en cómo está instruido para responder.',
+    fix: '→ Acción: revisar prompt — instrucciones, tono, pasos del flujo, ejemplos few-shot.'
+  },
+  'comportamiento2': {
+    title: '🔴 Falla de Comportamiento (comprensión)',
+    cls: 'result-coral',
+    desc: 'El agente respondió pero no procesó bien el contexto. Posiblemente malinterpretó la intención del usuario o el flujo.',
+    fix: '→ Acción: revisar instrucciones de contexto, agregar ejemplos few-shot de casos similares.'
+  },
+  'conocimiento': {
+    title: '🟣 Falla de Conocimiento',
+    cls: 'result-purple',
+    desc: 'El agente entendió el contexto pero no tenía la información necesaria. Inventó datos o admitió no saber algo que debería saber.',
+    fix: '→ Acción: agregar tool de consulta, actualizar contexto en prompt, o conectar base de conocimiento.'
+  },
+  'flujo-interno': {
+    title: '🟢 Falla de Flujo (interno)',
+    cls: 'result-teal',
+    desc: 'El agente recibió el mensaje pero no generó respuesta. Puede ser timeout, error de configuración, o problema en la ejecución.',
+    fix: '→ Acción: revisar logs de ejecución, configuración del agente, límites de tokens o errores de API.'
+  },
+  'flujo-externo': {
+    title: '🟢 Falla de Flujo (externo)',
+    cls: 'result-teal',
+    desc: 'El mensaje nunca llegó al agente. El problema está en infraestructura: webhook, canal de entrada, o integración.',
+    fix: '→ Acción: NO toques el agente — revisa webhook, canal (WhatsApp/voz), y logs del sistema externo.'
+  }
+};
+
+let treeState = { node: treeData, path: [] };
+
+function renderTree() {
+  const ui = document.getElementById('tree-ui');
+  const node = treeState.node;
+  const maxSteps = 3;
+  const dots = Array.from({length: maxSteps}, (_, i) =>
+    `<div class="step-dot ${i < treeState.path.length ? 'done' : ''}"></div>`
+  ).join('');
+
+  if (node.result) {
+    const r = results[node.result];
+    ui.innerHTML = `
+      <div class="step-dots">${dots}</div>
+      <div class="result-box ${r.cls}">
+        <div class="result-title">${r.title}</div>
+        <div class="result-desc">${r.desc}</div>
+        <div class="result-fix">${r.fix}</div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary no-print" onclick="goToFormWithType('${node.result}')">Registrar esta falla →</button>
+        <button class="tree-back no-print" onclick="resetTree()">← Empezar de nuevo</button>
+      </div>`;
+    return;
+  }
+  ui.innerHTML = `
+    <div class="step-dots">${dots}</div>
+    <div class="tree-question">${node.q}</div>
+    <div class="tree-options">
+      <button class="tree-btn" onclick="treeChoose('yes')">Sí</button>
+      <button class="tree-btn" onclick="treeChoose('no')">No</button>
+    </div>
+    ${treeState.path.length > 0 ? `<button class="tree-back no-print" onclick="treeBack()">← Atrás</button>` : ''}`;
+}
+
+function treeChoose(opt) {
+  treeState.path.push(opt);
+  treeState.node = treeState.node[opt];
+  renderTree();
+}
+function treeBack() {
+  treeState.path.pop();
+  treeState.node = treeData;
+  const p = [...treeState.path];
+  treeState.path = [];
+  p.forEach(step => { treeState.path.push(step); treeState.node = treeState.node[step]; });
+  renderTree();
+}
+function resetTree() {
+  treeState = { node: treeData, path: [] };
+  renderTree();
+}
+function goToFormWithType(type) {
+  const map = { 'comportamiento':'selected-coral','comportamiento2':'selected-coral','conocimiento':'selected-purple','flujo-interno':'selected-teal','flujo-externo':'selected-teal' };
+  const chipMap = { 'comportamiento':'🔴 Comportamiento','comportamiento2':'🔴 Comportamiento','conocimiento':'🟣 Conocimiento','flujo-interno':'🟢 Flujo','flujo-externo':'🟢 Flujo' };
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-form').classList.add('active');
+  document.querySelectorAll('.nav-item')[1].classList.add('active');
+  setTimeout(() => {
+    document.querySelectorAll('#f-tipo .chip').forEach(c => {
+      if (c.textContent.trim() === chipMap[type]) c.classList.add(map[type]);
+    });
+    document.getElementById('f-fecha').value = new Date().toISOString().split('T')[0];
+    // auto-fill tech config from saved agente if only one active
+    const agente = document.getElementById('f-agente').value;
+    autoFillConfig(agente);
+  }, 50);
+}
+
+// ─── TOOLS — FALLA FORM ──────────────────────────────────
+function renderFTools() {
+  const list = document.getElementById('f-tools-list');
+  list.innerHTML = fTools.map((t,i) =>
+    `<div class="tool-chip">${t}<span class="tool-chip-remove" onclick="removeFTool(${i})">×</span></div>`
+  ).join('');
+}
+function addTool() {
+  const input = document.getElementById('f-tool-input');
+  const val = input.value.trim();
+  if (val && !fTools.includes(val)) { fTools.push(val); renderFTools(); }
+  input.value = '';
+}
+function addToolPreset(name) {
+  if (!fTools.includes(name)) { fTools.push(name); renderFTools(); }
+}
+function removeFTool(i) { fTools.splice(i,1); renderFTools(); }
+
+// ─── TOOLS — AGENTE CONFIG ───────────────────────────────
+function renderAgTools() {
+  const list = document.getElementById('ag-tools-list');
+  list.innerHTML = agTools.map((t,i) =>
+    `<div class="tool-chip">${t}<span class="tool-chip-remove" onclick="removeAgTool(${i})">×</span></div>`
+  ).join('');
+}
+function addAgTool() {
+  const input = document.getElementById('ag-tool-input');
+  const val = input.value.trim();
+  if (val && !agTools.includes(val)) { agTools.push(val); renderAgTools(); }
+  input.value = '';
+}
+function addAgToolPreset(name) {
+  if (!agTools.includes(name)) { agTools.push(name); renderAgTools(); }
+}
+function removeAgTool(i) { agTools.splice(i,1); renderAgTools(); }
+
+// ─── CHIP HELPERS ────────────────────────────────────────
+function toggleChip(el, cls) { el.classList.toggle(cls); }
+function singleChip(el, groupId, cls) {
+  document.querySelectorAll('#' + groupId + ' .chip').forEach(c => c.className = 'chip');
+  el.classList.add(cls);
+}
+function getChipValues(groupId) {
+  return Array.from(document.querySelectorAll('#' + groupId + ' .chip'))
+    .filter(c => c.className !== 'chip').map(c => c.textContent.trim());
+}
+
+// ─── SCORE RADIO ─────────────────────────────────────────
+function selectScore(el, type) {
+  el.parentElement.querySelectorAll('.score-radio').forEach(s => s.className = 'score-radio');
+  el.classList.add('sel-' + type);
+}
+
+// ─── HYPOTHESIS BUILDER ──────────────────────────────────
+function updateHyp() {
+  const falla = document.getElementById('h-falla').value || '___';
+  const causa = document.getElementById('h-causa').value || '___';
+  const cambio = document.getElementById('h-cambio').value || '___';
+  const resultado = document.getElementById('h-resultado').value || '___';
+  const metrica = document.getElementById('h-metrica').value || '___';
+  const accent = (t) => t === '___' ? `<span style="color:var(--accent)">___</span>` : `<b style="color:var(--ink)">${t}</b>`;
+  document.getElementById('hyp-output').innerHTML =
+    `Creo que el agente ${accent(falla)}\nporque ${accent(causa)}.\nSi cambio ${accent(cambio)},\nespero que ${accent(resultado)} mejore.\nLo mediré con ${accent(metrica)}.`;
+}
+
+// ─── AUTO FILL CONFIG FROM SAVED AGENTE ─────────────────
+function autoFillConfig(nombre) {
+  if (!nombre) return;
+  const ag = agentes.find(a => a.nombre === nombre);
+  if (!ag) return;
+  if (document.getElementById('f-modelo')) document.getElementById('f-modelo').value = ag.modelo || '';
+  if (document.getElementById('f-prompt-ver')) document.getElementById('f-prompt-ver').value = ag.promptVer || '';
+  if (document.getElementById('f-plataforma')) document.getElementById('f-plataforma').value = ag.plataforma || '';
+  if (document.getElementById('f-canal')) document.getElementById('f-canal').value = ag.canal || '';
+  if (document.getElementById('f-flujo')) document.getElementById('f-flujo').value = ag.flujo || '';
+  fTools = [...(ag.tools || [])];
+  renderFTools();
+}
+
+// ─── SAVE RECORD ─────────────────────────────────────────
+function saveRecord() {
+  const rec = {
+    id: Date.now(), type: 'falla',
+    fecha: document.getElementById('f-fecha').value || new Date().toISOString().split('T')[0],
+    agente: document.getElementById('f-agente').value,
+    senal: getChipValues('f-senal'),
+    desc: document.getElementById('f-desc').value,
+    contexto: document.getElementById('f-contexto').value,
+    intermitente: getChipValues('f-intermitente'),
+    tipo: getChipValues('f-tipo'),
+    causa: document.getElementById('f-causa').value,
+    ref: document.getElementById('f-ref').value,
+    sandbox: getChipValues('f-sandbox'),
+    // tech config
+    modelo: document.getElementById('f-modelo').value,
+    promptVer: document.getElementById('f-prompt-ver').value,
+    plataforma: document.getElementById('f-plataforma').value,
+    canal: document.getElementById('f-canal').value,
+    flujo: document.getElementById('f-flujo').value,
+    tools: [...fTools],
+    configNotas: document.getElementById('f-config-notas').value,
+    // action
+    accion: getChipValues('f-accion'),
+    criterio: document.getElementById('f-criterio').value,
+    prioridad: getChipValues('f-prioridad'),
+  };
+  if (!rec.agente) { showToast('Selecciona un agente'); return; }
+  if (!rec.desc) { showToast('Describe qué pasó'); return; }
+  records.unshift(rec);
+  saveRecords();
+  showToast('Registro guardado ✓');
+  clearForm();
+}
+
+function saveHypothesis() {
+  const rec = {
+    id: Date.now(), type: 'hipotesis',
+    fecha: new Date().toISOString().split('T')[0],
+    agente: document.getElementById('h-agente').value,
+    falla: document.getElementById('h-falla').value,
+    causa: document.getElementById('h-causa').value,
+    cambio: document.getElementById('h-cambio').value,
+    resultado: document.getElementById('h-resultado').value,
+    metrica: document.getElementById('h-metrica').value,
+    notas: document.getElementById('h-notas').value,
+  };
+  if (!rec.agente) { showToast('Selecciona un agente'); return; }
+  if (!rec.falla) { showToast('Describe la falla'); return; }
+  records.unshift(rec);
+  saveRecords();
+  showToast('Hipótesis guardada ✓');
+  clearHyp();
+}
+
+function saveScorecard() {
+  const scores = {};
+  document.querySelectorAll('.score-item').forEach(item => {
+    const label = item.querySelector('.score-label').textContent;
+    const sel = item.querySelector('.score-radio.sel-yes, .score-radio.sel-no, .score-radio.sel-partial');
+    scores[label] = sel ? sel.textContent.trim() : '—';
+  });
+  const rec = {
+    id: Date.now(), type: 'scorecard',
+    fecha: new Date().toISOString().split('T')[0],
+    agente: document.getElementById('s-agente').value,
+    version: document.getElementById('s-version').value,
+    modelo: document.getElementById('s-modelo').value,
+    promptVer: document.getElementById('s-prompt-ver').value,
+    plataforma: document.getElementById('s-plataforma').value,
+    flujo: document.getElementById('s-flujo').value,
+    cambio: document.getElementById('s-cambio').value,
+    scores,
+    resultado: document.getElementById('s-resultado').value,
+    decision: getChipValues('s-decision'),
+    notas: document.getElementById('s-notas').value,
+  };
+  if (!rec.agente) { showToast('Selecciona un agente'); return; }
+  records.unshift(rec);
+  saveRecords();
+  showToast('Scorecard guardado ✓');
+  clearScorecard();
+}
+
+// ─── SAVE AGENTE ─────────────────────────────────────────
+function saveAgente() {
+  const nombre = document.getElementById('ag-nombre').value;
+  if (!nombre) { showToast('Selecciona un agente'); return; }
+  const editId = document.getElementById('ag-edit-id').value;
+  const ag = {
+    id: editId || Date.now().toString(),
+    nombre,
+    estado: getChipValues('ag-estado'),
+    modelo: document.getElementById('ag-modelo').value,
+    promptVer: document.getElementById('ag-prompt-ver').value,
+    plataforma: document.getElementById('ag-plataforma').value,
+    canal: document.getElementById('ag-canal').value,
+    flujo: document.getElementById('ag-flujo').value,
+    tools: [...agTools],
+    webhook: document.getElementById('ag-webhook').value,
+    notas: document.getElementById('ag-notas').value,
+    ultimaUpdate: document.getElementById('ag-ultima-update').value,
+  };
+  if (editId) {
+    const idx = agentes.findIndex(a => a.id === editId);
+    if (idx > -1) agentes[idx] = ag; else agentes.unshift(ag);
+  } else {
+    const existing = agentes.findIndex(a => a.nombre === nombre);
+    if (existing > -1) agentes[existing] = ag; else agentes.unshift(ag);
+  }
+  saveAgentes();
+  showToast('Agente guardado ✓');
+  clearAgente();
+  renderAgentes();
+}
+
+// ─── CLEAR ───────────────────────────────────────────────
+function clearForm() {
+  ['f-fecha','f-desc','f-contexto','f-ref','f-criterio','f-config-notas','f-prompt-ver','f-flujo'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  ['f-agente','f-modelo','f-plataforma','f-canal'].forEach(id => document.getElementById(id).value = '');
+  ['f-senal','f-tipo','f-intermitente','f-sandbox','f-accion','f-prioridad'].forEach(id => {
+    document.querySelectorAll('#' + id + ' .chip').forEach(c => c.className = 'chip');
+  });
+  fTools = []; renderFTools();
+}
+function clearHyp() {
+  ['h-falla','h-causa','h-cambio','h-resultado','h-metrica','h-notas'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('h-agente').value = '';
+  updateHyp();
+}
+function clearScorecard() {
+  ['s-version','s-cambio','s-resultado','s-notas','s-prompt-ver','s-flujo'].forEach(id => document.getElementById(id).value = '');
+  ['s-agente','s-modelo','s-plataforma'].forEach(id => document.getElementById(id).value = '');
+  document.querySelectorAll('.score-radio').forEach(r => r.className = 'score-radio');
+  document.querySelectorAll('#s-decision .chip').forEach(c => c.className = 'chip');
+}
+function clearAgente() {
+  ['ag-nombre','ag-modelo','ag-plataforma','ag-canal'].forEach(id => document.getElementById(id).value = '');
+  ['ag-prompt-ver','ag-flujo','ag-webhook','ag-notas','ag-ultima-update'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ag-edit-id').value = '';
+  document.querySelectorAll('#ag-estado .chip').forEach(c => c.className = 'chip');
+  agTools = []; renderAgTools();
+}
+
+// ─── RENDER AGENTES ──────────────────────────────────────
+function renderAgentes() {
+  const list = document.getElementById('agentes-list');
+  if (agentes.length === 0) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">○</div><div class="empty-text">No has configurado agentes todavía.<br>Agrega el estado técnico actual de cada uno abajo.</div></div>`;
+    return;
+  }
+  const estadoColor = { '✓ Activo': 'badge-teal', '⚠ En revisión': 'badge-amber', '✗ Pausado': 'badge-coral' };
+  list.innerHTML = agentes.map(ag => `
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <span style="font-family:'Fraunces',serif;font-size:15px;font-weight:400;color:var(--ink)">${ag.nombre}</span>
+        ${ag.estado?.length ? `<span class="badge ${estadoColor[ag.estado[0]] || 'badge-gray'}">${ag.estado[0]}</span>` : ''}
+        ${ag.ultimaUpdate ? `<span style="font-size:10px;color:var(--ink3);margin-left:auto">actualizado ${ag.ultimaUpdate}</span>` : ''}
+        <button class="btn btn-sm no-print" onclick="editAgente('${ag.id}')">Editar</button>
+        <button class="btn btn-sm no-print" onclick="deleteAgente('${ag.id}')" style="color:var(--ink3)">×</button>
+      </div>
+      <div class="tech-grid">
+        <div class="tech-item"><div class="tech-label">Modelo</div><div style="font-size:12px;color:var(--ink2);margin-top:3px">${ag.modelo || '—'}</div></div>
+        <div class="tech-item"><div class="tech-label">Prompt</div><div style="font-size:12px;color:var(--ink2);margin-top:3px">${ag.promptVer || '—'}</div></div>
+        <div class="tech-item"><div class="tech-label">Plataforma</div><div style="font-size:12px;color:var(--ink2);margin-top:3px">${ag.plataforma || '—'}</div></div>
+        <div class="tech-item"><div class="tech-label">Canal</div><div style="font-size:12px;color:var(--ink2);margin-top:3px">${ag.canal || '—'}</div></div>
+      </div>
+      ${ag.flujo ? `<div style="margin-top:8px;font-size:11px;color:var(--ink3)">Flujo: <span style="color:var(--ink2)">${ag.flujo}</span></div>` : ''}
+      ${ag.tools?.length ? `<div style="margin-top:8px"><div style="font-size:10px;color:var(--ink3);margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em">Tools activas</div><div class="tools-list">${ag.tools.map(t => `<div class="tool-chip">${t}</div>`).join('')}</div></div>` : ''}
+      ${ag.notas ? `<div style="margin-top:8px;font-size:11px;color:var(--ink3);font-weight:300;line-height:1.5">${ag.notas}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function editAgente(id) {
+  const ag = agentes.find(a => a.id === id);
+  if (!ag) return;
+  document.getElementById('ag-edit-id').value = ag.id;
+  document.getElementById('ag-nombre').value = ag.nombre || '';
+  document.getElementById('ag-modelo').value = ag.modelo || '';
+  document.getElementById('ag-prompt-ver').value = ag.promptVer || '';
+  document.getElementById('ag-plataforma').value = ag.plataforma || '';
+  document.getElementById('ag-canal').value = ag.canal || '';
+  document.getElementById('ag-flujo').value = ag.flujo || '';
+  document.getElementById('ag-webhook').value = ag.webhook || '';
+  document.getElementById('ag-notas').value = ag.notas || '';
+  document.getElementById('ag-ultima-update').value = ag.ultimaUpdate || '';
+  agTools = [...(ag.tools || [])]; renderAgTools();
+  if (ag.estado?.length) {
+    document.querySelectorAll('#ag-estado .chip').forEach(c => {
+      if (c.textContent.trim() === ag.estado[0]) c.classList.add('selected-teal');
+    });
+  }
+  document.getElementById('ag-nombre').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function deleteAgente(id) {
+  if (!confirm('¿Eliminar este agente?')) return;
+  agentes = agentes.filter(a => a.id !== id);
+  saveAgentes();
+  renderAgentes();
+}
+
+// ─── HISTORY ─────────────────────────────────────────────
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const filterAgente = document.getElementById('filter-agente').value;
+  const filterTipo = document.getElementById('filter-tipo').value;
+  let filtered = records.filter(r => {
+    if (filterAgente && r.agente !== filterAgente) return false;
+    if (filterTipo && r.type !== filterTipo) return false;
+    return true;
+  });
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">○</div><div class="empty-text">No hay registros todavía.<br>Usa el árbol de diagnóstico o registra una falla.</div></div>`;
+    return;
+  }
+  const typeLabel = { falla: '🔴 Falla', hipotesis: '🟣 Hipótesis', scorecard: '🟢 Scorecard' };
+  const typeBadge = { falla: 'badge-coral', hipotesis: 'badge-purple', scorecard: 'badge-teal' };
+  list.innerHTML = filtered.map(r => {
+    let mainText = '';
+    if (r.type === 'falla') mainText = r.desc || '—';
+    if (r.type === 'hipotesis') mainText = `Si cambio ${r.cambio || '...'}, espero que ${r.resultado || '...'} mejore.`;
+    if (r.type === 'scorecard') mainText = `${r.cambio || '—'} · Decisión: ${r.decision?.join(', ') || '—'}`;
+    const techTags = [r.modelo, r.promptVer, r.plataforma].filter(Boolean);
+    return `
+      <div class="history-item" onclick="openRecord(${r.id})">
+        <div class="history-meta">
+          <span class="badge ${typeBadge[r.type]}">${typeLabel[r.type]}</span>
+          <span class="history-agent">${r.agente || '—'}</span>
+          <span class="history-date" style="margin-left:auto">${r.fecha}</span>
+          <button class="btn btn-sm no-print" onclick="event.stopPropagation();deleteRecord(${r.id})" style="margin-left:8px;color:var(--ink3)">×</button>
+        </div>
+        <div class="history-desc">${mainText}</div>
+        <div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px">
+          ${r.tipo?.length ? r.tipo.map(t => `<span class="tag">${t}</span>`).join('') : ''}
+          ${techTags.map(t => `<span class="tag" style="background:var(--purple-bg);color:var(--purple-ink)">${t}</span>`).join('')}
+          ${r.tools?.length ? `<span class="tag">${r.tools.length} tools</span>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openRecord(id) {
+  const r = records.find(rec => rec.id === id);
+  if (!r) return;
+  const typeLabel = { falla: '🔴 Falla', hipotesis: '🟣 Hipótesis', scorecard: '🟢 Scorecard' };
+  const field = (label, val) => val ? `<div class="modal-field"><div class="modal-label">${label}</div><div class="modal-value">${Array.isArray(val) ? val.join(', ') : val}</div></div>` : '';
+
+  let techSection = '';
+  if (r.modelo || r.promptVer || r.plataforma || r.canal || r.flujo || r.tools?.length) {
+    techSection = `<div class="modal-section">Configuración técnica</div>
+      ${field('Modelo IA', r.modelo)}
+      ${field('Versión de prompt', r.promptVer)}
+      ${field('Plataforma', r.plataforma)}
+      ${field('Canal', r.canal)}
+      ${field('Flujo', r.flujo)}
+      ${r.tools?.length ? `<div class="modal-field"><div class="modal-label">Tools activas</div><div class="tools-list" style="margin-top:4px">${r.tools.map(t => `<div class="tool-chip">${t}</div>`).join('')}</div></div>` : ''}
+      ${field('Notas de config', r.configNotas)}`;
+  }
+
+  let content = '';
+  if (r.type === 'falla') {
+    content = `
+      ${field('Agente', r.agente)}${field('Señal', r.senal)}${field('Descripción', r.desc)}
+      ${field('Contexto', r.contexto)}${field('Intermitente', r.intermitente)}
+      ${field('Tipo de falla', r.tipo)}${field('Causa raíz', r.causa)}
+      ${field('Referencia', r.ref)}${field('Sandbox', r.sandbox)}
+      ${techSection}
+      <div class="modal-section">Acción</div>
+      ${field('Acción planificada', r.accion)}${field('Criterio de éxito', r.criterio)}${field('Prioridad', r.prioridad)}`;
+  } else if (r.type === 'hipotesis') {
+    content = `
+      ${field('Agente', r.agente)}${field('El agente falla en', r.falla)}
+      ${field('Causa raíz', r.causa)}${field('Cambio', r.cambio)}
+      ${field('Resultado esperado', r.resultado)}${field('Métrica', r.metrica)}
+      ${field('Notas', r.notas)}`;
+  } else if (r.type === 'scorecard') {
+    const scoresHtml = r.scores ? Object.entries(r.scores).map(([k,v]) => field(k,v)).join('') : '';
+    content = `
+      ${field('Agente', r.agente)}${field('Versión', r.version)}
+      ${techSection}
+      <div class="modal-section">Evaluación</div>
+      ${field('Cambio evaluado', r.cambio)}${scoresHtml}
+      ${field('Resultado observado', r.resultado)}${field('Decisión', r.decision)}${field('Notas', r.notas)}`;
+  }
+
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-header">
+      <div>
+        <div style="font-size:10px;color:var(--ink3);margin-bottom:4px">${typeLabel[r.type]} · ${r.fecha}</div>
+        <div class="modal-title">${r.agente || 'Sin agente'}</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    ${content}`;
+  document.getElementById('modal-overlay').style.display = 'flex';
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal-overlay')) {
+    document.getElementById('modal-overlay').style.display = 'none';
+  }
+}
+
+function deleteRecord(id) {
+  if (!confirm('¿Eliminar este registro?')) return;
+  records = records.filter(r => r.id !== id);
+  saveRecords();
+  renderHistory();
+}
+function clearHistory() {
+  if (!confirm('¿Borrar todo el historial? Esta acción no se puede deshacer.')) return;
+  records = [];
+  saveRecords();
+  renderHistory();
+}
+
+// ─── EXPORT ──────────────────────────────────────────────
+function exportPDF() {
+  document.querySelectorAll('.view').forEach(v => v.style.display = 'block');
+  window.print();
+  setTimeout(() => {
+    document.querySelectorAll('.view').forEach(v => v.style.display = '');
+    document.querySelectorAll('.view.active').forEach(v => v.style.display = 'block');
+  }, 500);
+}
+function exportJSON() {
+  const data = JSON.stringify({ records, agentes }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `huliops-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('JSON exportado ✓');
+}
+function printForm() { window.print(); }
+
+// ─── TOAST ───────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─── INIT ────────────────────────────────────────────────
+document.getElementById('f-fecha').value = new Date().toISOString().split('T')[0];
+document.getElementById('ag-ultima-update').value = new Date().toISOString().split('T')[0];
+
+// Auto-fill config when agente is selected in form
+document.getElementById('f-agente').addEventListener('change', function() {
+  autoFillConfig(this.value);
+});
+
+updateCountBadge();
+renderTree();
+renderFTools();
+renderAgTools();
+</script>
 
 function saveRecords() {
   localStorage.setItem('huliops-records', JSON.stringify(records));
