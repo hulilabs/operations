@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Sandbox</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f0f;--bg2:#1a1a1a;--bg3:#242424;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#e2e2e2;--text2:#888;--text3:#444;
+  --purple:#7c6fcd;--purple-d:#5b50a0;--purple-bg:rgba(124,111,205,0.13);--purple-light:#a89be0;
+  --teal:#2dd4bf;--teal-bg:rgba(45,212,191,0.1);
+  --amber:#f59e0b;--amber-bg:rgba(245,158,11,0.1);
+  --green:#22c55e;--green-bg:rgba(34,197,94,0.1);
+  --red:#ef4444;--red-bg:rgba(239,68,68,0.1);
+  --r:10px;--rs:6px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.6;min-height:100vh}
+.app{display:grid;grid-template-columns:300px 1fr;grid-template-rows:56px 1fr;height:100vh;overflow:hidden}
+header{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--bg2)}
+.logo{font-size:15px;font-weight:600;color:var(--text)}
+.logo span{color:var(--purple)}
+.header-status{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--text3)}
+.dot.ready{background:var(--green)}
+.dot.running{background:var(--amber);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+aside{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:20px}
+.section-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.6px;text-transform:uppercase;margin-bottom:8px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-size:12px;color:var(--text2)}
+input,select,textarea{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);padding:8px 10px;color:var(--text);font-size:13px;font-family:inherit;width:100%;outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--purple)}
+select option{background:var(--bg3)}
+textarea{resize:vertical;min-height:90px;line-height:1.5}
+.agent-tabs{display:flex;gap:4px;margin-bottom:16px}
+.agent-tab{flex:1;padding:7px 4px;border:1px solid var(--border2);border-radius:var(--rs);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;text-align:center;transition:all .15s}
+.agent-tab.active{background:var(--purple-bg);border-color:var(--purple);color:var(--purple-light)}
+.agent-tab:hover:not(.active){background:var(--bg3)}
+.agent-panel{display:none}
+.agent-panel.active{display:block}
+.hint{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.4}
+.turns-row{display:flex;align-items:center;gap:10px}
+.turns-row input[type=range]{flex:1;accent-color:var(--purple)}
+.turns-val{font-size:13px;color:var(--purple);min-width:20px;text-align:right}
+.btn-run{width:100%;padding:11px;border-radius:var(--r);border:none;background:var(--purple);color:#fff;font-size:14px;font-weight:500;cursor:pointer;transition:all .15s;margin-top:4px}
+.btn-run:hover{background:var(--purple-d)}
+.btn-run:disabled{opacity:0.4;cursor:not-allowed}
+.btn-stop{width:100%;padding:11px;border-radius:var(--r);border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:14px;cursor:pointer;margin-top:8px;transition:all .15s;display:none}
+.btn-stop:hover{background:var(--red-bg);color:var(--red);border-color:var(--red)}
+main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.chat-header{padding:14px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--bg2);flex-shrink:0}
+.agent-badge{font-size:12px;font-weight:500;padding:3px 10px;border-radius:20px;background:var(--purple-bg);color:var(--purple-light);border:1px solid rgba(124,111,205,0.25)}
+.session-info{font-size:12px;color:var(--text3);margin-left:auto}
+.chat-body{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:16px}
+.empty-state{color:var(--text3);font-size:13px;margin:auto;text-align:center;line-height:2}
+.msg{display:flex;flex-direction:column;gap:4px;max-width:78%}
+.msg.supervisor{align-self:flex-start}
+.msg.agent{align-self:flex-end}
+.msg.system{align-self:center;max-width:90%}
+.msg-role{font-size:11px;color:var(--text3);padding:0 4px}
+.msg.agent .msg-role{text-align:right}
+.msg-bubble{padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.6}
+.msg.supervisor .msg-bubble{background:var(--bg3);border:1px solid var(--border2);border-bottom-left-radius:4px}
+.msg.agent .msg-bubble{background:var(--purple-bg);border:1px solid rgba(124,111,205,0.2);border-bottom-right-radius:4px}
+.msg.system .msg-bubble{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text2);font-size:12px;text-align:center;width:100%}
+.msg.system.info .msg-bubble{background:var(--teal-bg);border-color:rgba(45,212,191,0.2);color:var(--teal)}
+.msg.system.warn .msg-bubble{background:var(--amber-bg);border-color:rgba(245,158,11,0.2);color:var(--amber)}
+.msg.system.error .msg-bubble{background:var(--red-bg);border-color:rgba(239,68,68,0.2);color:var(--red)}
+.typing{display:flex;gap:4px;align-items:center;padding:12px 14px}
+.typing span{width:6px;height:6px;border-radius:50%;background:var(--text3);animation:bounce .9s infinite}
+.typing span:nth-child(2){animation-delay:.15s}
+.typing span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.eval-section{border-top:1px solid var(--border);padding:20px 24px;background:var(--bg2);flex-shrink:0;display:none;max-height:340px;overflow-y:auto}
+.eval-title{font-size:13px;font-weight:500;margin-bottom:14px;color:var(--text2)}
+.scores-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:14px}
+.score-card{background:var(--bg3);border-radius:var(--rs);padding:12px;text-align:center;border:1px solid var(--border)}
+.score-val{font-size:22px;font-weight:600;color:var(--purple-light)}
+.score-lbl{font-size:11px;color:var(--text3);margin-top:2px}
+.overall{background:var(--purple-bg);border:1px solid rgba(124,111,205,0.25);border-radius:var(--r);padding:14px 20px;display:flex;align-items:center;gap:16px;margin-bottom:14px}
+.overall-val{font-size:32px;font-weight:700;color:var(--purple-light)}
+.overall-info{flex:1}
+.overall-label{font-size:12px;color:var(--text2)}
+.overall-summary{font-size:13px;color:var(--text);margin-top:2px;line-height:1.5}
+.flags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.flag{font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid}
+.flag.error{background:var(--red-bg);border-color:rgba(239,68,68,0.25);color:var(--red)}
+.flag.ok{background:var(--green-bg);border-color:rgba(34,197,94,0.25);color:var(--green)}
+.eval-actions{display:flex;gap:8px;margin-bottom:8px}
+.btn-sm{font-size:12px;padding:6px 14px;border-radius:var(--rs);border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer}
+.btn-sm:hover{background:var(--bg3)}
+.json-block{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:14px;font-size:11px;font-family:'SF Mono',Monaco,monospace;white-space:pre-wrap;color:var(--text2);max-height:200px;overflow-y:auto;display:none;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header>
+  <div class="logo">Agent <span>Sandbox</span></div>
+  <div class="header-status">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">Listo</span>
+  </div>
+</header>
+
+<aside>
+  <div>
+    <div class="section-label">Agente a probar</div>
+    <div class="agent-tabs">
+      <button class="agent-tab active" onclick="switchAgent('eva')">EVA SDR</button>
+      <button class="agent-tab" onclick="switchAgent('huli')">HuliHealth</button>
+    </div>
+    <div class="agent-panel active" id="panel-eva">
+      <div class="field">
+        <label>País</label>
+        <select id="eva-pais">
+          <option value="México">México</option>
+          <option value="Costa Rica">Costa Rica</option>
+        </select>
+      </div>
+    </div>
+    <div class="agent-panel" id="panel-huli">
+      <div class="field">
+        <label>Sede</label>
+        <select id="huli-stored">
+          <option value="HuliHealth_Panama">Panamá</option>
+          <option value="HuliHealth_CostaRica">Costa Rica</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">Escenario</div>
+    <div class="field">
+      <label>Personalidad del usuario simulado</label>
+      <select id="persona">
+        <option value="neutral">Neutral / directo</option>
+        <option value="frustrated">Frustrado / impaciente</option>
+        <option value="confused">Confundido / inexperto</option>
+        <option value="technical">Técnico / exigente</option>
+        <option value="friendly">Amigable / colaborativo</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Instrucciones del escenario</label>
+      <textarea id="instructions" placeholder="Ej: Eres un prospecto interesado en el servicio pero con dudas sobre el precio. Pregunta por descuentos si no los mencionan."></textarea>
+      <span class="hint">SANDBOX_MODE se agrega automáticamente.</span>
+    </div>
+    <div class="field">
+      <label>Turnos de conversación</label>
+      <div class="turns-row">
+        <input type="range" min="2" max="12" value="4" id="turns-slider" oninput="document.getElementById('turns-val').textContent=this.value">
+        <span class="turns-val" id="turns-val">4</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">Evaluación</div>
+    <div class="field">
+      <label>Criterios (separados por coma)</label>
+      <input type="text" id="criteria" value="coherencia, resolución, empatía, claridad">
+    </div>
+  </div>
+
+  <div>
+    <button class="btn-run" id="btn-run" onclick="startSession()">Iniciar sesión</button>
+    <button class="btn-stop" id="btn-stop" onclick="stopSession()">Detener sesión</button>
+  </div>
+</aside>
+
+<main>
+  <div class="chat-header">
+    <span class="agent-badge" id="chat-agent-label">EVA SDR</span>
+    <span class="session-info" id="session-info"></span>
+  </div>
+  <div class="chat-body" id="chat-body">
+    <div class="empty-state">Configura el escenario y presiona<br>Iniciar sesión para comenzar.</div>
+  </div>
+  <div class="eval-section" id="eval-section">
+    <div class="eval-title">Evaluación de sesión</div>
+    <div class="overall" id="overall-card" style="display:none"></div>
+    <div class="scores-grid" id="scores-grid"></div>
+    <div class="flags" id="flags-container"></div>
+    <div class="eval-actions">
+      <button class="btn-sm" onclick="toggleJson()">Ver JSON</button>
+      <button class="btn-sm" onclick="copyJson()">Copiar JSON</button>
+    </div>
+    <div class="json-block" id="json-block"></div>
+  </div>
+</main>
+
+</div>
+<script>
+const HOOKS = {
+  analista: 'https://api.dapta.ai/api/76b0fc9a51e86ac9/copy-of-dapta-sandbox?x-api-key=MIkRi-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',
+  eva:      'https://api.dapta.ai/api/76b0fc9a51e86ac9/connect_agent?x-api-key=g9RCm-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a',
+  huli:     'https://api.dapta.ai/api/76b0fc9a51e86ac9/agente-ia---hulihealth?x-api-key=zMa0w-76b0fc9a-c51a-4768-a90e-92ee51e86ac9-a'
+};
+const PERSONAS = {
+  neutral:    'Actúa de forma directa y sin carga emocional especial.',
+  frustrated: 'Llevas tiempo esperando solución. Empiezas educado pero escalas si no recibes ayuda concreta.',
+  confused:   'No entiendes bien la tecnología. Necesitas explicaciones simples y repites si no entiendes.',
+  technical:  'Haces preguntas precisas y no aceptas respuestas vagas.',
+  friendly:   'Eres amigable y colaborativo, das información extra si te la piden.'
+};
+let currentAgent = 'eva', stopped = false, sessionJSON = null;
+
+function switchAgent(a) {
+  currentAgent = a;
+  document.querySelectorAll('.agent-tab').forEach((t,i) => t.classList.toggle('active', ['eva','huli'][i]===a));
+  document.querySelectorAll('.agent-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-'+a).classList.add('active');
+  document.getElementById('chat-agent-label').textContent = a==='eva'?'EVA SDR':'HuliHealth';
+}
+function setStatus(t,r){ document.getElementById('status-text').textContent=t; document.getElementById('status-dot').className='dot '+(r?'running':'ready'); }
+function addMsg(role,text){
+  const b=document.getElementById('chat-body');
+  const w=document.createElement('div'); w.className='msg '+role;
+  const lbl=role==='supervisor'?'Usuario simulado':role==='agent'?(currentAgent==='eva'?'EVA SDR':'HuliHealth'):'';
+  w.innerHTML=(lbl?`<div class="msg-role">${lbl}</div>`:'')+`<div class="msg-bubble">${text}</div>`;
+  b.appendChild(w); b.scrollTop=b.scrollHeight;
+}
+function addSystem(text,type){
+  const b=document.getElementById('chat-body');
+  const w=document.createElement('div'); w.className='msg system'+(type?' '+type:'');
+  w.innerHTML=`<div class="msg-bubble">${text}</div>`;
+  b.appendChild(w); b.scrollTop=b.scrollHeight;
+}
+function showTyping(side){
+  const b=document.getElementById('chat-body');
+  const w=document.createElement('div'); w.className='msg '+side; w.id='typing-'+side;
+  w.innerHTML=`<div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  b.appendChild(w); b.scrollTop=b.scrollHeight;
+}
+function removeTyping(side){ const e=document.getElementById('typing-'+side); if(e)e.remove(); }
+
+async function callAnalista(msg, convId, instructions){
+  const persona=PERSONAS[document.getElementById('persona').value];
+  const full=`SANDBOX_MODE\n\n${persona}\n\n${instructions}`;
+  const r=await fetch(HOOKS.analista,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_message:msg,conversation_id:convId,instructions:full})});
+  const d=await r.json();
+  return d.result||d.message||JSON.stringify(d);
+}
+async function callEva(msg, sessionId){
+  const body={user_message:msg,pais:document.getElementById('eva-pais').value};
+  if(sessionId) body.conversation_id=sessionId;
+  const r=await fetch(HOOKS.eva,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json();
+  return{text:d.result||d.message||d.output||JSON.stringify(d),sessionId:d.conversation_id||sessionId};
+}
+async function callHuli(msg, sessionId){
+  const body={message:msg,stored_values:document.getElementById('huli-stored').value,stream:false};
+  if(sessionId) body.session_id=sessionId;
+  const r=await fetch(HOOKS.huli,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json();
+  return{text:d.message||d.result||d.output||JSON.stringify(d),sessionId:d.session_id||sessionId};
+}
+async function callAgent(msg,sid){ return currentAgent==='eva'?callEva(msg,sid):callHuli(msg,sid); }
+
+async function evaluate(transcript,criteria){
+  const cl=criteria.split(',').map(c=>c.trim());
+  const tt=transcript.map(t=>`[${t.role.toUpperCase()}] ${t.text}`).join('\n\n');
+  const prompt=`Eres evaluador de agentes conversacionales. Responde SOLO con JSON válido sin backticks.\n\nCriterios: ${cl.join(', ')}\n\nTRANSCRIPCIÓN:\n${tt}\n\nEstructura:\n{"scores":{${cl.map(c=>`"${c}":<0-10>`).join(',')}},"overall_score":<promedio>,"flags":["<error>"],"strengths":["<fortaleza>"],"improvements":["<mejora>"],"summary":"<2 oraciones>"}`;
+  const r=await fetch(HOOKS.analista,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_message:prompt,conversation_id:'eval_'+Date.now(),instructions:'Responde solo con JSON válido.'})});
+  const d=await r.json();
+  const raw=d.result||d.message||'';
+  try{ return JSON.parse(raw.replace(/```json|```/g,'').trim()); }
+  catch{ return{error:'No se pudo parsear',raw}; }
+}
+
+function renderEval(e,transcript,turns){
+  const s=document.getElementById('eval-section'); s.style.display='block';
+  const oc=document.getElementById('overall-card');
+  if(e.overall_score!==undefined){
+    oc.style.display='flex';
+    oc.innerHTML=`<div class="overall-val">${Number(e.overall_score).toFixed(1)}<span style="font-size:14px;font-weight:400;color:var(--text2)">/10</span></div><div class="overall-info"><div class="overall-label">Score general · ${turns} turnos · ${currentAgent==='eva'?'EVA SDR':'HuliHealth'}</div><div class="overall-summary">${e.summary||''}</div></div>`;
+  }
+  const g=document.getElementById('scores-grid'); g.innerHTML='';
+  if(e.scores) Object.entries(e.scores).forEach(([k,v])=>{ g.innerHTML+=`<div class="score-card"><div class="score-val">${Number(v).toFixed(1)}</div><div class="score-lbl">${k}</div></div>`; });
+  const f=document.getElementById('flags-container'); f.innerHTML='';
+  (e.flags||[]).forEach(x=>{ f.innerHTML+=`<span class="flag error">${x}</span>`; });
+  (e.strengths||[]).forEach(x=>{ f.innerHTML+=`<span class="flag ok">${x}</span>`; });
+  sessionJSON={session_id:'sess_'+Date.now(),agent:currentAgent,turns,timestamp:new Date().toISOString(),...e,transcript};
+  document.getElementById('json-block').textContent=JSON.stringify(sessionJSON,null,2);
+}
+
+async function startSession(){
+  const instructions=document.getElementById('instructions').value.trim();
+  const numTurns=parseInt(document.getElementById('turns-slider').value);
+  const criteria=document.getElementById('criteria').value.trim();
+  if(!instructions){ alert('Define el escenario de prueba.'); return; }
+  stopped=false;
+  document.getElementById('chat-body').innerHTML='';
+  document.getElementById('eval-section').style.display='none';
+  document.getElementById('btn-run').disabled=true;
+  document.getElementById('btn-stop').style.display='block';
+  const sessionId='sess_'+Date.now();
+  let agentSid=null;
+  const transcript=[];
+  document.getElementById('session-info').textContent=sessionId;
+  setStatus('Ejecutando...',true);
+  addSystem('Sesión iniciada · generando primer mensaje...','info');
+  try{
+    showTyping('supervisor');
+    const firstMsg=await callAnalista('inicia',sessionId,instructions);
+    removeTyping('supervisor');
+    addMsg('supervisor',firstMsg);
+    transcript.push({turn:1,role:'usuario simulado',text:firstMsg});
+
+    for(let turn=1;turn<=numTurns;turn++){
+      if(stopped){ addSystem('Sesión detenida.','warn'); break; }
+      setStatus(`Turno ${turn}/${numTurns} · agente respondiendo...`,true);
+      showTyping('agent');
+      const agentResp=await callAgent(transcript[transcript.length-1].text,agentSid);
+      removeTyping('agent');
+      if(!agentSid) agentSid=agentResp.sessionId;
+      addMsg('agent',agentResp.text);
+      transcript.push({turn,role:currentAgent==='eva'?'EVA SDR':'HuliHealth',text:agentResp.text});
+      if(turn===numTurns||stopped) break;
+      setStatus(`Turno ${turn}/${numTurns} · supervisor respondiendo...`,true);
+      showTyping('supervisor');
+      const supMsg=await callAnalista(agentResp.text,sessionId,instructions);
+      removeTyping('supervisor');
+      addMsg('supervisor',supMsg);
+      transcript.push({turn:turn+1,role:'usuario simulado',text:supMsg});
+    }
+    if(!stopped){
+      addSystem('Conversación completada · evaluando...','info');
+      setStatus('Evaluando...',true);
+      const evalData=await evaluate(transcript,criteria);
+      renderEval(evalData,transcript,numTurns);
+      addSystem('Evaluación lista. Revisa el panel inferior.','info');
+    }
+    setStatus('Completado',false);
+  }catch(err){
+    removeTyping('supervisor'); removeTyping('agent');
+    addSystem('Error: '+err.message,'error');
+    setStatus('Error',false);
+  }
+  document.getElementById('btn-run').disabled=false;
+  document.getElementById('btn-stop').style.display='none';
+}
+function stopSession(){ stopped=true; document.getElementById('btn-run').disabled=false; document.getElementById('btn-stop').style.display='none'; setStatus('Detenido',false); }
+function toggleJson(){ const e=document.getElementById('json-block'); e.style.display=e.style.display==='block'?'none':'block'; }
+function copyJson(){ if(sessionJSON) navigator.clipboard.writeText(JSON.stringify(sessionJSON,null,2)); }
+</script>
+</body>
+</html>
