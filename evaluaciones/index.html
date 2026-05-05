@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnóstico de Agentes — Huli Ops</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F2EB;
+    --bg2: #EDE9DF;
+    --bg3: #E3DDD0;
+    --ink: #1A1814;
+    --ink2: #4A4640;
+    --ink3: #7A7670;
+    --accent: #C4470A;
+    --accent2: #1A5C3A;
+    --accent3: #2B4FA8;
+    --accent4: #8B3A9E;
+    --border: #D0C9BC;
+    --border2: #B8B0A0;
+    --coral-bg: #FAEDE6;
+    --coral-border: #E8B9A0;
+    --coral-ink: #7A2208;
+    --purple-bg: #EDEBFA;
+    --purple-border: #C5BFF0;
+    --purple-ink: #3A2E8A;
+    --teal-bg: #E2F3EC;
+    --teal-border: #A8D9C0;
+    --teal-ink: #0A4A30;
+    --amber-bg: #FAF0DC;
+    --amber-border: #E8D098;
+    --amber-ink: #6A4008;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── LAYOUT ── */
+  .app { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 220px;
+    min-width: 220px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+  }
+
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .sidebar-logo span {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--ink3);
+    font-weight: 300;
+    display: block;
+    margin-top: 2px;
+  }
+
+  .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+
+  .nav-section {
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink3);
+    padding: 12px 20px 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 20px;
+    cursor: pointer;
+    color: var(--ink2);
+    font-size: 12px;
+    transition: all 0.12s;
+    border-left: 2px solid transparent;
+  }
+  .nav-item:hover { background: var(--bg3); color: var(--ink); }
+  .nav-item.active {
+    background: var(--bg3);
+    color: var(--ink);
+    border-left-color: var(--accent);
+    font-weight: 500;
+  }
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border2);
+    flex-shrink: 0;
+  }
+  .nav-item.active .nav-dot { background: var(--accent); }
+
+  .sidebar-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--ink3);
+  }
+
+  .main {
+    margin-left: 220px;
+    flex: 1;
+    padding: 36px 48px;
+    max-width: 900px;
+  }
+
+  /* ── VIEWS ── */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── HEADER ── */
+  .view-header { margin-bottom: 32px; }
+  .view-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--ink);
+    letter-spacing: -0.03em;
+    margin-bottom: 6px;
+  }
+  .view-header p {
+    font-size: 12px;
+    color: var(--ink3);
+    font-weight: 300;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+  }
+  .card-desc {
+    font-size: 11px;
+    color: var(--ink3);
+    margin-bottom: 16px;
+    font-weight: 300;
+  }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.03em;
+  }
+  .badge-coral { background: var(--coral-bg); color: var(--coral-ink); border: 1px solid var(--coral-border); }
+  .badge-purple { background: var(--purple-bg); color: var(--purple-ink); border: 1px solid var(--purple-border); }
+  .badge-teal { background: var(--teal-bg); color: var(--teal-ink); border: 1px solid var(--teal-border); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber-ink); border: 1px solid var(--amber-border); }
+  .badge-gray { background: var(--bg2); color: var(--ink2); border: 1px solid var(--border); }
+
+  /* ── FORM ELEMENTS ── */
+  label {
+    display: block;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink2);
+    margin-bottom: 5px;
+  }
+  input[type="text"], input[type="date"], textarea, select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.12s;
+    appearance: none;
+  }
+  input[type="text"]:focus, textarea:focus, select:focus {
+    border-color: var(--ink2);
+  }
+  textarea { resize: vertical; min-height: 72px; }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237A7670'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+    cursor: pointer;
+  }
+
+  .form-row { margin-bottom: 14px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+  /* ── RADIO CHIPS ── */
+  .chip-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    font-size: 11px;
+    color: var(--ink2);
+    cursor: pointer;
+    transition: all 0.12s;
+    font-family: 'DM Mono', monospace;
+    user-select: none;
+  }
+  .chip:hover { border-color: var(--border2); color: var(--ink); }
+  .chip.selected-coral { background: var(--coral-bg); border-color: var(--coral-border); color: var(--coral-ink); }
+  .chip.selected-purple { background: var(--purple-bg); border-color: var(--purple-border); color: var(--purple-ink); }
+  .chip.selected-teal { background: var(--teal-bg); border-color: var(--teal-border); color: var(--teal-ink); }
+  .chip.selected-amber { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber-ink); }
+  .chip.selected-ink { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+  /* ── CHECKBOX ── */
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    cursor: pointer;
+  }
+  .check-box {
+    width: 14px; height: 14px;
+    border: 1px solid var(--border2);
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.12s;
+  }
+  .check-row.checked .check-box {
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+  .check-row.checked .check-box::after {
+    content: '';
+    width: 6px; height: 4px;
+    border-left: 1.5px solid #fff;
+    border-bottom: 1.5px solid #fff;
+    transform: rotate(-45deg) translateY(-1px);
+    display: block;
+  }
+  .check-label { font-size: 12px; color: var(--ink2); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--ink2);
+    cursor: pointer;
+    transition: all 0.12s;
+    letter-spacing: 0.02em;
+  }
+  .btn:hover { background: var(--bg3); color: var(--ink); border-color: var(--ink2); }
+  .btn-primary {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+  }
+  .btn-primary:hover { background: var(--ink2); }
+  .btn-accent {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .btn-accent:hover { opacity: 0.88; }
+  .btn-sm { padding: 5px 10px; font-size: 10px; }
+  .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+
+  /* ── TREE ── */
+  .tree-question {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: 16px;
+    letter-spacing: -0.02em;
+  }
+  .tree-options { display: flex; gap: 10px; margin-bottom: 8px; }
+  .tree-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 10px 24px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--ink2);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .tree-btn:hover { border-color: var(--ink); color: var(--ink); background: var(--bg2); }
+  .tree-back {
+    font-size: 11px;
+    color: var(--ink3);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: 'DM Mono', monospace;
+    padding: 0;
+    margin-top: 10px;
+    display: block;
+  }
+  .tree-back:hover { color: var(--ink2); }
+  .step-dots { display: flex; gap: 5px; margin-bottom: 20px; }
+  .step-dot {
+    width: 24px; height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    transition: background 0.2s;
+  }
+  .step-dot.done { background: var(--ink); }
+
+  .result-box {
+    border-radius: 6px;
+    padding: 20px 22px;
+    margin-top: 12px;
+  }
+  .result-coral { background: var(--coral-bg); border: 1px solid var(--coral-border); }
+  .result-purple { background: var(--purple-bg); border: 1px solid var(--purple-border); }
+  .result-teal { background: var(--teal-bg); border: 1px solid var(--teal-border); }
+  .result-title {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 400;
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+  }
+  .result-coral .result-title { color: var(--coral-ink); }
+  .result-purple .result-title { color: var(--purple-ink); }
+  .result-teal .result-title { color: var(--teal-ink); }
+  .result-desc { font-size: 12px; color: var(--ink2); line-height: 1.7; margin-bottom: 10px; font-weight: 300; }
+  .result-fix {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.6);
+    color: var(--ink);
+  }
+
+  /* ── HISTORY ── */
+  .history-item {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.12s;
+  }
+  .history-item:hover { border-color: var(--border2); }
+  .history-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .history-date { font-size: 10px; color: var(--ink3); }
+  .history-desc { font-size: 12px; color: var(--ink2); font-weight: 300; }
+  .history-agent { font-size: 11px; font-weight: 500; color: var(--ink); }
+
+  /* ── DIVIDER ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  /* ── SCORECARD ── */
+  .score-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .score-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+  }
+  .score-label { font-size: 10px; color: var(--ink3); margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+  .score-value {
+    display: flex;
+    gap: 8px;
+  }
+  .score-radio {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--ink2);
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    transition: all 0.1s;
+  }
+  .score-radio:hover { background: var(--bg2); }
+  .score-radio.sel-yes { background: var(--teal-bg); border-color: var(--teal-border); color: var(--teal-ink); }
+  .score-radio.sel-no { background: var(--coral-bg); border-color: var(--coral-border); color: var(--coral-ink); }
+  .score-radio.sel-partial { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber-ink); }
+
+  /* ── HYPOTHESIS TEMPLATE ── */
+  .hyp-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--ink2);
+    line-height: 2;
+    font-weight: 300;
+  }
+  .hyp-fill {
+    display: inline;
+    background: #fff;
+    border: none;
+    border-bottom: 1px dashed var(--border2);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--ink);
+    outline: none;
+    padding: 0 4px;
+    min-width: 120px;
+  }
+  .hyp-fill:focus { border-bottom-color: var(--ink); }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--ink3);
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 12px; }
+  .empty-text { font-size: 12px; font-weight: 300; }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 8px 16px;
+    font-size: 12px;
+    color: var(--ink3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.12s;
+  }
+  .tab:hover { color: var(--ink2); }
+  .tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+
+  /* ── PRINT ── */
+  @media print {
+    .sidebar, .btn-group, .no-print, .tree-back, .tree-btn { display: none !important; }
+    .main { margin-left: 0; padding: 20px; max-width: 100%; }
+    .app { display: block; }
+    .view { display: block !important; }
+    .card { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
+    body { background: #fff; font-size: 11px; }
+    .view-header h2 { font-size: 20px; }
+    @page { margin: 20mm; }
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--ink);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  .mono-block {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px 14px;
+    line-height: 2;
+    white-space: pre-wrap;
+    color: var(--ink2);
+    font-weight: 300;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: var(--bg3);
+    color: var(--ink3);
+    margin-right: 4px;
+  }
+
+  .count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 500;
+    margin-left: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h1>Huli Ops</h1>
+      <span>diagnóstico de agentes</span>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section">Diagnóstico</div>
+      <div class="nav-item active" onclick="showView('tree')">
+        <div class="nav-dot"></div> Árbol de diagnóstico
+      </div>
+      <div class="nav-item" onclick="showView('form')">
+        <div class="nav-dot"></div> Registrar falla
+      </div>
+
+      <div class="nav-section" style="margin-top:8px">Iteración</div>
+      <div class="nav-item" onclick="showView('hypothesis')">
+        <div class="nav-dot"></div> Hipótesis
+      </div>
+      <div class="nav-item" onclick="showView('scorecard')">
+        <div class="nav-dot"></div> Scorecard
+      </div>
+
+      <div class="nav-section" style="margin-top:8px">Historial</div>
+      <div class="nav-item" onclick="showView('history')">
+        <div class="nav-dot"></div> Registro <span id="count-badge" style="display:none" class="count-badge">0</span>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-sm no-print" onclick="exportPDF()" style="width:100%;margin-bottom:6px">↓ Exportar PDF</button>
+      <button class="btn btn-sm no-print" onclick="exportJSON()" style="width:100%">↓ Exportar JSON</button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- VIEW: TREE -->
+    <div class="view active" id="view-tree">
+      <div class="view-header">
+        <h2>Árbol de diagnóstico</h2>
+        <p>3 preguntas para clasificar cualquier falla antes de tocar el agente.</p>
+      </div>
+
+      <div class="card">
+        <div id="tree-ui"></div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="card-title">Señales rápidas por tipo</div>
+        <div class="card-desc">Referencia — úsala si ya tienes intuición de la causa</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+          <div style="background:var(--coral-bg);border:1px solid var(--coral-border);border-radius:4px;padding:12px">
+            <div style="font-size:11px;font-weight:500;color:var(--coral-ink);margin-bottom:6px">🔴 Comportamiento</div>
+            <div style="font-size:11px;color:var(--ink2);line-height:1.7;font-weight:300">Tono equivocado<br>Salta un paso del flujo<br>Responde fuera de contexto<br>Diferente en ES vs EN<br><b>→ Prompt / few-shot</b></div>
+          </div>
+          <div style="background:var(--purple-bg);border:1px solid var(--purple-border);border-radius:4px;padding:12px">
+            <div style="font-size:11px;font-weight:500;color:var(--purple-ink);margin-bottom:6px">🟣 Conocimiento</div>
+            <div style="font-size:11px;color:var(--ink2);line-height:1.7;font-weight:300">Inventa datos o precios<br>Dice "no sé" cuando debería<br>Usa información desactualizada<br>No responde FAQs básicas<br><b>→ Tool / contexto / KB</b></div>
+          </div>
+          <div style="background:var(--teal-bg);border:1px solid var(--teal-border);border-radius:4px;padding:12px">
+            <div style="font-size:11px;font-weight:500;color:var(--teal-ink);margin-bottom:6px">🟢 Flujo externo</div>
+            <div style="font-size:11px;color:var(--ink2);line-height:1.7;font-weight:300">Funciona en sandbox, falla en prod<br>Falla solo a ciertas horas<br>Webhook no llega o llega tarde<br>Tool retorna error<br><b>→ No toques el prompt</b></div>
+          </div>
+          <div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:4px;padding:12px">
+            <div style="font-size:11px;font-weight:500;color:var(--amber-ink);margin-bottom:6px">🟡 Mejora incremental</div>
+            <div style="font-size:11px;color:var(--ink2);line-height:1.7;font-weight:300">Respuestas muy largas<br>Tarda en llegar al punto<br>SDR dice que "podría ser más natural"<br>Tasa baja sin errores claros<br><b>→ Backlog, no urgente</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: FORM -->
+    <div class="view" id="view-form">
+      <div class="view-header">
+        <h2>Registrar falla</h2>
+        <p>Documenta la señal antes de iterar. Un cambio a la vez.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Contexto de la falla</div>
+        <div class="card-desc">Rellena todo lo que sabes antes de diagnosticar</div>
+
+        <div class="form-grid" style="margin-bottom:14px">
+          <div class="form-row">
+            <label>Fecha</label>
+            <input type="date" id="f-fecha">
+          </div>
+          <div class="form-row">
+            <label>Agente</label>
+            <select id="f-agente">
+              <option value="">Seleccionar...</option>
+              <option>Agente HH — Citas (WhatsApp)</option>
+              <option>SDR Voz MX</option>
+              <option>SDR Voz CR</option>
+              <option>Eva Whatson MX</option>
+              <option>Eva Whatson CR</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>¿Cómo llegó la señal?</label>
+          <div class="chip-group" id="f-senal">
+            <div class="chip" onclick="toggleChip(this,'selected-ink')">Queja de SDR</div>
+            <div class="chip" onclick="toggleChip(this,'selected-ink')">Observación propia</div>
+            <div class="chip" onclick="toggleChip(this,'selected-ink')">Métrica o dato</div>
+            <div class="chip" onclick="toggleChip(this,'selected-ink')">Revisión de conversación</div>
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-top:14px">
+          <label>¿Qué pasó? (descripción breve)</label>
+          <textarea id="f-desc" placeholder="Ej: El agente cortó la llamada antes de confirmar la cita con el prospecto..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <label>¿En qué contexto ocurrió?</label>
+          <input type="text" id="f-contexto" placeholder="Ej: Llamada MX, horario 10am, prospecto había preguntado precio antes">
+        </div>
+
+        <div class="form-row">
+          <label>¿Es intermitente?</label>
+          <div class="chip-group" id="f-intermitente">
+            <div class="chip" onclick="singleChip(this,'f-intermitente','selected-ink')">Siempre ocurre</div>
+            <div class="chip" onclick="singleChip(this,'f-intermitente','selected-ink')">A veces ocurre</div>
+            <div class="chip" onclick="singleChip(this,'f-intermitente','selected-ink')">Solo una vez</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="card-title">Clasificación</div>
+        <div class="card-desc">Marca el tipo de falla que diagnosticaste</div>
+        <div class="chip-group" id="f-tipo" style="margin-bottom:14px">
+          <div class="chip" onclick="singleChip(this,'f-tipo','selected-coral')">🔴 Comportamiento</div>
+          <div class="chip" onclick="singleChip(this,'f-tipo','selected-purple')">🟣 Conocimiento</div>
+          <div class="chip" onclick="singleChip(this,'f-tipo','selected-teal')">🟢 Flujo</div>
+          <div class="chip" onclick="singleChip(this,'f-tipo','selected-amber')">🟡 Mejora</div>
+        </div>
+
+        <div class="form-row">
+          <label>Causa raíz (hipótesis)</label>
+          <textarea id="f-causa" placeholder="Creo que el agente falla porque..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <label>Referencia (link a conversación, log, screenshot)</label>
+          <input type="text" id="f-ref" placeholder="https://... o descripción del caso">
+        </div>
+
+        <div class="form-row">
+          <label>¿Puedes reproducirlo en sandbox?</label>
+          <div class="chip-group" id="f-sandbox">
+            <div class="chip" onclick="singleChip(this,'f-sandbox','selected-teal')">Sí</div>
+            <div class="chip" onclick="singleChip(this,'f-sandbox','selected-coral')">No</div>
+            <div class="chip" onclick="singleChip(this,'f-sandbox','selected-amber')">Parcialmente</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="card-title">Acción planificada</div>
+        <div class="chip-group" id="f-accion" style="margin-bottom:14px">
+          <div class="chip" onclick="toggleChip(this,'selected-ink')">Cambio de prompt</div>
+          <div class="chip" onclick="toggleChip(this,'selected-ink')">Cambio de tool</div>
+          <div class="chip" onclick="toggleChip(this,'selected-ink')">Actualizar contexto</div>
+          <div class="chip" onclick="toggleChip(this,'selected-ink')">Escalada infraestructura</div>
+          <div class="chip" onclick="toggleChip(this,'selected-ink')">Backlog</div>
+        </div>
+
+        <div class="form-row">
+          <label>Criterio de éxito (antes de cerrar)</label>
+          <input type="text" id="f-criterio" placeholder="Ej: 3 conversaciones de prueba sin el comportamiento incorrecto">
+        </div>
+
+        <div class="form-row">
+          <label>Prioridad</label>
+          <div class="chip-group" id="f-prioridad">
+            <div class="chip" onclick="singleChip(this,'f-prioridad','selected-coral')">Crítico</div>
+            <div class="chip" onclick="singleChip(this,'f-prioridad','selected-amber')">Alto</div>
+            <div class="chip" onclick="singleChip(this,'f-prioridad','selected-ink')">Normal</div>
+            <div class="chip" onclick="singleChip(this,'f-prioridad','selected-gray')">Bajo</div>
+          </div>
+        </div>
+
+        <div class="btn-group no-print">
+          <button class="btn btn-primary" onclick="saveRecord()">Guardar registro</button>
+          <button class="btn" onclick="clearForm()">Limpiar</button>
+          <button class="btn" onclick="printForm()">Imprimir / PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: HYPOTHESIS -->
+    <div class="view" id="view-hypothesis">
+      <div class="view-header">
+        <h2>Hipótesis de iteración</h2>
+        <p>Un cambio por iteración. Define la causa antes de tocar el agente.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Constructor de hipótesis</div>
+        <div class="card-desc">Completa cada campo — la hipótesis se forma automáticamente</div>
+
+        <div class="form-row" style="margin-top:8px">
+          <label>Agente</label>
+          <select id="h-agente">
+            <option value="">Seleccionar...</option>
+            <option>Agente HH — Citas (WhatsApp)</option>
+            <option>SDR Voz MX</option>
+            <option>SDR Voz CR</option>
+            <option>Eva Whatson MX</option>
+            <option>Eva Whatson CR</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label>El agente falla en...</label>
+          <input type="text" id="h-falla" placeholder="Ej: confirmar la cita antes de cerrar la llamada" oninput="updateHyp()">
+        </div>
+        <div class="form-row">
+          <label>Porque (causa raíz)</label>
+          <input type="text" id="h-causa" placeholder="Ej: no tiene instrucción explícita de confirmación" oninput="updateHyp()">
+        </div>
+        <div class="form-row">
+          <label>Si cambio...</label>
+          <input type="text" id="h-cambio" placeholder="Ej: el paso 4 del prompt agregando confirmación explícita" oninput="updateHyp()">
+        </div>
+        <div class="form-row">
+          <label>Espero que mejore...</label>
+          <input type="text" id="h-resultado" placeholder="Ej: la tasa de citas confirmadas en la primera llamada" oninput="updateHyp()">
+        </div>
+        <div class="form-row">
+          <label>Lo mediré con...</label>
+          <input type="text" id="h-metrica" placeholder="Ej: 3 pruebas en sandbox con el escenario de cierre" oninput="updateHyp()">
+        </div>
+
+        <div class="divider"></div>
+
+        <div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink3);margin-bottom:8px">Hipótesis generada</div>
+        <div class="mono-block" id="hyp-output">
+Creo que el agente <span style="color:var(--accent)">___</span>
+porque <span style="color:var(--accent)">___</span>.
+Si cambio <span style="color:var(--accent)">___</span>,
+espero que <span style="color:var(--accent)">___</span> mejore.
+Lo mediré con <span style="color:var(--accent)">___</span>.
+        </div>
+
+        <div class="form-row" style="margin-top:14px">
+          <label>Notas adicionales</label>
+          <textarea id="h-notas" placeholder="Contexto extra, riesgos, casos de borde a considerar..."></textarea>
+        </div>
+
+        <div class="btn-group no-print">
+          <button class="btn btn-primary" onclick="saveHypothesis()">Guardar hipótesis</button>
+          <button class="btn" onclick="clearHyp()">Limpiar</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="card-title">Regla de oro</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px">
+          <div style="background:var(--bg2);border-radius:4px;padding:12px;border:1px solid var(--border)">
+            <div style="font-size:24px;margin-bottom:6px">1</div>
+            <div style="font-size:11px;font-weight:500;color:var(--ink);margin-bottom:3px">Un cambio</div>
+            <div style="font-size:11px;color:var(--ink3);font-weight:300">Si cambias prompt + tool al mismo tiempo y mejora, no sabes qué lo causó.</div>
+          </div>
+          <div style="background:var(--bg2);border-radius:4px;padding:12px;border:1px solid var(--border)">
+            <div style="font-size:24px;margin-bottom:6px">✓</div>
+            <div style="font-size:11px;font-weight:500;color:var(--ink);margin-bottom:3px">Criterio antes</div>
+            <div style="font-size:11px;color:var(--ink3);font-weight:300">Define el criterio de éxito ANTES de probar. Si lo defines después, tiendes a validar lo que ya hiciste.</div>
+          </div>
+          <div style="background:var(--bg2);border-radius:4px;padding:12px;border:1px solid var(--border)">
+            <div style="font-size:24px;margin-bottom:6px">↗</div>
+            <div style="font-size:11px;font-weight:500;color:var(--ink);margin-bottom:3px">Sandbox primero</div>
+            <div style="font-size:11px;color:var(--ink3);font-weight:300">Si no puedes reproducirlo, no tienes caso para iterar todavía.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: SCORECARD -->
+    <div class="view" id="view-scorecard">
+      <div class="view-header">
+        <h2>Scorecard de evaluación</h2>
+        <p>Evalúa el resultado de una iteración con criterios objetivos.</p>
+      </div>
+
+      <div class="card">
+        <div class="form-grid" style="margin-bottom:14px">
+          <div class="form-row">
+            <label>Agente</label>
+            <select id="s-agente">
+              <option value="">Seleccionar...</option>
+              <option>Agente HH — Citas (WhatsApp)</option>
+              <option>SDR Voz MX</option>
+              <option>SDR Voz CR</option>
+              <option>Eva Whatson MX</option>
+              <option>Eva Whatson CR</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Versión evaluada</label>
+            <input type="text" id="s-version" placeholder="Ej: v1.4">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Cambio evaluado (qué iteraste)</label>
+          <input type="text" id="s-cambio" placeholder="Ej: Agregué confirmación explícita en paso 4 del prompt">
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="card-title" style="margin-bottom:12px">Criterios de evaluación</div>
+
+        <div class="score-grid">
+          <div class="score-item">
+            <div class="score-label">A · Tarea cumplida</div>
+            <div style="font-size:11px;color:var(--ink3);margin-bottom:6px;font-weight:300">¿El agente hizo lo que debía?</div>
+            <div class="score-value">
+              <span class="score-radio" onclick="selectScore(this,'yes')">✓ Sí</span>
+              <span class="score-radio" onclick="selectScore(this,'no')">✗ No</span>
+              <span class="score-radio" onclick="selectScore(this,'partial')">~ Parcial</span>
+            </div>
+          </div>
+          <div class="score-item">
+            <div class="score-label">B · Métrica clave</div>
+            <div style="font-size:11px;color:var(--ink3);margin-bottom:6px;font-weight:300">¿Mejoró el indicador objetivo?</div>
+            <div class="score-value">
+              <span class="score-radio" onclick="selectScore(this,'yes')">✓ Sí</span>
+              <span class="score-radio" onclick="selectScore(this,'no')">✗ No</span>
+              <span class="score-radio" onclick="selectScore(this,'partial')">~ Igual</span>
+            </div>
+          </div>
+          <div class="score-item">
+            <div class="score-label">C · Casos de borde</div>
+            <div style="font-size:11px;color:var(--ink3);margin-bottom:6px;font-weight:300">¿Funciona en escenarios difíciles?</div>
+            <div class="score-value">
+              <span class="score-radio" onclick="selectScore(this,'yes')">✓ Sí</span>
+              <span class="score-radio" onclick="selectScore(this,'no')">✗ No</span>
+              <span class="score-radio" onclick="selectScore(this,'partial')">~ No probé</span>
+            </div>
+          </div>
+          <div class="score-item">
+            <div class="score-label">D · Regresión</div>
+            <div style="font-size:11px;color:var(--ink3);margin-bottom:6px;font-weight:300">¿Algo que funcionaba dejó de funcionar?</div>
+            <div class="score-value">
+              <span class="score-radio" onclick="selectScore(this,'yes')">✓ Ninguna</span>
+              <span class="score-radio" onclick="selectScore(this,'no')">✗ Hay regresión</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form-row">
+          <label>Resultado observado</label>
+          <textarea id="s-resultado" placeholder="Describe qué ocurrió en las pruebas. Qué mejoró, qué no cambió, qué empeoró..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <label>Decisión final</label>
+          <div class="chip-group" id="s-decision">
+            <div class="chip" onclick="singleChip(this,'s-decision','selected-teal')">✓ Aprobado — va a producción</div>
+            <div class="chip" onclick="singleChip(this,'s-decision','selected-coral')">✗ Rechazado — revertir</div>
+            <div class="chip" onclick="singleChip(this,'s-decision','selected-amber')">→ Iterar de nuevo</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Notas para el historial de versiones</label>
+          <textarea id="s-notas" placeholder="Qué aprendiste. Qué probar en la siguiente iteración si aplica..."></textarea>
+        </div>
+
+        <div class="btn-group no-print">
+          <button class="btn btn-primary" onclick="saveScorecard()">Guardar evaluación</button>
+          <button class="btn" onclick="clearScorecard()">Limpiar</button>
+          <button class="btn" onclick="printForm()">Imprimir / PDF</button>
+        </div>
+      </div>
+
+      <!-- Tiempos por tipo -->
+      <div class="card" style="margin-top:12px">
+        <div class="card-title">Tiempos esperados por tipo de iteración</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+          <div style="background:var(--bg2);border-radius:4px;padding:12px;border:1px solid var(--border)">
+            <div style="font-size:10px;font-weight:500;color:var(--coral-ink);margin-bottom:4px">Falla crítica</div>
+            <div style="font-size:11px;color:var(--ink2);font-weight:300;line-height:1.7">Diagnóstico: 10 min<br>Fix + prueba: 20 min<br>Registro: 5 min<br><b style="color:var(--ink)">Total: ~35 min</b></div>
+          </div>
+          <div style="background:var(--bg2);border-radius:4px;padding:12px;border:1px solid var(--border)">
+            <div style="font-size:10px;font-weight:500;color:var(--purple-ink);margin-bottom:4px">Mejora incremental</div>
+            <div style="font-size:11px;color:var(--ink2);font-weight:300;line-height:1.7">Hipótesis: 10 min<br>Cambio + evaluación: 30 min<br>Registro: 5 min<br><b style="color:var(--ink)">Total: ~45 min</b></div>
+          </div>
+          <div style="background:var(--bg2);border-radius:4px;padding:12px;border:1px solid var(--border)">
+            <div style="font-size:10px;font-weight:500;color:var(--teal-ink);margin-bottom:4px">Nuevo comportamiento</div>
+            <div style="font-size:11px;color:var(--ink2);font-weight:300;line-height:1.7">Diseño: 20 min<br>Implementación: 45 min<br>Pruebas: 20 min<br><b style="color:var(--ink)">Total: ~90 min</b></div>
+          </div>
+          <div style="background:var(--bg2);border-radius:4px;padding:12px;border:1px solid var(--border)">
+            <div style="font-size:10px;font-weight:500;color:var(--amber-ink);margin-bottom:4px">Rediseño de agente</div>
+            <div style="font-size:11px;color:var(--ink2);font-weight:300;line-height:1.7">Planificación: 1 hr<br>Implementación: 2–3 hr<br>Validación: 1 hr<br><b style="color:var(--ink)">Total: 4–5 hr</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: HISTORY -->
+    <div class="view" id="view-history">
+      <div class="view-header">
+        <h2>Historial</h2>
+        <p>Todos tus diagnósticos, hipótesis y evaluaciones guardados.</p>
+      </div>
+
+      <div class="no-print" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <select id="filter-agente" onchange="renderHistory()" style="max-width:200px">
+          <option value="">Todos los agentes</option>
+          <option>Agente HH — Citas (WhatsApp)</option>
+          <option>SDR Voz MX</option>
+          <option>SDR Voz CR</option>
+          <option>Eva Whatson MX</option>
+          <option>Eva Whatson CR</option>
+        </select>
+        <select id="filter-tipo" onchange="renderHistory()" style="max-width:160px">
+          <option value="">Todos los tipos</option>
+          <option value="falla">Fallas</option>
+          <option value="hipotesis">Hipótesis</option>
+          <option value="scorecard">Scorecards</option>
+        </select>
+        <button class="btn btn-sm" style="margin-left:auto" onclick="clearHistory()">Borrar historial</button>
+      </div>
+
+      <div id="history-list"></div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────
+let records = JSON.parse(localStorage.getItem('huliops-records') || '[]');
+
+function saveRecords() {
+  localStorage.setItem('huliops-records', JSON.stringify(records));
+  updateCountBadge();
+}
+
+function updateCountBadge() {
+  const badge = document.getElementById('count-badge');
+  if (records.length > 0) {
+    badge.style.display = 'inline-flex';
+    badge.textContent = records.length;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (id === 'history') renderHistory();
+}
+
+// ─── TREE ─────────────────────────────────────────────────
+const treeData = {
+  q: '¿El agente respondió algo — aunque fuera incorrecto?',
+  yes: {
+    q: '¿La respuesta muestra que entendió el contexto de la conversación?',
+    yes: {
+      q: '¿El agente tenía acceso a la información que necesitaba para responder bien?',
+      yes: { result: 'comportamiento' },
+      no: { result: 'conocimiento' }
+    },
+    no: { result: 'comportamiento2' }
+  },
+  no: {
+    q: '¿El agente recibió el mensaje? (visible en logs o sandbox)',
+    yes: { result: 'flujo-interno' },
+    no: { result: 'flujo-externo' }
+  }
+};
+
+const results = {
+  'comportamiento': {
+    title: '🔴 Falla de Comportamiento',
+    cls: 'result-coral',
+    desc: 'El agente entendió el contexto y tenía la información, pero actuó de forma incorrecta. El problema está en cómo está instruido para responder.',
+    fix: '→ Acción: revisar prompt — instrucciones, tono, pasos del flujo, ejemplos few-shot.'
+  },
+  'comportamiento2': {
+    title: '🔴 Falla de Comportamiento (comprensión)',
+    cls: 'result-coral',
+    desc: 'El agente respondió pero no procesó bien el contexto. Posiblemente malinterpretó la intención del usuario o el flujo.',
+    fix: '→ Acción: revisar instrucciones de contexto, agregar ejemplos few-shot de casos similares.'
+  },
+  'conocimiento': {
+    title: '🟣 Falla de Conocimiento',
+    cls: 'result-purple',
+    desc: 'El agente entendió el contexto pero no tenía la información necesaria. Inventó datos o admitió no saber algo que debería saber.',
+    fix: '→ Acción: agregar tool de consulta, actualizar contexto en prompt, o conectar base de conocimiento.'
+  },
+  'flujo-interno': {
+    title: '🟢 Falla de Flujo (interno)',
+    cls: 'result-teal',
+    desc: 'El agente recibió el mensaje pero no generó respuesta. Puede ser timeout, error de configuración, o problema en la ejecución.',
+    fix: '→ Acción: revisar logs de ejecución, configuración del agente, límites de tokens o errores de API.'
+  },
+  'flujo-externo': {
+    title: '🟢 Falla de Flujo (externo)',
+    cls: 'result-teal',
+    desc: 'El mensaje nunca llegó al agente. El problema está en infraestructura: webhook, canal de entrada, o integración.',
+    fix: '→ Acción: NO toques el agente — revisa webhook, canal (WhatsApp/voz), y logs del sistema externo.'
+  }
+};
+
+let treeState = { node: treeData, path: [], answers: [] };
+
+function renderTree() {
+  const ui = document.getElementById('tree-ui');
+  const node = treeState.node;
+  const step = treeState.path.length + 1;
+  const maxSteps = 3;
+
+  const dots = Array.from({length: maxSteps}, (_, i) =>
+    `<div class="step-dot ${i < treeState.path.length ? 'done' : ''}"></div>`
+  ).join('');
+
+  if (node.result) {
+    const r = results[node.result];
+    ui.innerHTML = `
+      <div class="step-dots">${dots}</div>
+      <div class="result-box ${r.cls}">
+        <div class="result-title">${r.title}</div>
+        <div class="result-desc">${r.desc}</div>
+        <div class="result-fix">${r.fix}</div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary no-print" onclick="goToFormWithType('${node.result}')">Registrar esta falla →</button>
+        <button class="tree-back no-print" onclick="resetTree()">← Empezar de nuevo</button>
+      </div>
+    `;
+    return;
+  }
+
+  ui.innerHTML = `
+    <div class="step-dots">${dots}</div>
+    <div class="tree-question">${node.q}</div>
+    <div class="tree-options">
+      <button class="tree-btn" onclick="treeChoose('yes')">Sí</button>
+      <button class="tree-btn" onclick="treeChoose('no')">No</button>
+    </div>
+    ${treeState.path.length > 0 ? `<button class="tree-back no-print" onclick="treeBack()">← Atrás</button>` : ''}
+  `;
+}
+
+function treeChoose(opt) {
+  treeState.path.push(opt);
+  treeState.node = treeState.node[opt];
+  renderTree();
+}
+
+function treeBack() {
+  treeState.path.pop();
+  treeState.node = treeData;
+  const p = [...treeState.path];
+  treeState.path = [];
+  p.forEach(step => {
+    treeState.path.push(step);
+    treeState.node = treeState.node[step];
+  });
+  renderTree();
+}
+
+function resetTree() {
+  treeState = { node: treeData, path: [], answers: [] };
+  renderTree();
+}
+
+function goToFormWithType(type) {
+  const map = {
+    'comportamiento': 'selected-coral',
+    'comportamiento2': 'selected-coral',
+    'conocimiento': 'selected-purple',
+    'flujo-interno': 'selected-teal',
+    'flujo-externo': 'selected-teal'
+  };
+  const chipMap = {
+    'comportamiento': '🔴 Comportamiento',
+    'comportamiento2': '🔴 Comportamiento',
+    'conocimiento': '🟣 Conocimiento',
+    'flujo-interno': '🟢 Flujo',
+    'flujo-externo': '🟢 Flujo'
+  };
+  // switch view
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-form').classList.add('active');
+  document.querySelectorAll('.nav-item')[1].classList.add('active');
+
+  // pre-select chip
+  setTimeout(() => {
+    const chips = document.querySelectorAll('#f-tipo .chip');
+    chips.forEach(c => {
+      if (c.textContent.trim() === chipMap[type]) {
+        c.classList.add(map[type]);
+      }
+    });
+    // set today's date
+    document.getElementById('f-fecha').value = new Date().toISOString().split('T')[0];
+  }, 50);
+}
+
+// ─── CHIP HELPERS ────────────────────────────────────────
+function toggleChip(el, cls) {
+  el.classList.toggle(cls);
+}
+function singleChip(el, groupId, cls) {
+  document.querySelectorAll('#' + groupId + ' .chip').forEach(c => {
+    c.className = 'chip';
+  });
+  el.classList.add(cls);
+}
+function getChipValues(groupId) {
+  return Array.from(document.querySelectorAll('#' + groupId + ' .chip'))
+    .filter(c => c.className !== 'chip')
+    .map(c => c.textContent.trim());
+}
+
+// ─── SCORE RADIO ─────────────────────────────────────────
+function selectScore(el, type) {
+  const siblings = el.parentElement.querySelectorAll('.score-radio');
+  siblings.forEach(s => s.className = 'score-radio');
+  el.classList.add('sel-' + type);
+}
+
+// ─── HYPOTHESIS BUILDER ──────────────────────────────────
+function updateHyp() {
+  const falla = document.getElementById('h-falla').value || '___';
+  const causa = document.getElementById('h-causa').value || '___';
+  const cambio = document.getElementById('h-cambio').value || '___';
+  const resultado = document.getElementById('h-resultado').value || '___';
+  const metrica = document.getElementById('h-metrica').value || '___';
+
+  const accent = (t) => t === '___' ? `<span style="color:var(--accent)">___</span>` : `<b style="color:var(--ink)">${t}</b>`;
+
+  document.getElementById('hyp-output').innerHTML =
+    `Creo que el agente ${accent(falla)}\nporque ${accent(causa)}.\nSi cambio ${accent(cambio)},\nespero que ${accent(resultado)} mejore.\nLo mediré con ${accent(metrica)}.`;
+}
+
+// ─── SAVE RECORD ─────────────────────────────────────────
+function saveRecord() {
+  const rec = {
+    id: Date.now(),
+    type: 'falla',
+    fecha: document.getElementById('f-fecha').value || new Date().toISOString().split('T')[0],
+    agente: document.getElementById('f-agente').value,
+    senal: getChipValues('f-senal'),
+    desc: document.getElementById('f-desc').value,
+    contexto: document.getElementById('f-contexto').value,
+    intermitente: getChipValues('f-intermitente'),
+    tipo: getChipValues('f-tipo'),
+    causa: document.getElementById('f-causa').value,
+    ref: document.getElementById('f-ref').value,
+    sandbox: getChipValues('f-sandbox'),
+    accion: getChipValues('f-accion'),
+    criterio: document.getElementById('f-criterio').value,
+    prioridad: getChipValues('f-prioridad'),
+  };
+  if (!rec.agente) { showToast('Selecciona un agente'); return; }
+  if (!rec.desc) { showToast('Describe qué pasó'); return; }
+  records.unshift(rec);
+  saveRecords();
+  showToast('Registro guardado ✓');
+  clearForm();
+}
+
+function saveHypothesis() {
+  const rec = {
+    id: Date.now(),
+    type: 'hipotesis',
+    fecha: new Date().toISOString().split('T')[0],
+    agente: document.getElementById('h-agente').value,
+    falla: document.getElementById('h-falla').value,
+    causa: document.getElementById('h-causa').value,
+    cambio: document.getElementById('h-cambio').value,
+    resultado: document.getElementById('h-resultado').value,
+    metrica: document.getElementById('h-metrica').value,
+    notas: document.getElementById('h-notas').value,
+  };
+  if (!rec.agente) { showToast('Selecciona un agente'); return; }
+  if (!rec.falla) { showToast('Describe la falla'); return; }
+  records.unshift(rec);
+  saveRecords();
+  showToast('Hipótesis guardada ✓');
+  clearHyp();
+}
+
+function saveScorecard() {
+  const scores = {};
+  document.querySelectorAll('.score-item').forEach((item, i) => {
+    const label = item.querySelector('.score-label').textContent;
+    const sel = item.querySelector('.score-radio.sel-yes, .score-radio.sel-no, .score-radio.sel-partial');
+    scores[label] = sel ? sel.textContent.trim() : '—';
+  });
+  const rec = {
+    id: Date.now(),
+    type: 'scorecard',
+    fecha: new Date().toISOString().split('T')[0],
+    agente: document.getElementById('s-agente').value,
+    version: document.getElementById('s-version').value,
+    cambio: document.getElementById('s-cambio').value,
+    scores,
+    resultado: document.getElementById('s-resultado').value,
+    decision: getChipValues('s-decision'),
+    notas: document.getElementById('s-notas').value,
+  };
+  if (!rec.agente) { showToast('Selecciona un agente'); return; }
+  records.unshift(rec);
+  saveRecords();
+  showToast('Scorecard guardado ✓');
+  clearScorecard();
+}
+
+// ─── CLEAR ───────────────────────────────────────────────
+function clearForm() {
+  ['f-fecha','f-desc','f-contexto','f-ref','f-criterio'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f-agente').value = '';
+  ['f-senal','f-tipo','f-intermitente','f-sandbox','f-accion','f-prioridad'].forEach(id => {
+    document.querySelectorAll('#' + id + ' .chip').forEach(c => c.className = 'chip');
+  });
+}
+function clearHyp() {
+  ['h-falla','h-causa','h-cambio','h-resultado','h-metrica','h-notas'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('h-agente').value = '';
+  updateHyp();
+}
+function clearScorecard() {
+  ['s-version','s-cambio','s-resultado','s-notas'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('s-agente').value = '';
+  document.querySelectorAll('.score-radio').forEach(r => r.className = 'score-radio');
+  document.querySelectorAll('#s-decision .chip').forEach(c => c.className = 'chip');
+}
+
+// ─── HISTORY ─────────────────────────────────────────────
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const filterAgente = document.getElementById('filter-agente').value;
+  const filterTipo = document.getElementById('filter-tipo').value;
+
+  let filtered = records.filter(r => {
+    if (filterAgente && r.agente !== filterAgente) return false;
+    if (filterTipo && r.type !== filterTipo) return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">○</div><div class="empty-text">No hay registros todavía.<br>Usa el árbol de diagnóstico o registra una falla.</div></div>`;
+    return;
+  }
+
+  const typeLabel = { falla: '🔴 Falla', hipotesis: '🟣 Hipótesis', scorecard: '🟢 Scorecard' };
+  const typeBadge = { falla: 'badge-coral', hipotesis: 'badge-purple', scorecard: 'badge-teal' };
+
+  list.innerHTML = filtered.map(r => {
+    let mainText = '';
+    if (r.type === 'falla') mainText = r.desc || '—';
+    if (r.type === 'hipotesis') mainText = `Si cambio ${r.cambio || '...'}, espero que ${r.resultado || '...'} mejore.`;
+    if (r.type === 'scorecard') mainText = `${r.cambio || '—'} · Decisión: ${r.decision?.join(', ') || '—'}`;
+
+    return `
+      <div class="history-item" onclick="openRecord(${r.id})">
+        <div class="history-meta">
+          <span class="badge ${typeBadge[r.type]}">${typeLabel[r.type]}</span>
+          <span class="history-agent">${r.agente || '—'}</span>
+          <span class="history-date" style="margin-left:auto">${r.fecha}</span>
+          <button class="btn btn-sm no-print" onclick="event.stopPropagation();deleteRecord(${r.id})" style="margin-left:8px;color:var(--ink3)">×</button>
+        </div>
+        <div class="history-desc">${mainText}</div>
+        ${r.tipo?.length ? `<div style="margin-top:4px">${r.tipo.map(t => `<span class="tag">${t}</span>`).join('')}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function openRecord(id) {
+  const r = records.find(rec => rec.id === id);
+  if (!r) return;
+  // Simple detail view as alert for now (could be expanded to modal)
+  const lines = Object.entries(r)
+    .filter(([k]) => !['id','type'].includes(k))
+    .map(([k,v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : (typeof v === 'object' ? JSON.stringify(v) : v)}`)
+    .join('\n');
+  alert(lines);
+}
+
+function deleteRecord(id) {
+  if (!confirm('¿Eliminar este registro?')) return;
+  records = records.filter(r => r.id !== id);
+  saveRecords();
+  renderHistory();
+}
+
+function clearHistory() {
+  if (!confirm('¿Borrar todo el historial? Esta acción no se puede deshacer.')) return;
+  records = [];
+  saveRecords();
+  renderHistory();
+}
+
+// ─── EXPORT ──────────────────────────────────────────────
+function exportPDF() {
+  // Show all views for print
+  document.querySelectorAll('.view').forEach(v => v.style.display = 'block');
+  window.print();
+  // Restore
+  setTimeout(() => {
+    document.querySelectorAll('.view').forEach(v => v.style.display = '');
+    document.querySelectorAll('.view.active').forEach(v => v.style.display = 'block');
+  }, 500);
+}
+
+function exportJSON() {
+  const data = JSON.stringify(records, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `huliops-registros-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('JSON exportado ✓');
+}
+
+function printForm() {
+  window.print();
+}
+
+// ─── TOAST ───────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─── INIT ────────────────────────────────────────────────
+document.getElementById('f-fecha').value = new Date().toISOString().split('T')[0];
+updateCountBadge();
+renderTree();
+</script>
+</body>
+</html>
