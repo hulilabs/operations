@@ -873,19 +873,30 @@ tr:hover td{background:rgba(255,255,255,.02)}
         <button class="btn btn-danger btn-sm" onclick="clearChat()">✕ Limpiar</button>
       </div>
       <div class="sb-layout">
-        <div class="chat-panel">
+        <div class="chat-panel" id="sb-chat-panel">
           <div class="chat-topbar">
             <span id="sb-agent-lbl" style="font-family:var(--display);font-size:13px;font-weight:700">Selecciona un agente</span>
             <span id="sb-status" class="badge b-gray">Inactivo</span>
             <span id="sb-sess" style="font-family:var(--mono);font-size:10px;color:var(--txt3);margin-left:auto"></span>
           </div>
-          <div class="chat-msgs" id="chat-msgs">
-            <div class="cm sys">Selecciona un agente para comenzar</div>
+          <div id="sb-iframe-wrap" style="display:none;flex:1;overflow:hidden">
+            <iframe id="sb-iframe" src="" style="width:100%;height:100%;border:none" allowfullscreen></iframe>
           </div>
-          <div class="chat-presets" id="chat-presets" style="display:none"></div>
-          <div class="chat-input-area">
-            <textarea class="chat-input" id="chat-in" placeholder="Escribe un mensaje..." rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
-            <button class="btn btn-primary btn-icon" onclick="sendMsg()">↑</button>
+          <div id="sb-chat-wrap" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+            <div class="chat-msgs" id="chat-msgs">
+              <div class="cm sys">Selecciona un agente para comenzar</div>
+            </div>
+            <div id="chat-presets-wrap" style="display:none;border-top:1px solid var(--border)">
+              <div onclick="togglePresets()" style="display:flex;align-items:center;justify-content:space-between;padding:7px 16px;cursor:pointer;user-select:none">
+                <span style="font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.7px">Casos de tools</span>
+                <span id="presets-toggle-icon" style="font-size:11px;color:var(--txt3)">▾ mostrar</span>
+              </div>
+              <div class="chat-presets" id="chat-presets" style="display:none;padding:0 16px 10px"></div>
+            </div>
+            <div class="chat-input-area">
+              <textarea class="chat-input" id="chat-in" placeholder="Escribe un mensaje..." rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+              <button class="btn btn-primary btn-icon" onclick="sendMsg()">↑</button>
+            </div>
           </div>
         </div>
 
@@ -1386,45 +1397,50 @@ function upIssue(id,status){ const i=S.issues.find(x=>x.id===id);if(i){i.status=
 function onSBAgent(){
   const v=document.getElementById('sb-agent-sel').value;
   if(!v) return;
+  const TEXT_AGENTS=['hh','eva-mx','eva-cr'];
+  const ANALISTA='https://hulilabs.github.io/operations/analista/';
+  // Custom non-builtin agent
   if(!['hh','sdr-voz','eva-mx','eva-cr'].includes(v)){
     const agent=S.agents.find(a=>a.id===v);
     if(agent){ handleCustomAgent(v,agent); return; }
   }
+  const agent=S.agents.find(a=>a.id===v);
   curSBAgent=v;
   curSess=null;
-  document.getElementById('sb-sess').textContent='sin sesión';
+  document.getElementById('sb-sess').textContent='';
   ['cfg-hh','cfg-voz','cfg-eva','sb-cases'].forEach(id=>document.getElementById(id).style.display='none');
-  clearChat();
 
-  if(v==='hh'){
-    document.getElementById('sb-agent-lbl').textContent='Agente HH — Citas';
+  // Text agents → iframe
+  if(TEXT_AGENTS.includes(v)){
+    const names={hh:'Agente HH — Citas','eva-mx':'Eva Whatson MX','eva-cr':'Eva Whatson CR'};
+    document.getElementById('sb-agent-lbl').textContent=names[v]||agent?.name||v;
     document.getElementById('sb-status').className='badge b-green';
     document.getElementById('sb-status').textContent='● Activo';
-    document.getElementById('cfg-hh').style.display='';
-    const tok=localStorage.getItem(HH_TOKEN_KEY)||'';
-    document.getElementById('hh-tok').value=tok;
-    if(tok) addSysMsg('Token cargado automáticamente ✓');
-    addSysMsg('Agente HH listo — API REST net2phone');
-  } else if(v==='sdr-voz'){
+    document.getElementById('sb-iframe').src=ANALISTA;
+    document.getElementById('sb-iframe-wrap').style.display='flex';
+    document.getElementById('sb-iframe-wrap').style.flex='1';
+    document.getElementById('sb-chat-wrap').style.display='none';
+    if(v==='hh'){
+      document.getElementById('cfg-hh').style.display='';
+      const tok=localStorage.getItem(HH_TOKEN_KEY)||'';
+      document.getElementById('hh-tok').value=tok;
+    }
+    return;
+  }
+
+  // SDR Voz → form + webhook
+  document.getElementById('sb-iframe-wrap').style.display='none';
+  document.getElementById('sb-chat-wrap').style.display='flex';
+  clearChat();
+  if(v==='sdr-voz'){
     document.getElementById('sb-agent-lbl').textContent='SDR Voz';
     document.getElementById('sb-status').className='badge b-green';
     document.getElementById('sb-status').textContent='● Activo';
     document.getElementById('cfg-voz').style.display='';
     fillSelect('voz-prop',S.propietarios);
     addSysMsg('SDR Voz listo — completa el formulario y dispara la llamada');
-  } else if(v==='eva-mx'||v==='eva-cr'){
-    const ag=S.agents.find(a=>a.id===v);
-    document.getElementById('sb-agent-lbl').textContent=ag?.name||v;
-    document.getElementById('sb-status').className='badge b-blue';
-    document.getElementById('sb-status').textContent='↗ Externo';
-    document.getElementById('cfg-eva').style.display='';
-    document.getElementById('eva-cfg-title').textContent=ag?.name||v;
-    document.getElementById('eva-wid').textContent=ag?.wid||DAPTA_LINKS[v]?.wid||'—';
-    document.getElementById('eva-dapta-link').href=DAPTA_LINKS[v]?.url||'#';
-    addSysMsg('Las pruebas de Eva Whatson se realizan directamente en Dapta Studio');
   }
   onSBMode();
-  // Load tool cases for this agent
   renderToolCasesForAgent(v);
 }
 
