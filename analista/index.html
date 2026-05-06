@@ -244,6 +244,7 @@ async function callAnalista(msg, convId, instructions){
   const full=`SANDBOX_MODE\n\n${persona}\n\n${instructions}`;
   const r=await fetch(HOOKS.analista,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_message:msg,conversation_id:convId,instructions:full})});
   const d=await r.json();
+  console.log('Analista respuesta completa:', JSON.stringify(d));  // ← esta línea
   const text = d.response?.result || d.result || d.message || '';
   return typeof text === 'string' ? text : JSON.stringify(text);
 }
