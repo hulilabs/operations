@@ -252,7 +252,9 @@ async function callEva(msg, sessionId){
   if(sessionId) body.conversation_id=sessionId;
   const r=await fetch(HOOKS.eva,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const d=await r.json();
-  return{text:d.result||d.message||d.output||JSON.stringify(d),sessionId:d.conversation_id||sessionId};
+  const text = d.agente || d.result || d.message || d.output || '';
+  const clean = (typeof text === 'string' ? text : JSON.stringify(text)).replace(/\\n/g, '\n');
+  return{text:clean, sessionId:d.conversation_id||sessionId};
 }
 async function callHuli(msg, sessionId){
   console.log('callHuli msg:', msg);
