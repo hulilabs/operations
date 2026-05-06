@@ -255,6 +255,7 @@ async function callEva(msg, sessionId){
   return{text:d.result||d.message||d.output||JSON.stringify(d),sessionId:d.conversation_id||sessionId};
 }
 async function callHuli(msg, sessionId){
+  console.log('callHuli msg:', msg);
   const body={message:msg,stored_values:document.getElementById('huli-stored').value,stream:false};
   if(sessionId) body.session_id=sessionId;
   const r=await fetch(HOOKS.huli,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
