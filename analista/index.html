@@ -317,6 +317,9 @@ async function startSession(){
       if(stopped){ addSystem('Sesión detenida.','warn'); break; }
       setStatus(`Turno ${turn}/${numTurns} · agente respondiendo...`,true);
       showTyping('agent');
+
+console.log('Enviando a agente:', transcript[transcript.length-1].text);
+      
       const agentResp=await callAgent(transcript[transcript.length-1].text,agentSid);
       removeTyping('agent');
       if(!agentSid) agentSid=agentResp.sessionId;
