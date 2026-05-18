@@ -232,19 +232,32 @@ let charts = {};
 let currentTab = 'general';
 
 function parseCSV(text) {
-  const lines = text.trim().split('\n');
-  const headers = lines[0].split(',').map(h => h.replace(/\r/g,'').trim().replace(/^"|"$/g,''));
-  return lines.slice(1).map(line => {
-    const vals = []; let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') { inQ = !inQ; }
-      else if (ch === ',' && !inQ) { vals.push(cur.trim()); cur = ''; }
-      else { cur += ch; }
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const rows = [];
+  let cur = '', inQ = false, fields = [], i = 0;
+  while (i <= text.length) {
+    const ch = i < text.length ? text[i] : '\n';
+    if (inQ) {
+      if (ch === '"') {
+        if (text[i+1] === '"') { cur += '"'; i++; }
+        else inQ = false;
+      } else { cur += ch; }
+    } else {
+      if (ch === '"') { inQ = true; }
+      else if (ch === ',') { fields.push(cur); cur = ''; }
+      else if (ch === '\n') {
+        fields.push(cur); cur = '';
+        if (fields.some(f => f !== '')) rows.push(fields);
+        fields = [];
+      } else { cur += ch; }
     }
-    vals.push(cur.trim());
+    i++;
+  }
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1).map(vals => {
     const obj = {};
-    headers.forEach((h, i) => { obj[h] = (vals[i]||'').replace(/\r/g,''); });
+    headers.forEach((h, idx) => { obj[h] = (vals[idx] || '').trim(); });
     return obj;
   });
 }
