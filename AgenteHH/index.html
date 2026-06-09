@@ -244,6 +244,39 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
 .modal-table .td-url a { color: var(--blue); font-size: 11px; }
 .chart-card .clickable-hint { font-size: 10px; color: var(--txt3); margin-bottom: 10px; }
 
+/* ── Channel Toggle (Texto / Voz) ── */
+.channel-toggle {
+  display: flex; align-items: center; background: #f1f5f9;
+  border-radius: 8px; padding: 3px; gap: 2px; border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.channel-toggle button {
+  padding: 5px 14px; border: none; border-radius: 6px;
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s;
+  background: transparent; color: var(--txt2); font-family: inherit;
+  display: flex; align-items: center; gap: 5px;
+}
+.channel-toggle button.active {
+  background: #fff; color: var(--txt1);
+  box-shadow: 0 1px 3px rgba(13,27,46,.12);
+}
+.channel-toggle button.active.texto { color: var(--hh); }
+.channel-toggle button.active.voz   { color: #7c3aed; }
+
+/* ── Voz section ── */
+#sec-voz {
+  display: none;
+}
+#sec-voz.active { display: block; }
+
+.voz-coming {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 420px; gap: 18px; color: var(--txt2);
+}
+.voz-icon { font-size: 64px; opacity: .35; }
+.voz-coming h3 { font-size: 20px; font-weight: 700; color: var(--txt1); }
+.voz-coming p  { font-size: 13px; color: var(--txt2); max-width: 380px; text-align: center; line-height: 1.6; }
+
 /* ── Responsive ── */
 @media (max-width: 1200px) {
   .insight-row { grid-template-columns: 1fr 1fr; }
@@ -299,6 +332,16 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
   <!-- TOPBAR -->
   <div id="topbar">
     <h2 id="section-title">Desempeño del Agente</h2>
+
+    <!-- Toggle Texto / Voz -->
+    <div class="channel-toggle" id="channel-toggle">
+      <button class="active texto" id="btn-texto" onclick="setChannel('texto')">
+        Texto
+      </button>
+      <button class="voz" id="btn-voz" onclick="setChannel('voz')">
+        Voz
+      </button>
+    </div>
 
     <div class="quick-dates">
       <button onclick="setQuickDate('hoy')" id="qd-hoy">Hoy</button>
@@ -475,6 +518,98 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
 
     </div><!-- /sec-hh -->
 
+    <!-- ══ AGENTE VOZ ══ -->
+    <div id="sec-voz">
+
+      <!-- Hero banner -->
+      <div class="hero-banner" id="hero-voz">
+        <div class="hero-main">
+          <div class="hero-title">Tasa de autogestión exitosa — Voz</div>
+          <div class="hero-val" id="voz-hero-resolucion">—</div>
+          <div class="hero-sub">de llamadas resueltas sin intervención humana</div>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hs-val" id="voz-hero-total">—</div>
+            <div class="hs-label">Llamadas</div>
+          </div>
+          <div class="hero-divider"></div>
+          <div class="hero-stat">
+            <div class="hs-val" id="voz-hero-transferidas">—</div>
+            <div class="hs-label">Transferidas</div>
+          </div>
+          <div class="hero-divider"></div>
+          <div class="hero-stat">
+            <div class="hs-val" id="voz-hero-positivo">—</div>
+            <div class="hs-label">Sentimiento positivo</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Insight cards -->
+      <div class="insight-row" id="voz-insight-row"></div>
+
+      <!-- KPIs secundarios -->
+      <div class="kpi-grid" id="voz-kpi"></div>
+
+      <!-- Gráficas principales -->
+      <div class="chart-row cols-2">
+        <div class="chart-card">
+          <h3>Resultado de las llamadas</h3>
+          <p class="chart-subtitle">¿Qué pasó con cada llamada atendida?</p>
+          <div class="chart-wrap"><canvas id="ch-voz-gestion"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Actividad diaria — últimos 30 días</h3>
+          <div class="chart-wrap tall"><canvas id="ch-voz-diario"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Gráficas de detalle -->
+      <div class="chart-row cols-3">
+        <div class="chart-card">
+          <h3>Tipo de solicitud</h3>
+          <p class="chart-subtitle">¿Qué pidieron los pacientes?</p>
+          <div class="chart-wrap"><canvas id="ch-voz-solicitud"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Resultado de la gestión</h3>
+          <div class="chart-wrap"><canvas id="ch-voz-estatus"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Sentimiento del paciente</h3>
+          <p class="chart-subtitle">Tono detectado al cierre</p>
+          <div class="chart-wrap"><canvas id="ch-voz-sentimiento"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Médicos más solicitados -->
+      <div class="chart-row cols-1">
+        <div class="chart-card">
+          <h3>Top 10 médicos más solicitados</h3>
+          <p class="chart-subtitle">Basado en las llamadas del período</p>
+          <div class="chart-wrap tall"><canvas id="ch-voz-medicos"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Citas Voz -->
+      <div class="kpi-grid" id="voz-kpi-citas"></div>
+
+      <div class="chart-row cols-2">
+        <div class="chart-card">
+          <h3>Citas Voz — Agendadas · Canceladas</h3>
+          <p class="chart-subtitle">Estado de las citas gestionadas por el agente de voz</p>
+          <div class="chart-wrap"><canvas id="ch-voz-citas-estado"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Citas agendadas por país</h3>
+          <p class="chart-subtitle">Distribución de citas agendadas por país</p>
+          <div class="chart-wrap"><canvas id="ch-voz-citas-pais"></canvas></div>
+        </div>
+      </div>
+
+    </div>
+
   </div><!-- /content -->
 </div><!-- /main -->
 
@@ -490,12 +625,15 @@ const SHEETS = {
   errores:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vR5XzBhYl5L3YfeDOQBj3-nay_akmefytKLof4yO-HfKA3K_Wub6OqfTZAXXDkwPqy_SwnXrSKIiLg9/pub?gid=228103906&single=true&output=csv',
   humanos2026:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLwOOqH2IKqqOJw_fYlw2U8riL1m8LHWNuVMJuYVPq2lNZY4oGfAmDzhlMbJM-liC-CueAE-dBC3uB/pub?gid=0&single=true&output=csv',
   estadoCitas:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vT8ABDr8Y5IC2dJDmBC85YtbvGWjdhs3iyLQjViKtz_u0IPqRGjM20QfPsDU_NFgidtDBGezjoGGAXV/pub?output=csv',
+  voz:          'https://docs.google.com/spreadsheets/d/e/2PACX-1vTvSLaszm5tO9Oi9OSkej4kxGc3NMFHl1--CB8z_PnfjHpwpa4G_up-aBPlmDjrjllzkhZprxMEDwi5/pub?output=csv',
+  vozAgendadas: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0l-UH1WGRH-bVtitKZLc61H-OXq0EjV4RuqeEht26JDA8xyi0xUbmozXXwHLA5B1zTiiuxr1WzTZV/pub?output=csv',
+  vozCanceladas:'https://docs.google.com/spreadsheets/d/e/2PACX-1vTApgkgug2zQVPknAo1Cc0QaD_sr3gNe7d2ORqk3zejN15101SZv_X8YKmU8NIINO5Tgy1rYGfDkwPR/pub?output=csv',
 };
 
 // ══════════════════════════════════════════════════════════════
 //  ESTADO GLOBAL
 // ══════════════════════════════════════════════════════════════
-let RAW = { hh: [], agendadas: [], canceladas: [], errores: [], humanos2026: [], estadoCitas: [] };
+let RAW = { hh: [], agendadas: [], canceladas: [], errores: [], humanos2026: [], estadoCitas: [], voz: [], vozAgendadas: [], vozCanceladas: [] };
 let CHARTS = {};
 
 // ══════════════════════════════════════════════════════════════
@@ -1657,7 +1795,7 @@ async function reloadData() {
   document.getElementById('loader').style.display = 'flex';
   document.getElementById('loader-msg').textContent = 'Cargando datos...';
   try {
-    const [hh1raw, hh2raw, agendadas, canceladas, errores, humanos2026raw, estadoCitasRaw] = await Promise.all([
+    const [hh1raw, hh2raw, agendadas, canceladas, errores, humanos2026raw, estadoCitasRaw, vozRaw, vozAgRaw, vozCanRaw] = await Promise.all([
       fetchCSV(SHEETS.hh),
       fetchCSV(SHEETS.hh2),
       fetchCSV(SHEETS.agendadas),
@@ -1665,6 +1803,9 @@ async function reloadData() {
       fetchCSV(SHEETS.errores),
       fetchCSV(SHEETS.humanos2026),
       fetchCSV(SHEETS.estadoCitas),
+      fetchCSV(SHEETS.voz),
+      fetchCSV(SHEETS.vozAgendadas),
+      fetchCSV(SHEETS.vozCanceladas),
     ]);
     // hh = sheet activo (tiene columna País)
     // hh2 = base histórica sin columna País — todas son Costa Rica
@@ -1749,9 +1890,48 @@ async function reloadData() {
       })
       .filter(r => r.anio && r.mesNum)
       .sort((a, b) => a.anio !== b.anio ? a.anio - b.anio : a.mesNum - b.mesNum);
+    // ── Normalizar datos de Voz ──
+    RAW.voz = vozRaw
+      .filter(r => Object.values(r).some(v => v && !isUndef(v)))
+      .map(r => {
+        const norm = {};
+        for (const k of Object.keys(r)) norm[k.trim().toLowerCase()] = r[k];
+        const fechaRaw = clean(norm['fecha'] || '');
+        const fecha = parseDate(fechaRaw);
+        const sentimiento = clean(norm['sentimiento'] || '').toUpperCase();
+        const transferida = isTruthy(norm['transferida'] || norm['transferido'] || '');
+        const estado = clean(norm['estado'] || '');
+        const tipoSolicitud = clean(norm['tipo de solicitud'] || norm['tipo_solicitud'] || '');
+        const motivoCierre = clean(norm['motivo de cierre'] || norm['motivo_cierre'] || '');
+        const pais = clean(norm['país'] || norm['pais'] || '');
+        const resumen = clean(norm['resumen'] || '');
+        const medico = clean(norm['médico solicitado'] || norm['medico solicitado'] || norm['medico'] || '');
+        return { fecha, sentimiento, transferida, estado, tipoSolicitud, motivoCierre, pais, resumen, medico };
+      })
+      .filter(r => r.fecha);
+
+    // ── Normalizar citas de Voz ──
+    function normVozCitas(raw) {
+      return raw
+        .filter(r => Object.values(r).some(v => v && String(v).trim()))
+        .map(r => {
+          const norm = {};
+          for (const k of Object.keys(r)) norm[k.trim().toLowerCase()] = String(r[k]).trim();
+          const fechaRaw = norm['fecha'] || '';
+          const fecha = parseDate(fechaRaw);
+          const pais = norm['país'] || norm['pais'] || norm['country'] || '';
+          const org = norm['org'] || '';
+          return { fecha, pais, org };
+        })
+        .filter(r => r.fecha);
+    }
+    RAW.vozAgendadas  = normVozCitas(vozAgRaw);
+    RAW.vozCanceladas = normVozCitas(vozCanRaw);
+
     document.getElementById('last-update').textContent =
       'Actualizado: ' + new Date().toLocaleTimeString('es-CR');
     renderAll();
+    renderVoz();
     resetCountdown();
   } catch(e) {
     console.error(e);
@@ -1781,6 +1961,265 @@ function resetCountdown() {
       reloadData();
     }
   }, 1000);
+}
+
+
+// ══════════════════════════════════════════════════════════════
+//  RENDER VOZ
+// ══════════════════════════════════════════════════════════════
+function filterVoz() {
+  const from = document.getElementById('f-from').value;
+  const to   = document.getElementById('f-to').value;
+  const pais = document.getElementById('f-pais').value;
+  return RAW.voz.filter(r => {
+    if (!r.fecha) return false;
+    const d = toYMD(r.fecha);
+    if (from && d < from) return false;
+    if (to   && d > to)   return false;
+    if (pais && r.pais && !r.pais.includes(pais.replace('HuliHealth_',''))) return false;
+    return true;
+  });
+}
+
+function renderVoz() {
+  const rows = filterVoz();
+  const total = rows.length;
+
+  // Clasificación por estado
+  const autogest = rows.filter(r => /autogest/i.test(r.estado)).length;
+  const transferidas = rows.filter(r => r.transferida || /transferid/i.test(r.estado)).length;
+  const inactividad = rows.filter(r => /inactividad/i.test(r.motivoCierre)).length;
+  const sinResolucion = rows.filter(r => /imposible|sin resoluci/i.test(r.estado)).length;
+
+  const pctAuto = total ? Math.round(autogest / total * 100) : 0;
+  const pctTransf = total ? Math.round(transferidas / total * 100) : 0;
+  const pctInac = total ? Math.round(inactividad / total * 100) : 0;
+  const pctSinRes = total ? Math.round(sinResolucion / total * 100) : 0;
+
+  // Sentimiento positivo
+  const positivos = rows.filter(r => r.sentimiento === 'POSITIVE').length;
+  const pctPos = total ? Math.round(positivos / total * 100) : 0;
+
+  // ── Hero ──
+  document.getElementById('voz-hero-resolucion').textContent = pctAuto + '%';
+  document.getElementById('voz-hero-total').textContent = total;
+  document.getElementById('voz-hero-transferidas').textContent = transferidas;
+  document.getElementById('voz-hero-positivo').textContent = pctPos + '%';
+
+  // ── Insight cards ──
+  document.getElementById('voz-insight-row').innerHTML = `
+    <div class="insight-card green">
+      <div class="insight-icon">✓</div>
+      <div class="insight-text">
+        <div class="it-label">Autogestión exitosa</div>
+        <div class="it-val">${autogest} <span style="font-size:14px;font-weight:600">(${pctAuto}%)</span></div>
+        <div class="it-desc">La llamada se resolvió de forma autónoma</div>
+      </div>
+    </div>
+    <div class="insight-card amber">
+      <div class="insight-icon">↗</div>
+      <div class="insight-text">
+        <div class="it-label">Derivadas a humano</div>
+        <div class="it-val">${transferidas} <span style="font-size:14px;font-weight:600">(${pctTransf}%)</span></div>
+        <div class="it-desc">Casos que requirieron intervención del equipo</div>
+      </div>
+    </div>
+    <div class="insight-card blue">
+      <div class="insight-icon">⏱</div>
+      <div class="insight-text">
+        <div class="it-label">Inactividad</div>
+        <div class="it-val">${inactividad} <span style="font-size:14px;font-weight:600">(${pctInac}%)</span></div>
+        <div class="it-desc">El paciente dejó de responder sin resolución</div>
+      </div>
+    </div>
+    <div class="insight-card red">
+      <div class="insight-icon">△</div>
+      <div class="insight-text">
+        <div class="it-label">Sin resolución</div>
+        <div class="it-val">${sinResolucion} <span style="font-size:14px;font-weight:600">(${pctSinRes}%)</span></div>
+        <div class="it-desc">Llamadas que no pudieron gestionarse</div>
+      </div>
+    </div>
+  `;
+
+  // ── KPI cards ──
+  document.getElementById('voz-kpi').innerHTML = `
+    <div class="kpi-card hh">
+      <div class="kpi-label">Total llamadas</div>
+      <div class="kpi-val" style="color:var(--hh)">${total}</div>
+      <div class="kpi-sub">Canal voz · período seleccionado</div>
+    </div>
+    <div class="kpi-card warn">
+      <div class="kpi-label">Derivadas a humano</div>
+      <div class="kpi-val" style="color:var(--warn)">${transferidas}</div>
+      <div class="kpi-sub">${pctTransf}% del total</div>
+    </div>
+    <div class="kpi-card" style="border-top-color:var(--inac)">
+      <div class="kpi-label">Inactividad</div>
+      <div class="kpi-val" style="color:var(--inac)">${inactividad}</div>
+      <div class="kpi-sub">${pctInac}% del total</div>
+    </div>
+    <div class="kpi-card err">
+      <div class="kpi-label">Sin resolución</div>
+      <div class="kpi-val" style="color:var(--err)">${sinResolucion}</div>
+      <div class="kpi-sub">${pctSinRes}% del total</div>
+    </div>
+  `;
+
+  // ── Gráfica: Resultado de las llamadas (donut) ──
+  const gestionData = [autogest, transferidas, sinResolucion];
+  const gestionLabels = [
+    'Resueltas (' + pctAuto + '%)',
+    'Derivadas a humano (' + pctTransf + '%)',
+    'Sin resolución (' + pctSinRes + '%)'
+  ];
+  makeDonut('ch-voz-gestion', gestionLabels, gestionData, ['#059669','#d97706','#dc2626']);
+
+  // ── Gráfica: Actividad diaria ──
+  const last30 = new Date(); last30.setDate(last30.getDate() - 29);
+  const days = [];
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(last30); d.setDate(last30.getDate() + i);
+    days.push(toYMD(d));
+  }
+  const countsByDay = {};
+  days.forEach(d => countsByDay[d] = 0);
+  rows.forEach(r => { const d = toYMD(r.fecha); if (countsByDay[d] !== undefined) countsByDay[d]++; });
+  const DIAS_VOZ = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const dayLabels = days.map(d => {
+    const dt = new Date(d + 'T12:00:00');
+    const dow = dt.getDay();
+    const prefix = (dow === 0 || dow === 6) ? '* ' : '';
+    return prefix + DIAS_VOZ[dow] + ' ' + d.slice(5);
+  });
+  makeLine('ch-voz-diario', dayLabels, [{ label: 'Llamadas por día', data: days.map(d => countsByDay[d]), borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,.08)', tension: .3, fill: true, pointRadius: 3, pointBackgroundColor: '#7c3aed' }]);
+
+  // ── Tipo de solicitud (donut) ──
+  const byTipo = {};
+  rows.forEach(r => { if (r.tipoSolicitud) byTipo[r.tipoSolicitud] = (byTipo[r.tipoSolicitud] || 0) + 1; });
+  const tipoEntries = Object.entries(byTipo).sort((a,b) => b[1]-a[1]);
+  makeDonut('ch-voz-solicitud', tipoEntries.map(e=>e[0]), tipoEntries.map(e=>e[1]), PALETTE);
+
+  // ── Resultado de la gestión (donut) ──
+  const byEstado = {};
+  rows.forEach(r => { if (r.estado) byEstado[r.estado] = (byEstado[r.estado] || 0) + 1; });
+  const estadoEntries = Object.entries(byEstado).sort((a,b) => b[1]-a[1]);
+  makeDonut('ch-voz-estatus', estadoEntries.map(e=>e[0]), estadoEntries.map(e=>e[1]), ['#059669','#d97706','#dc2626','#2563eb','#7c3aed','#64748b']);
+
+  // ── Sentimiento (donut) ──
+  const bySent = { POSITIVE: 0, NEUTRO: 0, NEGATIVO: 0 };
+  rows.forEach(r => {
+    const s = r.sentimiento;
+    if (s === 'POSITIVE') bySent.POSITIVE++;
+    else if (s === 'NEGATIVO' || s === 'NEGATIVE') bySent.NEGATIVO++;
+    else bySent.NEUTRO++;
+  });
+  makeDonut('ch-voz-sentimiento',
+    ['Positivo','Neutro','Negativo'],
+    [bySent.POSITIVE, bySent.NEUTRO, bySent.NEGATIVO],
+    ['#059669','#d97706','#dc2626']
+  );
+
+  // ── Top médicos (barras horizontales) ──
+  const byMedico = {};
+  rows.forEach(r => { if (r.medico) byMedico[r.medico] = (byMedico[r.medico] || 0) + 1; });
+  const medicosSort = Object.entries(byMedico).sort((a,b) => b[1]-a[1]).slice(0,10);
+  if (medicosSort.length) {
+    makeBar('ch-voz-medicos', medicosSort.map(e=>e[0]), [
+      { label: 'Solicitudes', data: medicosSort.map(e=>e[1]), backgroundColor: '#7c3aed' }
+    ], { legend: false, horizontal: true });
+  }
+
+  // ── Citas: filtrar por mismo rango de fechas ──
+  const fromVal = document.getElementById('f-from').value;
+  const toVal   = document.getElementById('f-to').value;
+  const paisVal = document.getElementById('f-pais').value;
+
+  function filterVozCitas(arr) {
+    return arr.filter(r => {
+      if (!r.fecha) return false;
+      const d = toYMD(r.fecha);
+      if (fromVal && d < fromVal) return false;
+      if (toVal   && d > toVal)   return false;
+      if (paisVal && r.pais && !r.pais.includes(paisVal.replace('HuliHealth_',''))) return false;
+      return true;
+    });
+  }
+
+  const agCitas  = filterVozCitas(RAW.vozAgendadas);
+  const canCitas = filterVozCitas(RAW.vozCanceladas);
+  const totalAg  = agCitas.length;
+  const totalCan = canCitas.length;
+  const pctCan   = (totalAg + totalCan) ? Math.round(totalCan / (totalAg + totalCan) * 100) : 0;
+
+  // KPI cards de citas
+  document.getElementById('voz-kpi-citas').innerHTML = `
+    <div class="kpi-card hh" style="border-top-color:#7c3aed">
+      <div class="kpi-label">Citas agendadas — Voz</div>
+      <div class="kpi-val" style="color:#7c3aed">${totalAg}</div>
+      <div class="kpi-sub">Canal voz · período seleccionado</div>
+    </div>
+    <div class="kpi-card warn">
+      <div class="kpi-label">Citas canceladas — Voz</div>
+      <div class="kpi-val" style="color:var(--warn)">${totalCan}</div>
+      <div class="kpi-sub">${pctCan}% del total</div>
+    </div>
+    <div class="kpi-card" style="border-top-color:#059669">
+      <div class="kpi-label">Tasa de agendamiento</div>
+      <div class="kpi-val" style="color:#059669">${(totalAg + totalCan) ? (100 - pctCan) : 0}%</div>
+      <div class="kpi-sub">Citas confirmadas vs total intentos</div>
+    </div>
+    <div class="kpi-card" style="border-top-color:#2563eb">
+      <div class="kpi-label">Total intentos de cita</div>
+      <div class="kpi-val" style="color:#2563eb">${totalAg + totalCan}</div>
+      <div class="kpi-sub">Agendadas + canceladas</div>
+    </div>
+  `;
+
+  // Gráfica: Agendadas vs Canceladas (barras)
+  makeBar('ch-voz-citas-estado', ['Agendadas', 'Canceladas'], [
+    { label: 'Citas', data: [totalAg, totalCan],
+      backgroundColor: ['#7c3aed', '#d97706'], borderRadius: 6 }
+  ], { legend: false });
+
+  // Gráfica: Agendadas por país (donut)
+  const byPaisAg = {};
+  agCitas.forEach(r => {
+    const p = r.pais.replace('HuliHealth_','') || 'Desconocido';
+    byPaisAg[p] = (byPaisAg[p] || 0) + 1;
+  });
+  const paisEntries = Object.entries(byPaisAg).sort((a,b) => b[1]-a[1]);
+  if (paisEntries.length) {
+    makeDonut('ch-voz-citas-pais',
+      paisEntries.map(e => e[0]),
+      paisEntries.map(e => e[1]),
+      ['#7c3aed','#059669','#f59e0b','#2563eb']
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CHANNEL TOGGLE (Texto / Voz)
+// ══════════════════════════════════════════════════════════════
+function setChannel(ch) {
+  const isTexto = ch === 'texto';
+
+  // Toggle buttons
+  document.getElementById('btn-texto').classList.toggle('active', isTexto);
+  document.getElementById('btn-texto').classList.toggle('texto',  isTexto);
+  document.getElementById('btn-voz').classList.toggle('active',  !isTexto);
+  document.getElementById('btn-voz').classList.toggle('voz',     !isTexto);
+
+  // Show / hide sections
+  document.getElementById('sec-hh').style.display  = isTexto ? '' : 'none';
+  document.getElementById('sec-voz').style.display = isTexto ? 'none' : 'block';
+
+  // Filters visible for both channels
+  const filterEls = document.querySelectorAll('.quick-dates, .filter-group, #btn-refresh');
+  filterEls.forEach(el => el.style.visibility = 'visible');
+
+  // Render the active channel
+  if (!isTexto && RAW.voz.length) renderVoz();
 }
 
 // ══════════════════════════════════════════════════════════════
