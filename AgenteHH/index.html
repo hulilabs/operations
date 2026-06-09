@@ -1969,16 +1969,25 @@ function resetCountdown() {
 // ══════════════════════════════════════════════════════════════
 //  RENDER VOZ
 // ══════════════════════════════════════════════════════════════
+// Normaliza cualquier variante de país a 'costarica' o 'panama'
+function normPais(str) {
+  const s = (str || '').toLowerCase().replace(/[_\s\-]/g, '');
+  if (s.includes('costarica') || s.includes('cr')) return 'costarica';
+  if (s.includes('panama') || s.includes('panam')) return 'panama';
+  return s;
+}
+
 function filterVoz() {
   const from = document.getElementById('f-from').value;
   const to   = document.getElementById('f-to').value;
   const pais = document.getElementById('f-pais').value;
+  const paisNorm = normPais(pais);
   return RAW.voz.filter(r => {
     if (!r.fecha) return false;
     const d = toYMD(r.fecha);
     if (from && d < from) return false;
     if (to   && d > to)   return false;
-    if (pais && r.pais && !r.pais.includes(pais.replace('HuliHealth_',''))) return false;
+    if (pais && normPais(r.pais) !== paisNorm) return false;
     return true;
   });
 }
@@ -2115,13 +2124,14 @@ function renderVoz() {
   const toVal   = document.getElementById('f-to').value;
   const paisVal = document.getElementById('f-pais').value;
 
+  const paisValNorm = normPais(paisVal);
   function filterVozCitas(arr) {
     return arr.filter(r => {
       if (!r.fecha) return false;
       const d = toYMD(r.fecha);
       if (fromVal && d < fromVal) return false;
       if (toVal   && d > toVal)   return false;
-      if (paisVal && r.pais && !r.pais.includes(paisVal.replace('HuliHealth_',''))) return false;
+      if (paisVal && normPais(r.pais) !== paisValNorm) return false;
       return true;
     });
   }
