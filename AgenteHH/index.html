@@ -592,9 +592,6 @@ body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; background: var(--bg
         </div>
       </div>
 
-      <!-- Citas Voz -->
-      <div class="kpi-grid" id="voz-kpi-citas"></div>
-
       <div class="chart-row cols-2">
         <div class="chart-card">
           <h3>Citas Voz — Agendadas · Canceladas</h3>
@@ -2042,29 +2039,7 @@ function renderVoz() {
     </div>
   `;
 
-  // ── KPI cards ──
-  document.getElementById('voz-kpi').innerHTML = `
-    <div class="kpi-card hh">
-      <div class="kpi-label">Total llamadas</div>
-      <div class="kpi-val" style="color:var(--hh)">${total}</div>
-      <div class="kpi-sub">Canal voz · período seleccionado</div>
-    </div>
-    <div class="kpi-card warn">
-      <div class="kpi-label">Derivadas a humano</div>
-      <div class="kpi-val" style="color:var(--warn)">${transferidas}</div>
-      <div class="kpi-sub">${pctTransf}% del total</div>
-    </div>
-    <div class="kpi-card" style="border-top-color:var(--inac)">
-      <div class="kpi-label">Inactividad</div>
-      <div class="kpi-val" style="color:var(--inac)">${inactividad}</div>
-      <div class="kpi-sub">${pctInac}% del total</div>
-    </div>
-    <div class="kpi-card err">
-      <div class="kpi-label">Sin resolución</div>
-      <div class="kpi-val" style="color:var(--err)">${sinResolucion}</div>
-      <div class="kpi-sub">${pctSinRes}% del total</div>
-    </div>
-  `;
+  // ── (KPI cards se renderizan junto con citas, más abajo) ──
 
   // ── Gráfica: Resultado de las llamadas (donut) ──
   const gestionData = [autogest, transferidas, sinResolucion];
@@ -2152,9 +2127,29 @@ function renderVoz() {
   const totalCan = canCitas.length;
   const pctCan   = (totalAg + totalCan) ? Math.round(totalCan / (totalAg + totalCan) * 100) : 0;
 
-  // KPI cards de citas
-  document.getElementById('voz-kpi-citas').innerHTML = `
-    <div class="kpi-card hh" style="border-top-color:#7c3aed">
+  // ── KPI cards unificadas (conversaciones + citas) ──
+  document.getElementById('voz-kpi').innerHTML = `
+    <div class="kpi-card hh">
+      <div class="kpi-label">Total llamadas</div>
+      <div class="kpi-val" style="color:var(--hh)">${total}</div>
+      <div class="kpi-sub">Canal voz · período seleccionado</div>
+    </div>
+    <div class="kpi-card warn">
+      <div class="kpi-label">Derivadas a humano</div>
+      <div class="kpi-val" style="color:var(--warn)">${transferidas}</div>
+      <div class="kpi-sub">${pctTransf}% del total</div>
+    </div>
+    <div class="kpi-card" style="border-top-color:var(--inac)">
+      <div class="kpi-label">Inactividad</div>
+      <div class="kpi-val" style="color:var(--inac)">${inactividad}</div>
+      <div class="kpi-sub">${pctInac}% del total</div>
+    </div>
+    <div class="kpi-card err">
+      <div class="kpi-label">Sin resolución</div>
+      <div class="kpi-val" style="color:var(--err)">${sinResolucion}</div>
+      <div class="kpi-sub">${pctSinRes}% del total</div>
+    </div>
+    <div class="kpi-card" style="border-top-color:#7c3aed">
       <div class="kpi-label">Citas agendadas — Voz</div>
       <div class="kpi-val" style="color:#7c3aed">${totalAg}</div>
       <div class="kpi-sub">Canal voz · período seleccionado</div>
