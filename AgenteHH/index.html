@@ -1483,6 +1483,11 @@ function renderTendencias() {
 //  RENDER
 // ══════════════════════════════════════════════════════════════
 function renderAll() {
+  // Si el canal activo es Voz, re-renderizar Voz también
+  if (document.getElementById('btn-voz') && document.getElementById('btn-voz').classList.contains('active')) {
+    setTimeout(() => renderVoz(), 0);
+    return;
+  }
   const hh          = filterHH(RAW.hh);
   const total       = hh.length;
   const resueltas     = hh.filter(isResuelta).length;
